@@ -1,0 +1,327 @@
+import type { AgentExecution } from "../../../pipeline/execution/port/agent-execution.js";
+import { CHECKPOINT_STATUSES } from "../../checkpoint/checkpoint-status.js";
+import { CheckpointStoreError } from "../../checkpoint/store/checkpoint-store-error.js";
+import { type ConsumeInterruptResult } from "../../checkpoint/store/port/checkpoint-store.js";
+import type {
+  AgentRequest,
+  ResumeRequest,
+} from "../../../runtime/run/model/runtime-request.js";
+import type { RuntimeResult } from "../../../runtime/run/result/runtime-result.js";
+import {
+  emptyRuntimeCheckpoint as emptyCheckpoint,
+  runtimeResultFromCheckpoint as resultFromCheckpoint,
+  runtimeResultFromRecord as resultFromRecord,
+} from "../../../runtime/run/result/runtime-result-mapper.js";
+import {
+  RUN_KINDS,
+  runWithMiddleware,
+  type PluginRegistry,
+  type RunMiddleware,
+} from "../../../runtime/plugin/runtime-plugin.js";
+import type { RuntimeLifecycle } from "../../lifecycle/port/runtime-lifecycle.js";
+import type { ResumeReceiptStore } from "../../resume-receipt/port/resume-receipt-store.js";
+import type { ThreadExecutionCoordinator } from "../../thread-execution/port/thread-execution-coordinator.js";
+import type { RuntimeRunService } from "../port/runtime-run-service.js";
+import type { RuntimeConfiguration } from "../model/runtime-configuration.js";
+import type { RuntimeRunDependencies } from "./runtime-run-dependencies.js";
+import {
+  validateResumeRequest,
+  validateRunRequest,
+} from "../request/runtime-request-validator.js";
+import { executeRuntimeAgent } from "./runtime-agent-execution.js";
+import {
+  consumeResumeCheckpoint,
+  loadRunCheckpoint,
+} from "./runtime-checkpoint-session.js";
+import {
+  replayStatelessResume,
+  resultForConsumedResume,
+} from "./runtime-resume-replay.js";
+import {
+  RuntimeExecutionError,
+  failRuntimeExecution as executionFailure,
+  failedRuntimeResult,
+  normalizeRuntimeError as normalizeError,
+} from "../error/runtime-execution-error.js";
+
+/** 面向 SDK 消费方的高层门面，负责组装并执行一次完整 model-tool 循环。 */
+export class DefaultRuntimeRunService implements RuntimeRunService {
+  readonly #config: RuntimeConfiguration;
+  readonly #plugins: PluginRegistry;
+  readonly #runMiddleware: readonly RunMiddleware[];
+  readonly #lifecycle: RuntimeLifecycle;
+  readonly #threadExecution: ThreadExecutionCoordinator;
+  readonly #resumeReceipts: ResumeReceiptStore;
+  readonly #execution: AgentExecution;
+
+  public constructor(dependencies: RuntimeRunDependencies) {
+    this.#lifecycle = dependencies.lifecycle;
+    this.#threadExecution = dependencies.threadExecution;
+    this.#resumeReceipts = dependencies.resumeReceipts;
+    this.#config = dependencies.configuration;
+    this.#plugins = dependencies.plugins;
+    this.#runMiddleware = dependencies.runMiddleware;
+    this.#execution = dependencies.execution;
+  }
+
+  /**
+   * 执行一次新的 Agent 运行（run 路径），返回终态 RuntimeResult。
+   * 失败语义：生命周期拒绝启动（如运行并发预算耗尽）时返回携带错误信息的失败结果，
+   * 不向上抛异常；所有路径（含取消/异常）都在 finally 结束本次运行记账。
+   */
+  public async run(
+    request: AgentRequest,
+    signal: AbortSignal,
+  ): Promise<RuntimeResult> {
+    let endRun: () => void;
+    try {
+      endRun = this.#lifecycle.beginRun();
+    } catch (cause: unknown) {
+      const result = this.#failedResult(
+        request.threadId ?? "",
+        request.userId ?? "",
+      );
+      return executionFailure(result, normalizeError(cause).message, cause);
+    }
+    try {
+      return await runWithMiddleware(
+        {
+          kind: RUN_KINDS.RUN,
+          threadId: request.threadId ?? "",
+          userId: request.userId ?? "",
+          requestId: request.requestId ?? "",
+          traceId: request.traceId ?? "",
+        },
+        this.#runMiddleware,
+        (nextSignal: AbortSignal): Promise<RuntimeResult> =>
+          this.#runRequest(request, nextSignal),
+        signal,
+      );
+    } finally {
+      endRun();
+    }
+  }
+
+  /**
+   * 恢复一次中断的 Agent 运行（resume 路径）：回答 interrupt 并继续执行。
+   * 失败语义同 run；无 Store 模式由进程内 receipt 保证同一恢复请求幂等回放。
+   */
+  public async resume(
+    request: ResumeRequest,
+    signal: AbortSignal,
+  ): Promise<RuntimeResult> {
+    let endRun: () => void;
+    try {
+      endRun = this.#lifecycle.beginRun();
+    } catch (cause: unknown) {
+      const result = this.#failedResult(
+        request.threadId ?? request.state?.threadId ?? "",
+        request.userId ?? request.state?.userId ?? "",
+      );
+      return executionFailure(result, normalizeError(cause).message, cause);
+    }
+    try {
+      return await runWithMiddleware(
+        {
+          kind: RUN_KINDS.RESUME,
+          threadId: request.threadId ?? request.state?.threadId ?? "",
+          userId: request.userId ?? "",
+          requestId: request.requestId ?? "",
+          traceId: request.traceId ?? "",
+        },
+        this.#runMiddleware,
+        (nextSignal: AbortSignal): Promise<RuntimeResult> =>
+          this.#resumeRequest(request, nextSignal),
+        signal,
+      );
+    } finally {
+      endRun();
+    }
+  }
+
+  public async close(signal: AbortSignal): Promise<void> {
+    await this.#lifecycle.close(() => this.#plugins.close(signal), signal);
+  }
+
+  async #runRequest(
+    request: AgentRequest,
+    signal: AbortSignal,
+  ): Promise<RuntimeResult> {
+    // 阶段一：在获取 thread 锁前拒绝互斥输入，避免无效请求进入状态机。
+    const store = this.#config.store;
+    const validated = validateRunRequest(request, store !== undefined);
+    const { threadId, userId, fencingToken, messages } = validated;
+
+    let release: () => void;
+    try {
+      release = await this.#threadExecution.acquire(threadId, signal);
+    } catch (value: unknown) {
+      const error = normalizeError(value);
+      const result = resultFromCheckpoint(
+        emptyCheckpoint(
+          threadId,
+          userId,
+          signal.aborted
+            ? CHECKPOINT_STATUSES.CANCELLED
+            : CHECKPOINT_STATUSES.FAILED,
+          messages,
+        ),
+      );
+      return executionFailure(result, error.message, value);
+    }
+    try {
+      // 阶段二：从调用方 state 或 Store 建立唯一执行起点。
+      const loaded = await loadRunCheckpoint(store, request, signal);
+      if (loaded.terminalResult) return loaded.terminalResult;
+
+      // 阶段三：执行 ReAct，并由执行协调器统一生成、保存最终 Checkpoint。
+      return await executeRuntimeAgent(
+        {
+          execution: this.#execution,
+          store: this.#config.store,
+          eventSink: this.#config.eventSink,
+          eventPolicy: this.#config.eventPolicy,
+        },
+        {
+          threadId,
+          userId: loaded.userId,
+          requestId: request.requestId ?? "",
+          traceId: request.traceId ?? "",
+          history: loaded.history,
+          messages,
+          contentRefs: loaded.contentRefs,
+          lastResumeInterrupt: loaded.lastResumeInterrupt,
+          checkpointRevision: loaded.revision,
+          fencingToken,
+          claimRequestId: "",
+        },
+        signal,
+      );
+    } finally {
+      release();
+    }
+  }
+
+  async #resumeRequest(
+    request: ResumeRequest,
+    signal: AbortSignal,
+  ): Promise<RuntimeResult> {
+    // 阶段一：先确定恢复身份和 Store 约束，再进入同 thread 串行区。
+    const store = this.#config.store;
+    const validated = validateResumeRequest(request, store !== undefined);
+    const { threadId, fencingToken } = validated;
+
+    let release: () => void;
+    try {
+      release = await this.#threadExecution.acquire(threadId, signal);
+    } catch (value: unknown) {
+      const error = normalizeError(value);
+      const messages = request.state?.messages ?? [];
+      const result = resultFromCheckpoint(
+        emptyCheckpoint(
+          threadId,
+          request.userId ?? request.state?.userId ?? "",
+          signal.aborted
+            ? CHECKPOINT_STATUSES.CANCELLED
+            : CHECKPOINT_STATUSES.FAILED,
+          messages,
+        ),
+      );
+      return executionFailure(result, error.message, value);
+    }
+    try {
+      // 无 Store 模式由进程内 receipt 保证同一恢复请求幂等回放。
+      if (!store) {
+        const replay = replayStatelessResume(
+          this.#resumeReceipts,
+          threadId,
+          request,
+        );
+        if (replay) return replay;
+      }
+
+      let consumed: ConsumeInterruptResult;
+      try {
+        // Store 模式在模型执行前原子领取 interrupt；失败不会产生第二次模型调用。
+        consumed = await consumeResumeCheckpoint(
+          store,
+          threadId,
+          request,
+          signal,
+        );
+      } catch (value: unknown) {
+        const error = normalizeError(value);
+        const result =
+          value instanceof CheckpointStoreError && value.record
+            ? resultFromRecord(value.record)
+            : this.#failedResult(threadId, request.userId ?? "");
+        return executionFailure(result, error.message, value);
+      }
+      const consumedResult = resultForConsumedResume(consumed);
+      if (consumedResult) return consumedResult;
+      const checkpoint = consumed.record.checkpoint;
+      // 原子领取返回的 claim 必须与本次请求完全匹配（requestId + interruptId）：
+      // Store 实现若返回陈旧/错配的领取，宁可失败也不消费，避免答非所问。
+      if (
+        !checkpoint.resumeClaim ||
+        checkpoint.resumeClaim.requestId !== (request.requestId ?? "") ||
+        checkpoint.resumeClaim.interruptId !== request.interruptId
+      ) {
+        return executionFailure(
+          this.#failedResult(threadId, request.userId ?? ""),
+          "checkpoint store returned an invalid resume claim",
+          new Error("invalid checkpoint store response"),
+        );
+      }
+
+      // claim 成功后补入 tool 响应，再复用与 run 完全相同的执行与保存路径。
+      const resultPromise = executeRuntimeAgent(
+        {
+          execution: this.#execution,
+          store: this.#config.store,
+          eventSink: this.#config.eventSink,
+          eventPolicy: this.#config.eventPolicy,
+        },
+        {
+          threadId: checkpoint.threadId,
+          userId: request.userId ?? checkpoint.userId,
+          requestId: request.requestId ?? "",
+          traceId: request.traceId ?? "",
+          history: checkpoint.messages,
+          messages: [
+            {
+              role: "tool",
+              content: checkpoint.resumeClaim.response,
+              toolCallId: request.interruptId,
+            },
+          ],
+          contentRefs: checkpoint.contentRefs,
+          lastResumeInterrupt: request.interruptId,
+          checkpointRevision: consumed.record.revision,
+          fencingToken,
+          claimRequestId: request.requestId ?? "",
+        },
+        signal,
+      );
+      try {
+        const result = await resultPromise;
+        // 无 Store 模式：无论结果还是失败都落 receipt——重试同一恢复请求直接回放，
+        // 避免工具重复执行。
+        if (!store)
+          this.#resumeReceipts.save(threadId, request, result, undefined);
+        return result;
+      } catch (value: unknown) {
+        if (!store && value instanceof RuntimeExecutionError) {
+          this.#resumeReceipts.save(threadId, request, value.result, value);
+        }
+        throw value;
+      }
+    } finally {
+      release();
+    }
+  }
+
+  #failedResult(threadId: string, userId: string): RuntimeResult {
+    return failedRuntimeResult(threadId, userId);
+  }
+}

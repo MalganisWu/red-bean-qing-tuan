@@ -1,0 +1,32 @@
+import type { JsonObject, JsonValue } from "./json.js";
+
+export const SIGNAL_KINDS = Object.freeze({
+  INTERRUPT: "interrupt",
+} as const);
+
+/** 工具控制信号的稳定判别值。 */
+export type SignalKind = (typeof SIGNAL_KINDS)[keyof typeof SIGNAL_KINDS];
+
+/** 工具向 Runtime 返回的控制信号；payload 必须属于 JSON 值域。 */
+export interface Signal {
+  readonly kind: SignalKind;
+  readonly payload: JsonValue;
+}
+
+/** 可持久化并由宿主恢复的结构化中断，不依赖具体工具名。 */
+export interface Interrupt {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly arguments: JsonValue;
+  readonly payload: JsonValue;
+}
+
+/** 将中性 Interrupt 转换为稳定 JSON，不引入 Checkpoint 或宿主语义。 */
+export function serializeInterrupt(interrupt: Interrupt): JsonObject {
+  return {
+    tool_call_id: interrupt.toolCallId,
+    tool_name: interrupt.toolName,
+    arguments: interrupt.arguments,
+    payload: interrupt.payload,
+  };
+}
