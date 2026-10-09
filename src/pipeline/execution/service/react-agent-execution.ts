@@ -1,0 +1,201 @@
+import type { RuntimeConfig } from "../../config/runtime-config.js";
+import type { LlmAdapter } from "../../../llm/adapter/port/llm-adapter.js";
+import type { ModelParams } from "../../../llm/model/model.js";
+import {
+  AGENT_RESULT_METADATA_KEY,
+  AGENT_RESULT_REASONS,
+  TOKENS_USED_METADATA_KEY,
+  type AgentResultReason,
+} from "../agent-result.js";
+import type { RuntimeContext } from "../../context/runtime-context.js";
+import type { AgentExecution } from "../port/agent-execution.js";
+import { ReactAgentExecutionError } from "../agent-execution-error.js";
+export { ReactAgentExecutionError } from "../agent-execution-error.js";
+import { isHookFatalError } from "../../hook/hook-error.js";
+import type { MessageHook } from "../../hook/port/message-hook.js";
+import type { InterruptAssembler } from "../../interrupt/port/interrupt-assembler.js";
+import type { RawMessage } from "../../../protocol/message.js";
+import type { ToolSchema } from "../../../protocol/tool-schema.js";
+import type { ToolDispatcher } from "../../../tool/dispatcher/port/tool-dispatcher.js";
+import {
+  ReactLoopError,
+  runReactLoop,
+  type MessageObserver,
+  type ReactResult,
+} from "../../react-loop/react-loop.js";
+
+/** 统一 Agent 执行组件的依赖集合；所有依赖均由高层 Runtime 或 AgentNode 显式注入。 */
+export interface ReactAgentExecutionOptions {
+  readonly adapter: LlmAdapter;
+  readonly dispatcher: ToolDispatcher;
+  readonly tools: readonly ToolSchema[];
+  readonly hook?: MessageHook | undefined;
+  readonly systemPrompt: string;
+  readonly modelParams: ModelParams;
+  readonly config: RuntimeConfig;
+  readonly interruptAssembler?: InterruptAssembler | undefined;
+}
+
+/**
+ * 高层 AgentRuntime 与低层 AgentNode 共用的唯一 ReAct 执行组件。
+ * 它只协调中性 RuntimeContext、消息 Hook 与 interrupt，不负责 checkpoint 或宿主持久化。
+ */
+export class ReactAgentExecution implements AgentExecution {
+  readonly #options: ReactAgentExecutionOptions;
+
+  public constructor(options: ReactAgentExecutionOptions) {
+    this.#options = options;
+  }
+
+  public async execute(
+    context: RuntimeContext,
+    signal: AbortSignal,
+  ): Promise<ReactResult> {
+    let result: ReactResult | undefined;
+    let success = true;
+    let reason: AgentResultReason = AGENT_RESULT_REASONS.COMPLETED;
+    let tokensUsed = 0;
+
+    try {
+      const observer = this.#options.hook
+        ? messageObserver(context, this.#options.hook, signal)
+        : undefined;
+      if (observer) {
+        for (const message of context.messages) await observer(message);
+      }
+      if (signal.aborted) {
+        success = false;
+        reason = AGENT_RESULT_REASONS.CANCELLED;
+        throw abortError(signal);
+      }
+
+      try {
+        result = await runReactLoop({
+          context,
+          adapter: this.#options.adapter,
+          dispatcher: this.#options.dispatcher,
+          tools: this.#options.tools,
+          onMessage: observer,
+          systemPrompt: this.#options.systemPrompt,
+          modelParams: this.#options.modelParams,
+          config: this.#options.config,
+          signal,
+        });
+      } catch (value: unknown) {
+        const error = normalizeError(value);
+        const partial =
+          value instanceof ReactLoopError ? value.result : undefined;
+        if (partial && partial.llmContext.length > 0)
+          context.llmContext = [...partial.llmContext];
+        tokensUsed = partial?.tokensUsed ?? 0;
+        success = false;
+        reason = reasonForError(error, partial, signal);
+        throw new ReactAgentExecutionError(
+          `ReAct loop failed: ${error.message}`,
+          partial,
+          value,
+        );
+      }
+
+      context.llmContext = [...result.llmContext];
+      tokensUsed = result.tokensUsed;
+      if (result.cancelled) {
+        success = false;
+        reason = AGENT_RESULT_REASONS.CANCELLED;
+      } else if (result.interrupt) {
+        if (this.#options.interruptAssembler) {
+          try {
+            await this.#options.interruptAssembler.assemble(
+              context,
+              result.interrupt,
+            );
+          } catch (value: unknown) {
+            success = false;
+            reason = AGENT_RESULT_REASONS.LLM_ERROR;
+            throw new ReactAgentExecutionError(
+              `assemble interrupt failed: ${normalizeError(value).message}`,
+              result,
+              value,
+            );
+          }
+        }
+        reason = AGENT_RESULT_REASONS.AWAITING_USER;
+      } else if (result.stopReason !== "") {
+        success = false;
+        reason = AGENT_RESULT_REASONS.MAX_ITERATIONS;
+      }
+      return result;
+    } catch (value: unknown) {
+      if (isHookFatalErrorChain(value)) {
+        success = false;
+        reason = AGENT_RESULT_REASONS.HOOK_FATAL;
+      }
+      throw value;
+    } finally {
+      context.metadata.set(AGENT_RESULT_METADATA_KEY, { success, reason });
+      context.metadata.set(TOKENS_USED_METADATA_KEY, tokensUsed);
+    }
+  }
+}
+
+function messageObserver(
+  context: RuntimeContext,
+  hook: MessageHook,
+  signal: AbortSignal,
+): MessageObserver {
+  return async (message: RawMessage): Promise<void> => {
+    await runHook(async (): Promise<void> => {
+      switch (message.role) {
+        case "user":
+          await hook.onUserMessage(context, message, signal);
+          return;
+        case "assistant":
+          await hook.onAssistantMessage(context, message, signal);
+          return;
+        case "tool":
+          await hook.onToolMessage(context, message, signal);
+      }
+    });
+  };
+}
+
+async function runHook(operation: () => Promise<void>): Promise<void> {
+  try {
+    await operation();
+  } catch (value: unknown) {
+    if (isHookFatalError(value)) throw value;
+  }
+}
+
+function reasonForError(
+  error: Error,
+  result: ReactResult | undefined,
+  signal: AbortSignal,
+): AgentResultReason {
+  if (result?.cancelled === true || signal.aborted)
+    return AGENT_RESULT_REASONS.CANCELLED;
+  if (isHookFatalErrorChain(error)) return AGENT_RESULT_REASONS.HOOK_FATAL;
+  return AGENT_RESULT_REASONS.LLM_ERROR;
+}
+
+function isHookFatalErrorChain(value: unknown): boolean {
+  let current: unknown = value;
+  const visited = new Set<unknown>();
+  while (current instanceof Error && !visited.has(current)) {
+    const cause: unknown = current.cause;
+    if (isHookFatalError(current)) return true;
+    visited.add(current);
+    current = cause;
+  }
+  return false;
+}
+
+function abortError(signal: AbortSignal): Error {
+  return signal.reason instanceof Error
+    ? signal.reason
+    : new DOMException("operation aborted", "AbortError");
+}
+
+function normalizeError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
+}
