@@ -1,0 +1,57 @@
+{
+  "raw_message": {
+    "role": "assistant",
+    "content": "hello",
+    "tool_calls": [
+      {
+        "id": "call-1",
+        "type": "function",
+        "function": {
+          "name": "sys_ask_user",
+          "arguments": "{\"questions\":[\"继续吗？\"]}"
+        }
+      }
+    ]
+  },
+  "status_event": {
+    "code": "llm_retry",
+    "attempt": 2,
+    "max_attempts": 11
+  },
+  "tool_schema": {
+    "type": "function",
+    "function": {
+      "name": "sys_ask_user",
+      "description": "向用户提问",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  },
+  "content_ref": {
+    "kind": "object",
+    "key": "docs/1",
+    "version": "v2",
+    "meta": {
+      "bucket": "agent"
+    },
+    "timestamp": 1788480000
+  },
+  "model_params": {
+    "temperature": 0,
+    "max_tokens": 0,
+    "context_window": 128000,
+    "thinking": false
+  },
+  "interrupt": {
+    "tool_call_id": "call-1",
+    "tool_name": "sys_ask_user",
+    "arguments": {
+      "questions": ["继续吗？"]
+    },
+    "payload": {
+      "kind": "ask"
+    }
+  }
+}

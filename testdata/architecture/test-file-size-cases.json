@@ -1,0 +1,12 @@
+[
+  {
+    "name": "400 行测试文件不产生 warning",
+    "lines": 400,
+    "warned": false
+  },
+  {
+    "name": "401 行测试文件产生 warning",
+    "lines": 401,
+    "warned": true
+  }
+]

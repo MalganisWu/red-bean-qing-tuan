@@ -1,0 +1,73 @@
+[
+  {
+    "name": "同能力实现直接引用 Port 允许通过",
+    "valid": true,
+    "file": "pipeline/compression/service/default-context-compressor.ts",
+    "source": "import type { ContextCompressor } from '../port/context-compression.js';\nexport class DefaultContextCompressor implements ContextCompressor {}\n",
+    "dependencies": {
+      "pipeline/compression/port/context-compression.ts": "export interface ContextCompressor {}\n"
+    }
+  },
+  {
+    "name": "别名经过 public-api 多级转发仍解析到真实 Port",
+    "valid": true,
+    "file": "pipeline/compression/service/default-context-compressor.ts",
+    "source": "import type { CompressionContract } from '../public-api.js';\nexport class DefaultContextCompressor implements CompressionContract {}\n",
+    "dependencies": {
+      "pipeline/compression/public-api.ts": "export type { PublicCompressor as CompressionContract } from './contracts.js';\n",
+      "pipeline/compression/contracts.ts": "export type { ContextCompressor as PublicCompressor } from './port/context-compression.js';\n",
+      "pipeline/compression/port/context-compression.ts": "export interface ContextCompressor {}\n"
+    }
+  },
+  {
+    "name": "同职责词但引用不同 Port 必须失败",
+    "valid": false,
+    "file": "pipeline/compression/service/default-context-compressor.ts",
+    "source": "import type { ContextCompressor } from '../../other/port/context-compressor.js';\nexport class DefaultContextCompressor implements ContextCompressor {}\n",
+    "dependencies": {
+      "pipeline/other/port/context-compressor.ts": "export interface ContextCompressor {}\n"
+    }
+  },
+  {
+    "name": "未被 new 的生产类即使同角色后缀但来自不同能力也必须失败",
+    "valid": false,
+    "file": "pipeline/compression/service/default-context-compressor.ts",
+    "source": "import type { OtherCompressor } from '../../other/port/other-compressor.js';\nexport class DefaultContextCompressor implements OtherCompressor {}\n",
+    "dependencies": {
+      "pipeline/other/port/other-compressor.ts": "export interface OtherCompressor {}\n"
+    }
+  },
+  {
+    "name": "实现无关能力接口必须失败",
+    "valid": false,
+    "file": "pipeline/compression/service/default-context-compressor.ts",
+    "source": "import type { MessageHook } from '../../hook/port/message-hook.js';\nexport class DefaultContextCompressor implements MessageHook {}\n",
+    "dependencies": {
+      "pipeline/hook/port/message-hook.ts": "export interface MessageHook {}\n"
+    }
+  },
+  {
+    "name": "类型别名不能冒充真实接口",
+    "valid": false,
+    "file": "pipeline/compression/service/default-context-compressor.ts",
+    "source": "import type { ContextCompressor } from '../port/context-compression.js';\nexport class DefaultContextCompressor implements ContextCompressor {}\n",
+    "dependencies": {
+      "pipeline/compression/port/context-compression.ts": "export type ContextCompressor = object;\n"
+    }
+  },
+  {
+    "name": "composition 中无法追溯到接口的生产绑定必须失败",
+    "valid": false,
+    "file": "runtime/runtime-composition.ts",
+    "source": "import { LooseService } from './run/service/loose-service.js';\nexport function create(): object { return new LooseService(); }\n",
+    "dependencies": {
+      "runtime/run/service/loose-service.ts": "export class LooseService {}\n"
+    }
+  },
+  {
+    "name": "未被 composition 构造的生产类缺少 implements 也必须失败",
+    "valid": false,
+    "file": "pipeline/compression/service/orphan-compressor.ts",
+    "source": "export class OrphanCompressor {}\n"
+  }
+]

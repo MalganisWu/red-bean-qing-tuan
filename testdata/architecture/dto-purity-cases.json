@@ -1,0 +1,57 @@
+[
+  {
+    "name": "仅类型声明允许通过",
+    "valid": true,
+    "source": "import type { JsonValue } from './json.js';\nexport interface SampleDto { readonly value: JsonValue }\nexport type SampleId = string;\n"
+  },
+  {
+    "name": "仅类型重导出允许通过",
+    "valid": true,
+    "source": "export type { SampleDto } from './sample.js';\nexport { type SampleId } from './sample.js';\n"
+  },
+  {
+    "name": "非导出函数必须失败",
+    "valid": false,
+    "source": "function normalize(value: string): string { return value.trim(); }\nexport interface SampleDto { readonly value: string }\n"
+  },
+  {
+    "name": "非导出常量必须失败",
+    "valid": false,
+    "source": "const defaultValue = 'value';\nexport interface SampleDto { readonly value: string }\n"
+  },
+  {
+    "name": "默认导出类必须失败",
+    "valid": false,
+    "source": "export default class SampleDto { readonly value = 'value'; }\n"
+  },
+  {
+    "name": "默认导出函数必须失败",
+    "valid": false,
+    "source": "export default function buildDto(): object { return {}; }\n"
+  },
+  {
+    "name": "默认导出表达式必须失败",
+    "valid": false,
+    "source": "export default { value: 'runtime' };\n"
+  },
+  {
+    "name": "星号重导出必须失败",
+    "valid": false,
+    "source": "export * from './runtime-values.js';\n"
+  },
+  {
+    "name": "值重导出必须失败",
+    "valid": false,
+    "source": "export { runtimeValue } from './runtime-values.js';\n"
+  },
+  {
+    "name": "枚举声明必须失败",
+    "valid": false,
+    "source": "export enum RuntimeStatus { Ready = 'ready' }\n"
+  },
+  {
+    "name": "命名空间声明必须失败",
+    "valid": false,
+    "source": "export namespace RuntimeValues { export const ready = 'ready'; }\n"
+  }
+]
