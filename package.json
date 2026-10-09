@@ -1,0 +1,87 @@
+{
+  "name": "red-bean-qing-tuan",
+  "version": "0.1.0",
+  "private": true,
+  "description": "轻量、可嵌入的 TypeScript Agent Runtime SDK：model→tool 循环、Pipeline、checkpoint、interrupt、压缩、委派与中性观测。",
+  "license": "MIT",
+  "author": "MalganisWu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cuteVanilla12138/red-bean-qing-tuan.git"
+  },
+  "homepage": "https://github.com/cuteVanilla12138/red-bean-qing-tuan#readme",
+  "bugs": {
+    "url": "https://github.com/cuteVanilla12138/red-bean-qing-tuan/issues"
+  },
+  "keywords": [
+    "agent",
+    "llm",
+    "ai-agent",
+    "runtime",
+    "pipeline",
+    "checkpoint",
+    "interrupt",
+    "typescript",
+    "openai"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./llm": {
+      "types": "./dist/llm/index.d.ts",
+      "import": "./dist/llm/index.js"
+    },
+    "./observability": {
+      "types": "./dist/observability/index.d.ts",
+      "import": "./dist/observability/index.js"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline/index.d.ts",
+      "import": "./dist/pipeline/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    },
+    "./tools": {
+      "types": "./dist/tool/index.d.ts",
+      "import": "./dist/tool/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": ">=24.9.0 <26",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "clean": "node ./scripts/clean.mjs",
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" \"tooling/**/*.ts\" --no-error-on-unmatched-pattern",
+    "api:check": "tsc --noEmit -p tsconfig.api.json && node ./scripts/check-api-surface.mjs && node ./scripts/check-declaration-baseline.mjs",
+    "format": "prettier --write \"**/*.{ts,js,mjs,json}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,js,mjs,json}\" --ignore-path .gitignore",
+    "policy:check": "node ./scripts/check-typescript-policy.mjs",
+    "test": "tsc -p tsconfig.test.json && node --test '.test-dist/test/**/*.test.js'"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.3",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "prettier": "^3.9.6",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2"
+  }
+}

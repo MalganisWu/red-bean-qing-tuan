@@ -1,0 +1,53 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+.test-dist/
+node_modules/
+*.tsbuildinfo
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+coverage.html
+
+# Go workspace file
+go.work
+
+# Config
+backend/config.local.yaml
+.env*
+!**/.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependency directories
+vendor/
+
+# Air live reload
+tmp/
+
+# Claude Code worktrees（保留 .claude/CLAUDE.md 被跟踪）
+.claude/worktrees/
+
+# Superpowers 运行时状态（brainstorm 会话的 server.pid/log）
+.superpowers/**/state/
+
+# Vite 构建缓存
+**/.vite/

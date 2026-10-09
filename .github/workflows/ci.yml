@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 锁到 packageManager 声明的同一版本，避免 runner 上解析出别的 pnpm。
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      # Node 门槛由 package.json engines 决定：>=24.9.0 <26。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # 完整本地门禁：doctor / fmt / diff / secrets / build / docs /
+      # policy / architecture / api-surface / typecheck / lint / test。
+      # 不需要 Docker、数据库或任何外部服务。
+      - run: make verify
