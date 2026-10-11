@@ -5,7 +5,7 @@
 **可嵌入的 TypeScript Agent Runtime。** model→tool 循环、Pipeline、checkpoint、interrupt、
 压缩、委派，以及一层厂商中性的观测接缝 —— 零生产依赖。
 
-[![CI](https://github.com/cuteVanilla12138/red-bean-qing-tuan/actions/workflows/ci.yml/badge.svg)](https://github.com/cuteVanilla12138/red-bean-qing-tuan/actions/workflows/ci.yml)
+[![CI](https://github.com/MalganisWu/red-bean-qing-tuan/actions/workflows/ci.yml/badge.svg)](https://github.com/MalganisWu/red-bean-qing-tuan/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.9.0%20%3C26-brightgreen)](package.json)
 
@@ -28,13 +28,13 @@ store 持久化 checkpoint，并发出中性事件。HTTP、SSE、数据库、�
 还没发到 npm。目前先从 Git 装：
 
 ```bash
-pnpm add git+https://github.com/cuteVanilla12138/red-bean-qing-tuan.git#<commit>
+pnpm add git+https://github.com/MalganisWu/red-bean-qing-tuan.git#<commit>
 ```
 
 或在本地构建：
 
 ```bash
-git clone https://github.com/cuteVanilla12138/red-bean-qing-tuan.git
+git clone https://github.com/MalganisWu/red-bean-qing-tuan.git
 cd red-bean-qing-tuan
 pnpm install --frozen-lockfile
 make ts-build
@@ -209,7 +209,7 @@ tooling/    TypeScript 政策和消费方 smoke
 
 ## 关联仓库
 
-[`red-bean-nian-gao`](https://github.com/cuteVanilla12138/red-bean-nian-gao) 是构建在本 Runtime 之上的
+[`red-bean-nian-gao`](https://github.com/MalganisWu/red-bean-nian-gao) 是构建在本 Runtime 之上的
 完整 Agent 对话平台 —— 一个宿主如何接管会话、持久化、HTTP/SSE、定时任务与 UI 的完整范例。
 它通过 `runtime.lock` 按 commit 钉住本仓，这也是消费未发布 SDK 的一种方式。
 

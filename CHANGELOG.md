@@ -35,4 +35,4 @@
 - fencing 只保护 checkpoint 提交。工具副作用的 exactly-once、lease/TTL/heartbeat、claim 过期恢复
   与 outbox 仍由宿主负责。
 
-[0.1.0]: https://github.com/cuteVanilla12138/red-bean-qing-tuan/releases/tag/v0.1.0
+[0.1.0]: https://github.com/MalganisWu/red-bean-qing-tuan/releases/tag/v0.1.0

@@ -6,7 +6,7 @@
 interrupts, compression, delegation, and a vendor-neutral observability seam —
 with zero production dependencies.
 
-[![CI](https://github.com/cuteVanilla12138/red-bean-qing-tuan/actions/workflows/ci.yml/badge.svg)](https://github.com/cuteVanilla12138/red-bean-qing-tuan/actions/workflows/ci.yml)
+[![CI](https://github.com/MalganisWu/red-bean-qing-tuan/actions/workflows/ci.yml/badge.svg)](https://github.com/MalganisWu/red-bean-qing-tuan/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.9.0%20%3C26-brightgreen)](package.json)
 
@@ -32,13 +32,13 @@ source maps. Adopting it does not add a dependency tree to your service.
 Not yet published to npm. Consume it from Git today:
 
 ```bash
-pnpm add git+https://github.com/cuteVanilla12138/red-bean-qing-tuan.git#<commit>
+pnpm add git+https://github.com/MalganisWu/red-bean-qing-tuan.git#<commit>
 ```
 
 Or build it locally:
 
 ```bash
-git clone https://github.com/cuteVanilla12138/red-bean-qing-tuan.git
+git clone https://github.com/MalganisWu/red-bean-qing-tuan.git
 cd red-bean-qing-tuan
 pnpm install --frozen-lockfile
 make ts-build
@@ -227,7 +227,7 @@ Conventions live in [`AGENTS.md`](AGENTS.md); the documentation index is
 
 ## Related repository
 
-[`red-bean-nian-gao`](https://github.com/cuteVanilla12138/red-bean-nian-gao) is a full agent chat
+[`red-bean-nian-gao`](https://github.com/MalganisWu/red-bean-nian-gao) is a full agent chat
 platform built on this runtime — a worked example of a host that owns sessions, persistence,
 HTTP/SSE, scheduled tasks, and a UI. It pins this repository by commit through a `runtime.lock`
 file, which is one way to consume an unreleased SDK.
