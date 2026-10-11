@@ -9,23 +9,23 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.9.0%20%3C26-brightgreen)](package.json)
 
-英文版见 [README.md](README.md)。
+[English](README.md) · **简体中文**
 
 </div>
 
-## 为什么做这个
+## 为什么会有它
 
 Agent 框架往往替你决定太多：假定你有 HTTP 服务、有数据库、有会话模型、有 UI。这个不作任何假定。
 
 `red-bean-qing-tuan` 只做执行层，别的一概不管。它运行 model→tool 循环，通过**你提供的**
 store 持久化 checkpoint，并发出中性事件。HTTP、SSE、数据库、缓存、鉴权与产品会话全部留在宿主里 ——
-在那里它们可以按产品需要塑形，而不是按框架的假设。
+在那里，它们可以按产品的需要来定，而不用迁就框架的假设。
 
 它**零生产依赖**，产物是 ESM JavaScript 加类型声明与 source map。接入它不会给你的服务添一棵依赖树。
 
 ## 安装
 
-尚未发布到 npm。当前从 Git 消费：
+还没发到 npm。目前先从 Git 装：
 
 ```bash
 pnpm add git+https://github.com/cuteVanilla12138/red-bean-qing-tuan.git#<commit>
@@ -92,7 +92,7 @@ await runtime.close(AbortSignal.timeout(10_000))
 - ReAct 状态机、模型流、工具调度、取消与超时。
 - interrupt 执行屏障，以及带幂等 resume 的持久化 checkpoint。
 - 中性运行事件和结构化 `Result`。
-- 安全默认的内置工具，以及明确命名的高权限构造方式。
+- 默认安全的内置工具，以及必须显式点名才能用的高权限构造。
 
 **宿主负责：**
 
@@ -108,7 +108,7 @@ fencing 只保护 checkpoint 提交。这些都是宿主策略 —— 假装 Run
 
 - 普通 run 从 revision `R` 加载，成功以 CAS 保存为 `R+1`。
 - `resume` 先原子消费 interrupt（`R→R+1`），再以 claim owner 保存终态（`R+1→R+2`）。
-- 相同 `requestId` 可 replay 已完成 receipt，不重复调用模型；冲突请求会 fail-closed。
+- 相同 `requestId` 会重放已完成的回执，不重复调用模型；请求冲突时直接 fail-closed。
 - 非零 fencing token 由宿主的 lease 系统生成；Runtime 和 Store 拒绝 stale fence。
 
 自定义 Store 应运行框架无关的契约套件：
@@ -146,7 +146,7 @@ await runCheckpointStoreContract(() => new CustomCheckpointStore(), {
 
 ## Interrupt
 
-任意 Tool 都可返回结构化 `InterruptSignal` 请求挂起。interrupt 是**执行屏障**：同批其他工具不会在确认前
+任何 Tool 都能返回一个结构化的 `InterruptSignal`，以此请求挂起。interrupt 是**执行屏障**：同批其他工具不会在确认前
 执行。高层调用方使用 `runtime.resume`；低层 Pipeline 宿主把匹配 `interrupt.toolCallId` 的 tool message
 追加后继续运行。
 
@@ -194,7 +194,7 @@ make verify         # 完整本地门禁
 
 ## 文档与目录
 
-人工代码审查从 [`src/README.md`](src/README.md) 开始，按六个公开入口追踪 facade、protocol/port、
+想读源码的话，从 [`src/README.md`](src/README.md) 开始，按六个公开入口依次看 facade、protocol/port、
 service/adapter、composition 与宿主实现。
 
 ```text
