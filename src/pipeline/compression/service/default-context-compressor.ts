@@ -161,22 +161,24 @@ async function nextWithTimeout(
   timeoutController: AbortController,
 ): Promise<IteratorResult<LlmChunk>> {
   if (signal.aborted) throw abortError(signal);
-  let onAbort: (() => void) | undefined;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const interrupted = new Promise<never>((_resolve, reject): void => {
-    onAbort = (): void => reject(abortError(signal));
-    signal.addEventListener("abort", onAbort, { once: true });
-    timer = setTimeout((): void => {
-      const error = new Error(`summary stream idle for ${timeoutMs}ms`);
-      timeoutController.abort(error);
-      reject(error);
-    }, timeoutMs);
-  });
+  const { promise: interrupted, reject } = Promise.withResolvers<never>();
+  /** 闲置超时：中止本次流并以上限错误拒绝，让底层连接真正被取消。 */
+  function rejectOnIdleTimeout(): void {
+    const error = new Error(`summary stream idle for ${timeoutMs}ms`);
+    timeoutController.abort(error);
+    reject(error);
+  }
+  /** 上游取消：以取消原因拒绝。 */
+  function rejectOnAbort(): void {
+    reject(abortError(signal));
+  }
+  const timer = setTimeout(rejectOnIdleTimeout, timeoutMs);
+  signal.addEventListener("abort", rejectOnAbort, { once: true });
   try {
     return await Promise.race([iterator.next(), interrupted]);
   } finally {
-    if (timer !== undefined) clearTimeout(timer);
-    if (onAbort) signal.removeEventListener("abort", onAbort);
+    clearTimeout(timer);
+    signal.removeEventListener("abort", rejectOnAbort);
   }
 }
 
