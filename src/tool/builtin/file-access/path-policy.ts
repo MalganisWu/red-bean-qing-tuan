@@ -29,6 +29,16 @@ function sameIdentity(left: FileIdentity, right: FileIdentity): boolean {
 /**
  * 固定 read root 的文件访问器。Linux 使用已打开目录的 fd，其他平台在打开前后校验
  * realpath 与 inode，避免符号链接和路径替换把读取范围带出沙箱。
+ *
+ * 为什么分两条实现：**要防的是 TOCTOU**——检查路径合法之后、真正打开之前，
+ * 有人把路径上的某一环换成指向外部的符号链接。防御手段的本质都是「让检查与打开作用于同一个对象」：
+ * - Linux 走 `/proc/self/fd/<rootfd>/<relative>`，由内核从**已打开的目录 fd** 出发解析，
+ *   路径中途被换掉也不影响这次解析，是唯一真正无竞态的做法。
+ * - 其他平台没有对等能力，退而求其次：打开前后各做一次 realpath + inode 比对，
+ *   把窗口缩到最小并在发现变动时拒绝。
+ *
+ * root 自身也要校验身份（`assertRootIdentity`）——被托管的目录本身在运行期间被替换，
+ * 上面所有相对校验都会建立在错误的基准上。
  */
 export class RootedFileAccess {
   readonly #rootPath: string;
@@ -60,6 +70,15 @@ export class RootedFileAccess {
       : this.openWithIdentityCheck(relative);
   }
 
+  /**
+   * 把入参路径归一成**相对于 root 的路径**，并在这里挡住越界。
+   *
+   * 两条分支的处理不同：相对路径直接归一化后交给 `isWithin`；
+   * 绝对路径要先 `realpath` 解掉符号链接再相对化——否则一个指向外部的软链接
+   * 会以「绝对路径」的形式混过相对校验。
+   * `isWithin` 判的是 `..` 开头与绝对路径，因此 `../../etc/passwd` 与 `/etc/passwd`
+   * 都会在这里被拒。
+   */
   private async relativePath(filePath: string): Promise<string> {
     const cleaned = path.normalize(filePath);
     let relative = cleaned;
@@ -73,6 +92,11 @@ export class RootedFileAccess {
     return relative;
   }
 
+  /**
+   * Linux 路径：经由 `/proc/self/fd/<root fd>` 打开。
+   * 关键在内核是从**那个已打开的目录**解析相对路径的，因此中途替换符号链接无效。
+   * 打开后仍再 realpath 两侧核对一次：fd 复用、挂载点变化这类极端情况仍会被这里拦住。
+   */
   private async openThroughProc(relative: string): Promise<OpenedFile> {
     const rootDescriptorPath = `/proc/self/fd/${this.#rootHandle.fd}`;
     const handle = await open(
@@ -94,6 +118,11 @@ export class RootedFileAccess {
     }
   }
 
+  /**
+   * 非 Linux 的退化实现：三次校验把 TOCTOU 窗口压到最小。
+   * 打开前 realpath、打开后同时校验「已打开句柄的 inode」与「路径再次 realpath 的 inode」是否一致——
+   * 不一致说明这段时间里路径被换过（`文件路径在打开期间发生变化`），此时宁可拒绝读取。
+   */
   private async openWithIdentityCheck(relative: string): Promise<OpenedFile> {
     await this.assertRootIdentity();
     const candidate = path.join(this.#rootPath, relative);
@@ -127,6 +156,11 @@ export class RootedFileAccess {
     }
   }
 
+  /**
+   * 确认 read root 自打开以来没被换掉（device + inode 相同）。
+   * 少了这一步，攻击者只要把整个 root 目录改名再放一个同名软链接，
+   * 后续所有「相对于 root」的校验都会以一个外部目录为基准。
+   */
   private async assertRootIdentity(): Promise<void> {
     const information = await stat(this.#rootPath);
     if (!sameIdentity(this.#rootIdentity, identityOf(information))) {
