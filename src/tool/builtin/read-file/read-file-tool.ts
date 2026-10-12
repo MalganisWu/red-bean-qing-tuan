@@ -128,26 +128,26 @@ export class UnrestrictedReadTool implements Tool {
         params.offset,
         params.limit,
       );
+      /** 重新取回被引用的行段；取回后作废旧记录，避免写入闸门放行模型手里的过期版本。 */
+      const fetchPreservedContent = async (
+        fetchSignal: AbortSignal,
+      ): Promise<Uint8Array> => {
+        const restored = await this.readFileLines(
+          params.filePath,
+          params.offset,
+          params.limit,
+          fetchSignal,
+        );
+        this.#ledger.forget(context.threadId, ledgerFileKey(params.filePath));
+        return new TextEncoder().encode(restored.content);
+      };
       return {
         content,
         preserve: {
           kind: "file",
           key: opened.key,
           timestamp: mtime,
-          fetch: async (fetchSignal: AbortSignal): Promise<Uint8Array> => {
-            const restored = await this.readFileLines(
-              params.filePath,
-              params.offset,
-              params.limit,
-              fetchSignal,
-            );
-            // 内容已被重新取回，旧记录不再代表模型手里的版本，必须作废以免写入闸门放行过期内容。
-            this.#ledger.forget(
-              context.threadId,
-              ledgerFileKey(params.filePath),
-            );
-            return new TextEncoder().encode(restored.content);
-          },
+          fetch: fetchPreservedContent,
         },
       };
     } catch (cause: unknown) {

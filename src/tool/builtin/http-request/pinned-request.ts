@@ -4,7 +4,7 @@ import { request as requestHttps, type RequestOptions } from "node:https";
 import type {
   HttpClientRequest,
   HttpClientResponse,
-  PinnedRequest,
+  ResolvedAddress,
 } from "./http-contracts.js";
 import { unbracketHostname } from "./egress-policy.js";
 
@@ -29,12 +29,12 @@ function normalizeHeaders(
  * 也就是说：**连接用 IP，语义用域名**。
  */
 
-export const nativePinnedRequest: PinnedRequest = (
+export function nativePinnedRequest(
   request: HttpClientRequest,
-  address,
+  address: ResolvedAddress,
   signal: AbortSignal,
   timeoutMilliseconds: number,
-): Promise<HttpClientResponse> => {
+): Promise<HttpClientResponse> {
   const combinedSignal = AbortSignal.any([
     signal,
     AbortSignal.timeout(timeoutMilliseconds),
@@ -109,4 +109,4 @@ export const nativePinnedRequest: PinnedRequest = (
     if (request.body.length > 0) outgoing.write(request.body);
     outgoing.end();
   });
-};
+}

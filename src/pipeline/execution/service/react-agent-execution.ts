@@ -154,20 +154,26 @@ function messageObserver(
   hook: MessageHook,
   signal: AbortSignal,
 ): MessageObserver {
-  return async (message: RawMessage): Promise<void> => {
-    await runHook(async (): Promise<void> => {
-      switch (message.role) {
-        case "user":
-          await hook.onUserMessage(context, message, signal);
-          return;
-        case "assistant":
-          await hook.onAssistantMessage(context, message, signal);
-          return;
-        case "tool":
-          await hook.onToolMessage(context, message, signal);
-      }
-    });
-  };
+  /** 按角色把消息派发给 hook；runHook 只负责统一错误语义。 */
+  async function dispatchMessage(message: RawMessage): Promise<void> {
+    switch (message.role) {
+      case "user":
+        await hook.onUserMessage(context, message, signal);
+        return;
+      case "assistant":
+        await hook.onAssistantMessage(context, message, signal);
+        return;
+      case "tool":
+        await hook.onToolMessage(context, message, signal);
+    }
+  }
+
+  /** 观察出口：每条已提交消息都经由 runHook 进入 hook，避免 hook 抛错打断主流程。 */
+  async function observeMessage(message: RawMessage): Promise<void> {
+    await runHook(async (): Promise<void> => dispatchMessage(message));
+  }
+
+  return observeMessage;
 }
 
 async function runHook(operation: () => Promise<void>): Promise<void> {

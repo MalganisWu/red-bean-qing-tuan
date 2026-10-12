@@ -1,11 +1,7 @@
 import { lookup as dnsLookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
 
-import type {
-  AddressLookup,
-  EgressPolicy,
-  ResolvedAddress,
-} from "./http-contracts.js";
+import type { EgressPolicy, ResolvedAddress } from "./http-contracts.js";
 
 /** 取取消原因并抛出；优先沿用 `signal.reason`，不把它换成通用文案。 */
 export function throwIfHttpAborted(signal: AbortSignal): void {
@@ -155,10 +151,10 @@ export class IpDenyList {
  * 只取第一条会让策略放过其中一半。这里把全部地址交给调用方逐个校验。
  * `verbatim: true` 保持解析顺序，不做 IPv4/IPv6 重排。
  */
-export const defaultAddressLookup: AddressLookup = async (
+export async function defaultAddressLookup(
   hostname: string,
   signal: AbortSignal,
-): Promise<readonly ResolvedAddress[]> => {
+): Promise<readonly ResolvedAddress[]> {
   throwIfHttpAborted(signal);
   const addresses = await dnsLookup(unbracketHostname(hostname), {
     all: true,
@@ -170,4 +166,4 @@ export const defaultAddressLookup: AddressLookup = async (
       ? [{ address: address.address, family: address.family }]
       : [],
   );
-};
+}

@@ -102,7 +102,13 @@ export class OpenAiAdapter implements LlmAdapter {
  * 宿主配置里留空的字段不应该把请求打到一个空 URL 上。
  */
 export function createDefaultLlmAdapterFactory(): LlmAdapterFactory {
-  return (provider, apiKey, baseUrl, modelName): LlmAdapter => {
+  /** 按 provider 造适配器；认不出的 provider 直接报错，不静默回退到某个默认实现。 */
+  function createAdapter(
+    provider: string,
+    apiKey: string,
+    baseUrl: string,
+    modelName: string,
+  ): LlmAdapter {
     if (provider !== "openai")
       throw new Error(`unsupported provider: ${provider}`);
     return new OpenAiAdapter({
@@ -110,5 +116,6 @@ export function createDefaultLlmAdapterFactory(): LlmAdapterFactory {
       ...(baseUrl !== "" ? { baseUrl } : {}),
       ...(modelName !== "" ? { modelName } : {}),
     });
-  };
+  }
+  return createAdapter;
 }

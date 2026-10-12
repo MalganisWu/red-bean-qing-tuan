@@ -67,19 +67,22 @@ export async function executeModelTurn(
       options.signal,
       streamController.signal,
     ]);
+    /** 每次重试前播报一次状态；对外口径不含首次尝试，因此两个计数都加一。 */
+    function emitRetryStatus(attempt: number, maximum: number): void {
+      options.context.emit({
+        type: EVENT_TYPES.STATUS,
+        code: STATUS_CODES.LLM_RETRY,
+        attempt: attempt + 1,
+        maxAttempts: maximum + 1,
+      });
+    }
+
     let iterable: AsyncIterable<LlmChunk>;
     try {
       iterable = await runWithLlmRetry(
         options.llmParams,
         sleepWithSignal,
-        (attempt: number, maximum: number): void => {
-          options.context.emit({
-            type: EVENT_TYPES.STATUS,
-            code: STATUS_CODES.LLM_RETRY,
-            attempt: attempt + 1,
-            maxAttempts: maximum + 1,
-          });
-        },
+        emitRetryStatus,
         (): Promise<AsyncIterable<LlmChunk>> =>
           options.adapter.streamCompletion(options.request, streamSignal),
         streamSignal,
@@ -97,7 +100,7 @@ export async function executeModelTurn(
      * 不这么做的话，模型已经说了半段话，而这些内容既不在上下文里也没给用户看过，就直接消失了。
      * hook 自身抛错被吞掉是刻意的——此刻真正要报的是 stream 的错，不能被 hook 的错顶掉。
      */
-    const persistPartial = async (): Promise<void> => {
+    async function persistPartial(): Promise<void> {
       const content = contentParts.join("");
       if (content === "") return;
       const message: RawMessage = { role: "assistant", content };
@@ -111,7 +114,7 @@ export async function executeModelTurn(
         options.messages,
         options.systemOffset,
       );
-    };
+    }
 
     try {
       for (;;) {

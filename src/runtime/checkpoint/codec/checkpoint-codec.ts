@@ -114,6 +114,28 @@ function numberField(
   return field;
 }
 
+/** 反序列化一次工具调用；`index` 可缺省，给了就必须是安全整数（流式增量靠它归位）。 */
+function parseToolCall(item: unknown) {
+  const call = record(item, "tool call");
+  const fn = record(call["function"], "tool call function");
+  const index = call["index"];
+  if (
+    index !== undefined &&
+    (typeof index !== "number" || !Number.isSafeInteger(index))
+  ) {
+    throw new TypeError("tool call index must be an integer");
+  }
+  return {
+    id: stringField(call, "id"),
+    type: stringField(call, "type"),
+    function: {
+      name: stringField(fn, "name"),
+      arguments: stringField(fn, "arguments"),
+    },
+    ...(index === undefined ? {} : { index }),
+  };
+}
+
 /**
  * 反序列化一条消息。`content` 允许 null（工具调用轮次的 assistant 消息就没有正文），
  * 其余字段严格按类型校验；`tool_calls` 一旦出现就必须是数组，不允许退化成单个对象。
@@ -131,26 +153,7 @@ function parseRawMessage(value: unknown): RawMessage {
       ? {}
       : {
           toolCalls: Array.isArray(calls)
-            ? calls.map((item) => {
-                const call = record(item, "tool call");
-                const fn = record(call["function"], "tool call function");
-                const index = call["index"];
-                if (
-                  index !== undefined &&
-                  (typeof index !== "number" || !Number.isSafeInteger(index))
-                ) {
-                  throw new TypeError("tool call index must be an integer");
-                }
-                return {
-                  id: stringField(call, "id"),
-                  type: stringField(call, "type"),
-                  function: {
-                    name: stringField(fn, "name"),
-                    arguments: stringField(fn, "arguments"),
-                  },
-                  ...(index === undefined ? {} : { index }),
-                };
-              })
+            ? calls.map(parseToolCall)
             : (() => {
                 throw new TypeError("tool_calls must be an array");
               })(),
@@ -226,32 +229,35 @@ function parseContentRefs(value: unknown): ContentRef[] {
   if (value === undefined) return [];
   if (!Array.isArray(value))
     throw new TypeError("content_refs must be an array");
-  return value.map((item): ContentRef => {
-    const source = record(item, "content reference");
-    const metaValue = source["meta"];
-    let meta: Record<string, string> | undefined;
-    if (metaValue !== undefined) {
-      const rawMeta = record(metaValue, "content reference meta");
-      meta = {};
-      for (const [key, entry] of Object.entries(rawMeta)) {
-        if (typeof entry !== "string")
-          throw new TypeError("content reference meta values must be strings");
-        meta[key] = entry;
-      }
+  return value.map(parseContentRef);
+}
+
+/** 反序列化单个内容引用；`meta` 的值只允许 string，见上方 `parseContentRefs` 的说明。 */
+function parseContentRef(item: unknown): ContentRef {
+  const source = record(item, "content reference");
+  const metaValue = source["meta"];
+  let meta: Record<string, string> | undefined;
+  if (metaValue !== undefined) {
+    const rawMeta = record(metaValue, "content reference meta");
+    meta = {};
+    for (const [key, entry] of Object.entries(rawMeta)) {
+      if (typeof entry !== "string")
+        throw new TypeError("content reference meta values must be strings");
+      meta[key] = entry;
     }
-    const timestamp = source["timestamp"];
-    if (timestamp !== undefined && typeof timestamp !== "number")
-      throw new TypeError("content reference timestamp must be a number");
-    return {
-      kind: stringField(source, "kind"),
-      key: stringField(source, "key"),
-      ...(source["version"] === undefined
-        ? {}
-        : { version: stringField(source, "version") }),
-      ...(meta === undefined ? {} : { meta }),
-      ...(timestamp === undefined ? {} : { timestamp }),
-    };
-  });
+  }
+  const timestamp = source["timestamp"];
+  if (timestamp !== undefined && typeof timestamp !== "number")
+    throw new TypeError("content reference timestamp must be a number");
+  return {
+    kind: stringField(source, "kind"),
+    key: stringField(source, "key"),
+    ...(source["version"] === undefined
+      ? {}
+      : { version: stringField(source, "version") }),
+    ...(meta === undefined ? {} : { meta }),
+    ...(timestamp === undefined ? {} : { timestamp }),
+  };
 }
 
 function parseResumeClaim(value: unknown): {
