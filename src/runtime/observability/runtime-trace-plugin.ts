@@ -181,6 +181,7 @@ class TracedToolDispatcher implements ToolDispatcher {
   }
 }
 
+/** 用观测装饰器包住模型适配器；返回的仍是 `LlmAdapter`，调用方无需感知被包过。 */
 export function wrapLlm(tracer: Tracer, next: LlmAdapter): LlmAdapter {
   return new TracedLlmAdapter(tracer, next);
 }
@@ -254,6 +255,11 @@ class TracedChildRunner implements ChildRunner {
   }
 }
 
+/**
+ * 用观测装饰器包住子运行执行器。
+ * 与 LLM / Tool 的包装器不同，它记录的是 `agent.delegate` span——
+ * 「父 Agent 委派了一次子任务」这件事本身，而不是子运行的内部调用。
+ */
 export function wrapChildRunner(
   tracer: Tracer,
   next: ChildRunner,

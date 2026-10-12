@@ -1,3 +1,4 @@
+/** `RuntimeContext.metadata` 中存放内容引用列表的键；压缩后的内容恢复按它取引用。 */
 export const CONTENT_REFS_METADATA_KEY = "content_refs";
 
 /** 可跨 checkpoint 保存的内容定位信息；fetch 仅供当前进程读取，序列化时必须移除。 */

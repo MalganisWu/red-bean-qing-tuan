@@ -11,7 +11,9 @@ import {
 
 /** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const FETCH_URL_TOOL_NAME = "sys_fetch_url";
+/** 从网络最多取回的响应体字节数（2MiB）。比交给模型的输出上限大，留出 HTML 抽取的余量。 */
 export const MAX_FETCH_BODY_BYTES = 2 * 1_048_576;
+/** 抽取后交给模型的文本上限（64KiB）；超出部分截断并置 `truncated`。 */
 export const MAX_FETCH_OUTPUT_BYTES = 64 * 1_024;
 const MAX_REDIRECTS = 10;
 const USER_AGENT = "red-bean-qing-tuan/0.1";
@@ -251,6 +253,13 @@ export class FetchUrlTool implements Tool {
     throw new Error(`重定向次数超过 ${MAX_REDIRECTS} 次`);
   }
 
+  /**
+   * 每次跳转都重新查黑名单，且对**所有**解析结果逐个判定。
+   *
+   * 两处都不可省：只在第一跳查，一次跳转就能绕到黑名单里的地址；
+   * 只看第一条解析结果，一个同时解析出白名单与黑名单地址的域名就能蒙混过关。
+   * `empty` 时直接返回，省掉一次 DNS。
+   */
   private async checkDenyList(url: URL, signal: AbortSignal): Promise<void> {
     if (this.#denyList.empty) return;
     const addresses = await this.#lookup(url.hostname, signal);

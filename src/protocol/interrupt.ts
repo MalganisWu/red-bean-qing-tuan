@@ -1,5 +1,6 @@
 import type { JsonObject, JsonValue } from "./json.js";
 
+/** 工具控制信号的种类。目前只有中断一种；用常量表而非裸字面量，是为了让判别与构造共用同一处定义。 */
 export const SIGNAL_KINDS = Object.freeze({
   INTERRUPT: "interrupt",
 } as const);
