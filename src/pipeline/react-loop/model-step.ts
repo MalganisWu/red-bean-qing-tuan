@@ -31,24 +31,22 @@ export async function nextModelChunk(
   signal: AbortSignal,
 ): Promise<IteratorResult<LlmChunk>> {
   if (signal.aborted) throw abortError(signal);
-  let timer: NodeJS.Timeout | undefined;
-  let onAbort: (() => void) | undefined;
-  const timeout = new Promise<never>((_resolve, reject): void => {
-    timer = setTimeout(
-      (): void =>
-        reject(new Error(`LLM stream timed out after ${timeoutMs}ms`)),
-      timeoutMs,
-    );
-    timer.unref();
-  });
-  const cancelled = new Promise<never>((_resolve, reject): void => {
-    onAbort = (): void => reject(abortError(signal));
-    signal.addEventListener("abort", onAbort, { once: true });
-  });
+  const { promise: timeout, reject: rejectTimeout } =
+    Promise.withResolvers<never>();
+  const timer = setTimeout(
+    (): void =>
+      rejectTimeout(new Error(`LLM stream timed out after ${timeoutMs}ms`)),
+    timeoutMs,
+  );
+  timer.unref();
+  const { promise: cancelled, reject: rejectAborted } =
+    Promise.withResolvers<never>();
+  const onAbort = (): void => rejectAborted(abortError(signal));
+  signal.addEventListener("abort", onAbort, { once: true });
   try {
     return await Promise.race([iterator.next(), timeout, cancelled]);
   } finally {
-    if (timer) clearTimeout(timer);
-    if (onAbort) signal.removeEventListener("abort", onAbort);
+    clearTimeout(timer);
+    signal.removeEventListener("abort", onAbort);
   }
 }

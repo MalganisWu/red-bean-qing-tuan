@@ -292,15 +292,13 @@ async function raceAbort<TOutput>(
   signal: AbortSignal,
 ): Promise<TOutput> {
   if (signal.aborted) throw abortError(signal);
-  let onAbort: (() => void) | undefined;
-  const cancelled = new Promise<never>((_resolve, reject): void => {
-    onAbort = (): void => reject(abortError(signal));
-    signal.addEventListener("abort", onAbort, { once: true });
-  });
+  const { promise: cancelled, reject } = Promise.withResolvers<never>();
+  const onAbort = (): void => reject(abortError(signal));
+  signal.addEventListener("abort", onAbort, { once: true });
   try {
     return await Promise.race([operation, cancelled]);
   } finally {
-    if (onAbort) signal.removeEventListener("abort", onAbort);
+    signal.removeEventListener("abort", onAbort);
   }
 }
 

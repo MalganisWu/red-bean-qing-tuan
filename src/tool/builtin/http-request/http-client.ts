@@ -39,35 +39,40 @@ function abortable<TValue>(
   signal: AbortSignal,
 ): Promise<TValue> {
   throwIfHttpAborted(signal);
-  return new Promise<TValue>((resolve, reject): void => {
-    let settled = false;
-    const cleanup = (): void => signal.removeEventListener("abort", onAbort);
-    const onAbort = (): void => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      try {
-        throwIfHttpAborted(signal);
-      } catch (cause: unknown) {
-        reject(cause instanceof Error ? cause : new Error(String(cause)));
-      }
-    };
-    signal.addEventListener("abort", onAbort, { once: true });
-    void operation.then(
-      (value: TValue): void => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        resolve(value);
-      },
-      (cause: unknown): void => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        reject(cause instanceof Error ? cause : new Error(String(cause)));
-      },
-    );
-  });
+  const { promise, resolve, reject } = Promise.withResolvers<TValue>();
+  let settled = false;
+
+  /** 只结算一次：标记已定、摘掉取消监听，再把结果交出去。 */
+  function settleOnce(deliver: () => void): void {
+    if (settled) return;
+    settled = true;
+    signal.removeEventListener("abort", onAbort);
+    deliver();
+  }
+
+  /** 未知原因统一成 Error 再拒绝，避免把非 Error 抛给调用方。 */
+  function rejectUnknown(cause: unknown): void {
+    reject(cause instanceof Error ? cause : new Error(String(cause)));
+  }
+
+  /** 取消先于结果到达：以取消原因结算。 */
+  function onAbort(): void {
+    let cancellation: unknown;
+    try {
+      throwIfHttpAborted(signal);
+      return;
+    } catch (cause: unknown) {
+      cancellation = cause;
+    }
+    settleOnce((): void => rejectUnknown(cancellation));
+  }
+
+  signal.addEventListener("abort", onAbort, { once: true });
+  void operation.then(
+    (value: TValue): void => settleOnce((): void => resolve(value)),
+    (cause: unknown): void => settleOnce((): void => rejectUnknown(cause)),
+  );
+  return promise;
 }
 
 /**

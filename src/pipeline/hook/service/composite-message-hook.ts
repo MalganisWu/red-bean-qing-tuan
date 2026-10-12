@@ -31,10 +31,9 @@ async function appendWithTimeout(
   timeoutMs: number,
 ): Promise<void> {
   const signal = AbortSignal.timeout(timeoutMs);
-  const aborted = new Promise<never>((_resolve, reject): void => {
-    signal.addEventListener("abort", (): void => reject(abortError(signal)), {
-      once: true,
-    });
+  const { promise: aborted, reject } = Promise.withResolvers<never>();
+  signal.addEventListener("abort", (): void => reject(abortError(signal)), {
+    once: true,
   });
   await Promise.race([appender.append(key, message, signal), aborted]);
 }

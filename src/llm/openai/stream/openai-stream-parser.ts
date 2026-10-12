@@ -229,15 +229,13 @@ async function readWithAbort(
   signal: AbortSignal,
 ): Promise<StreamReadResult> {
   if (signal.aborted) throw abortError(signal);
-  let onAbort: (() => void) | undefined;
-  const cancelled = new Promise<never>((_resolve, reject): void => {
-    onAbort = (): void => reject(abortError(signal));
-    signal.addEventListener("abort", onAbort, { once: true });
-  });
+  const { promise: cancelled, reject } = Promise.withResolvers<never>();
+  const onAbort = (): void => reject(abortError(signal));
+  signal.addEventListener("abort", onAbort, { once: true });
   try {
     return await Promise.race([reader.read(), cancelled]);
   } finally {
-    if (onAbort) signal.removeEventListener("abort", onAbort);
+    signal.removeEventListener("abort", onAbort);
   }
 }
 

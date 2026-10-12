@@ -1,4 +1,8 @@
-import { request as requestHttp, type IncomingHttpHeaders } from "node:http";
+import {
+  request as requestHttp,
+  type IncomingHttpHeaders,
+  type IncomingMessage,
+} from "node:http";
 import { request as requestHttps, type RequestOptions } from "node:https";
 
 import type {
@@ -52,61 +56,91 @@ export function nativePinnedRequest(
   };
   const makeRequest =
     request.url.protocol === "https:" ? requestHttps : requestHttp;
-  return new Promise<HttpClientResponse>((resolve, reject): void => {
-    let settled = false;
-    const resolveOnce = (response: HttpClientResponse): void => {
-      if (settled) return;
-      settled = true;
-      resolve(response);
-    };
-    const rejectOnce = (error: Error): void => {
-      if (settled) return;
-      settled = true;
-      reject(error);
-    };
-    const outgoing = makeRequest(options, (response): void => {
-      const chunks: Uint8Array[] = [];
-      let bytes = 0;
-      const finish = (truncated: boolean): void => {
-        resolveOnce({
-          statusCode: response.statusCode ?? 0,
-          headers: normalizeHeaders(response.headers),
-          body: Buffer.concat(chunks, bytes),
-          truncated,
-        });
-      };
-      response.on("data", (chunk: unknown): void => {
-        if (settled) return;
-        const data =
-          typeof chunk === "string"
-            ? Buffer.from(chunk)
-            : chunk instanceof Uint8Array
-              ? chunk
-              : undefined;
-        if (data === undefined) {
-          response.destroy(new Error("响应包含未知数据块"));
-          return;
-        }
-        // `+1` 是为了多读一个字节来判断「是不是还有更多」：正好读到上限时无法区分
-        // 「刚好读完」和「被截断」，多收一字节就能确定该把 truncated 标成 true。
-        const remaining = request.maxResponseBytes + 1 - bytes;
-        if (remaining > 0) {
-          const accepted = data.subarray(0, remaining);
-          chunks.push(accepted);
-          bytes += accepted.byteLength;
-        }
-        if (bytes > request.maxResponseBytes) {
-          finish(true);
-          response.destroy();
-        }
+  return new Promise<HttpClientResponse>((resolve, reject): void =>
+    sendAndCollect(resolve, reject, request, options, makeRequest),
+  );
+}
+
+/**
+ * 发出请求并把响应收集成 `HttpClientResponse`。
+ *
+ * 只结算一次（`settled`）：`end` 与 `error` 可能先后到达，第二次必须被忽略。
+ * `maxResponseBytes + 1` 是刻意多读一个字节——正好读到上限时无法区分「刚好读完」
+ * 与「被截断」，多收一字节才能确定是否该把 `truncated` 标成 true。
+ */
+function sendAndCollect(
+  resolve: (response: HttpClientResponse) => void,
+  reject: (error: Error) => void,
+  request: HttpClientRequest,
+  options: RequestOptions,
+  makeRequest: typeof requestHttp,
+): void {
+  let settled = false;
+
+  /** 只结算一次；返回 true 表示这次调用完成了结算。 */
+  function settleOnce(): boolean {
+    if (settled) return false;
+    settled = true;
+    return true;
+  }
+
+  function resolveOnce(response: HttpClientResponse): void {
+    if (!settleOnce()) return;
+    resolve(response);
+  }
+
+  function rejectOnce(error: Error): void {
+    if (!settleOnce()) return;
+    reject(error);
+  }
+
+  /** 收下响应：累积数据直到 `end`，超过上限即截断并销毁连接。 */
+  function handleResponse(response: IncomingMessage): void {
+    const chunks: Uint8Array[] = [];
+    let bytes = 0;
+
+    /** 结束：把已收字节交给调用方，`truncated` 说明是否被上限截断。 */
+    function finish(truncated: boolean): void {
+      resolveOnce({
+        statusCode: response.statusCode ?? 0,
+        headers: normalizeHeaders(response.headers),
+        body: Buffer.concat(chunks, bytes),
+        truncated,
       });
-      response.once("end", (): void =>
-        finish(bytes > request.maxResponseBytes),
-      );
-      response.once("error", rejectOnce);
-    });
-    outgoing.once("error", rejectOnce);
-    if (request.body.length > 0) outgoing.write(request.body);
-    outgoing.end();
-  });
+    }
+
+    /** 收到一块数据；多读一个字节以区分「刚好读完」与「被截断」。 */
+    function onData(chunk: unknown): void {
+      if (settled) return;
+      const data =
+        typeof chunk === "string"
+          ? Buffer.from(chunk)
+          : chunk instanceof Uint8Array
+            ? chunk
+            : undefined;
+      if (data === undefined) {
+        response.destroy(new Error("响应包含未知数据块"));
+        return;
+      }
+      const remaining = request.maxResponseBytes + 1 - bytes;
+      if (remaining > 0) {
+        const accepted = data.subarray(0, remaining);
+        chunks.push(accepted);
+        bytes += accepted.byteLength;
+      }
+      if (bytes > request.maxResponseBytes) {
+        finish(true);
+        response.destroy();
+      }
+    }
+
+    response.on("data", onData);
+    response.once("end", (): void => finish(bytes > request.maxResponseBytes));
+    response.once("error", rejectOnce);
+  }
+
+  const outgoing = makeRequest(options, handleResponse);
+  outgoing.once("error", rejectOnce);
+  if (request.body.length > 0) outgoing.write(request.body);
+  outgoing.end();
 }

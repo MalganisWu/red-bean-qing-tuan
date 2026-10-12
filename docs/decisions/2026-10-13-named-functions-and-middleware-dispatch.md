@@ -42,5 +42,10 @@
   `scripts/check-common-conventions.sh` 校验。改规则走「本仓提交 → 产品仓 bump `runtime.lock` 时
   因逐字比对失败而强制同步」，不再靠人记得改两边。
 - 本仓加正反例夹具（`testdata/architecture/`），把「循环内把局部函数变量重新赋值为闭包」纳入机械门禁。
+- **编译目标由 ES2023 提到 ES2024**：Promise executor 要消除，只能用 `Promise.withResolvers()`（ES2024）。
+  这解决了 `raceAbort`、`sleepWithSignal`、`sendAndCollect`、`spawnAndCollect` 等处的 executor 内联问题——
+  executor 体里要给外层变量赋值（`removeEventListener` 需要同一引用），抽成模块级函数反而更难读。
+  代价是目标提升本身超出可读性范围：运行时要求 Node ≥ 22（本仓要求 Node 24），已随本轮一起回归。
+  `void` 不能作类型参数（ESLint `no-invalid-void-type`），因此 `withResolvers` 该处写 `<undefined>`。
 - 内联在调用点位置的**单行**回调不受影响（如 `onChange={(e) => setValue(e.target.value)}`）。
 - 容器嵌套的存量不回填，新代码遵守。

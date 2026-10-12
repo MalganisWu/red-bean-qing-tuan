@@ -110,69 +110,95 @@ export function runShellCommand(
   request: ShellRunRequest,
   signal: AbortSignal,
 ): Promise<ShellRunResult> {
-  return new Promise<ShellRunResult>((resolve, reject) => {
-    const child = spawn("bash", ["-c", request.command], {
-      cwd: request.workdir,
-      detached: true,
-      // stdin 关闭：需要交互输入的命令必须直接失败，而不是挂住整个运行。
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+  return new Promise<ShellRunResult>((resolve, reject): void =>
+    spawnAndCollect(resolve, reject, request, signal),
+  );
+}
 
-    const stdout = new OutputCollector(request.maxOutputBytes);
-    const stderr = new OutputCollector(request.maxOutputBytes);
-    let termination: ShellTermination = SHELL_TERMINATIONS.EXITED;
-    let settled = false;
-
-    const timeout = setTimeout((): void => {
-      termination = SHELL_TERMINATIONS.TIMED_OUT;
-      if (child.pid !== undefined)
-        terminateGroup(child.pid, SHELL_KILL_GRACE_MS);
-    }, request.timeoutMs);
-
-    const onAbort = (): void => {
-      termination = SHELL_TERMINATIONS.ABORTED;
-      if (child.pid !== undefined)
-        terminateGroup(child.pid, SHELL_KILL_GRACE_MS);
-    };
-
-    const cleanup = (): void => {
-      clearTimeout(timeout);
-      signal.removeEventListener("abort", onAbort);
-    };
-
-    if (signal.aborted) onAbort();
-    else signal.addEventListener("abort", onAbort, { once: true });
-
-    if (child.stdout !== null) {
-      child.stdout.on("data", (chunk: Buffer): void => stdout.push(chunk));
-    }
-    if (child.stderr !== null) {
-      child.stderr.on("data", (chunk: Buffer): void => stderr.push(chunk));
-    }
-
-    child.on("error", (cause: Error): void => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(new Error(`启动命令失败: ${cause.message}`, { cause }));
-    });
-
-    child.on(
-      "close",
-      (code: number | null, closeSignal: NodeJS.Signals | null): void => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        resolve({
-          termination,
-          exitCode: code,
-          signal: closeSignal,
-          stdout: stdout.text(),
-          stderr: stderr.text(),
-          stdoutTruncated: stdout.truncated,
-          stderrTruncated: stderr.truncated,
-        });
-      },
-    );
+/**
+ * 启动命令并收集输出与结束原因。
+ *
+ * `settled` 保证只结算一次：`error` 与 `close` 都可能到达。
+ * `termination` 由超时与取消分别设置、`close` 时原样带出，
+ * 调用方据此区分「命令自己退出（哪怕非零）」与「被我们杀掉的」。
+ */
+function spawnAndCollect(
+  resolve: (result: ShellRunResult) => void,
+  reject: (error: Error) => void,
+  request: ShellRunRequest,
+  signal: AbortSignal,
+): void {
+  const child = spawn("bash", ["-c", request.command], {
+    cwd: request.workdir,
+    detached: true,
+    // stdin 关闭：需要交互输入的命令必须直接失败，而不是挂住整个运行。
+    stdio: ["ignore", "pipe", "pipe"],
   });
+
+  const stdout = new OutputCollector(request.maxOutputBytes);
+  const stderr = new OutputCollector(request.maxOutputBytes);
+  let termination: ShellTermination = SHELL_TERMINATIONS.EXITED;
+  let settled = false;
+
+  /** 超时：记录结束原因并终止整个进程组。 */
+  function onTimeout(): void {
+    termination = SHELL_TERMINATIONS.TIMED_OUT;
+    if (child.pid !== undefined) terminateGroup(child.pid, SHELL_KILL_GRACE_MS);
+  }
+
+  const timeout = setTimeout(onTimeout, request.timeoutMs);
+
+  /** 取消：记录结束原因并终止整个进程组。 */
+  function onAbort(): void {
+    termination = SHELL_TERMINATIONS.ABORTED;
+    if (child.pid !== undefined) terminateGroup(child.pid, SHELL_KILL_GRACE_MS);
+  }
+
+  /** 摘掉定时器与取消监听；结算后必调，避免宽限期定时器把进程钉在事件循环里。 */
+  function cleanup(): void {
+    clearTimeout(timeout);
+    signal.removeEventListener("abort", onAbort);
+  }
+
+  /** 只结算一次；返回 true 表示这次调用完成了结算。 */
+  function settleOnce(): boolean {
+    if (settled) return false;
+    settled = true;
+    cleanup();
+    return true;
+  }
+
+  function onSpawnError(cause: Error): void {
+    if (!settleOnce()) return;
+    reject(new Error(`启动命令失败: ${cause.message}`, { cause }));
+  }
+
+  function onClose(
+    code: number | null,
+    closeSignal: NodeJS.Signals | null,
+  ): void {
+    if (!settleOnce()) return;
+    resolve({
+      termination,
+      exitCode: code,
+      signal: closeSignal,
+      stdout: stdout.text(),
+      stderr: stderr.text(),
+      stdoutTruncated: stdout.truncated,
+      stderrTruncated: stderr.truncated,
+    });
+  }
+
+  if (signal.aborted) onAbort();
+  else signal.addEventListener("abort", onAbort, { once: true });
+
+  if (child.stdout !== null) {
+    child.stdout.on("data", (chunk: Buffer): void => stdout.push(chunk));
+  }
+  if (child.stderr !== null) {
+    child.stderr.on("data", (chunk: Buffer): void => stderr.push(chunk));
+  }
+
+  child.on("error", onSpawnError);
+  child.on("close", onClose);
 }

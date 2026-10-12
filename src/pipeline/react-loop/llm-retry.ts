@@ -100,22 +100,25 @@ export async function sleepWithSignal(
       ? signal.reason
       : new DOMException("operation aborted", "AbortError");
   }
-  await new Promise<void>((resolve, reject): void => {
-    const timer = setTimeout(resolve, delayMs);
-    timer.unref();
-    signal.addEventListener(
-      "abort",
-      (): void => {
-        clearTimeout(timer);
-        reject(
-          signal.reason instanceof Error
-            ? signal.reason
-            : new DOMException("operation aborted", "AbortError"),
-        );
-      },
-      { once: true },
+  // 用 `undefined` 而不是 `void` 作类型参数：本仓 ESLint 不允许 `void` 出现在类型参数位置。
+  const {
+    promise: slept,
+    resolve,
+    reject,
+  } = Promise.withResolvers<undefined>();
+  const timer = setTimeout((): void => resolve(undefined), delayMs);
+  timer.unref();
+  /** 取消时先清掉定时器再以取消原因拒绝，避免等待方被定时器提前唤醒。 */
+  function abortSleep(): void {
+    clearTimeout(timer);
+    reject(
+      signal.reason instanceof Error
+        ? signal.reason
+        : new DOMException("operation aborted", "AbortError"),
     );
-  });
+  }
+  signal.addEventListener("abort", abortSleep, { once: true });
+  await slept;
 }
 
 /**
