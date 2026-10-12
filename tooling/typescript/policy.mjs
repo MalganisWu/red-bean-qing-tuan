@@ -1,6 +1,7 @@
 export const requiredCompilerOptions = Object.freeze({
   strict: true,
   noUncheckedIndexedAccess: true,
+  noUncheckedSideEffectImports: true,
   exactOptionalPropertyTypes: true,
   noImplicitReturns: true,
   noImplicitOverride: true,

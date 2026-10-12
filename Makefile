@@ -2,7 +2,7 @@
 # 用法：make <目标>，或直接 make / make help 查看所有命令
 
 # 所有目标都是任务名而非真实文件，声明为 .PHONY 避免与同名文件冲突
-.PHONY: help setup doctor check-tools hooks-install hooks-uninstall hooks-status fmt fmt-check diff-check secrets-check docs-check common-conventions-check typecheck ts-lint ts-format-check ts-policy-check ts-architecture-check ts-api-check ts-test test ts-build build verify verify-quick
+.PHONY: help setup doctor check-tools hooks-install hooks-uninstall hooks-status fmt fmt-check diff-check secrets-check docs-check shared-files-check typecheck ts-lint ts-format-check ts-policy-check ts-architecture-check ts-api-check ts-test test ts-build build verify verify-quick
 
 # ── 默认目标：显示帮助 ────────────────────────────────────────────────────
 help: ## 显示所有可用命令
@@ -56,8 +56,8 @@ diff-check: ## 检查已暂存和未暂存改动中的空白错误（不写文�
 docs-check: ## 检查活文档索引、Markdown 链接/锚点与跨客户端 Skill 单一来源
 	./scripts/check-docs.sh
 
-common-conventions-check: ## 检查跨仓共享的 TypeScript 通用规范件与产品仓逐字一致（兄弟工作区缺失时跳过）
-	./scripts/check-common-conventions.sh
+shared-files-check: ## 检查跨仓共享件（通用规范、TS 工具链配置）与产品仓一致（兄弟工作区缺失时跳过）
+	node ./scripts/check-shared-files.mjs
 
 typecheck: ## 运行 TypeScript 严格类型检查（迁移空载基线及未来源码）
 	pnpm typecheck
@@ -92,6 +92,6 @@ ts-build: ## 构建 TypeScript ESM 与声明文件
 
 build: ts-build ## 构建 TypeScript Runtime
 
-verify: doctor fmt-check diff-check secrets-check build docs-check common-conventions-check ts-policy-check ts-architecture-check ts-api-check typecheck ts-lint test ## 运行提交前完整质量门禁（不改 Git 跟踪文件）
+verify: doctor fmt-check diff-check secrets-check build docs-check shared-files-check ts-policy-check ts-architecture-check ts-api-check typecheck ts-lint test ## 运行提交前完整质量门禁（不改 Git 跟踪文件）
 
-verify-quick: doctor fmt-check diff-check secrets-check docs-check common-conventions-check ts-policy-check ts-architecture-check typecheck ts-lint ## commit 前快速非写入门禁
+verify-quick: doctor fmt-check diff-check secrets-check docs-check shared-files-check ts-policy-check ts-architecture-check typecheck ts-lint ## commit 前快速非写入门禁
