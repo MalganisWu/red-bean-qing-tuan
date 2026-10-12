@@ -90,8 +90,9 @@ red-bean-qing-tuan/
 
 ## TypeScript 规则
 
-所有 `.ts` 遵循
-[`docs/standards/typescript-coding-conventions.md`](docs/standards/typescript-coding-conventions.md)。硬性红线：
+所有 `.ts` 遵循跨仓共享的通用规范
+[`docs/standards/typescript-common-conventions.md`](docs/standards/typescript-common-conventions.md)，
+Runtime 特有约束见 [`docs/standards/typescript-coding-conventions.md`](docs/standards/typescript-coding-conventions.md)。硬性红线：
 
 - 禁止显式 `any`、非空断言、无校验类型断言、浮空 Promise、隐式强制转换。
 - 导出 API 以及 LLM、Tool、Event、Checkpoint、Interrupt、Hook 和 Tracer 边界必须显式标注。

@@ -11,7 +11,8 @@
 - [`contracts/typescript-runtime-api.md`](contracts/typescript-runtime-api.md)：当前 TypeScript 包的公共入口与契约。
 - [`design/architecture.md`](design/architecture.md)：当前 Runtime 架构、模块与依赖边界。
 - [`design/compression.md`](design/compression.md)：上下文压缩与内容恢复机制。
-- [`standards/typescript-coding-conventions.md`](standards/typescript-coding-conventions.md)：当前 TypeScript Runtime 的安全与可读性基线。
+- [`standards/typescript-common-conventions.md`](standards/typescript-common-conventions.md)：跨仓共享的 TypeScript 通用规范，与产品仓 `red-bean-nian-gao` 逐字相同，由 `scripts/check-common-conventions.sh` 校验。
+- [`standards/typescript-coding-conventions.md`](standards/typescript-coding-conventions.md)：Runtime 特有的约束（零生产依赖、公开契约与发布物、组装与架构门禁）。
 - [`standards/development-workflow.md`](standards/development-workflow.md)：开发与交付流程。
 
 快速开始位于根 [`README.md`](../README.md)，开发规则位于根 [`AGENTS.md`](../AGENTS.md)，
