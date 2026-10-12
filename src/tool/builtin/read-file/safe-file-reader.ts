@@ -5,6 +5,11 @@ import type { JsonObject, JsonValue } from "../../../protocol/json.js";
 export const MAX_READ_SIZE_BYTES = 256 * 1_024;
 export const MAX_READ_TOKENS = 25_000;
 export const MAX_LINES_TO_READ = 2_000;
+/**
+ * 「文件没变过」的占位回复。命中时 Read 只回这一句，不再重发内容——
+ * 同一份文件在一个会话里被反复读是常见行为，每次都把全文塞回上下文是纯粹的浪费。
+ * 文案保留英文：它是给模型读的，与用户界面的本地化无关。
+ */
 export const FILE_UNCHANGED_STUB =
   "File unchanged since last read. The content from the earlier Read tool_result in this conversation is still current — refer to that instead of re-reading.";
 
@@ -75,6 +80,13 @@ export function roughTokenCount(value: string): number {
   return Math.ceil(ascii / 4) + nonAscii;
 }
 
+/**
+ * 按行区间取出内容，每行前面加「行号 + 制表符」。
+ *
+ * 行号是必需的：模型要引用代码位置，而它随后调用 Edit 时用的就是这些行号。
+ * 制表符分隔是为了让行号与内容有明确边界——用空格的话，内容以空格开头时就会歧义。
+ * `totalLines` 单独返回真实总行数，让调用方能在只读了片段时如实告知还有多少。
+ */
 export function readNumberedLines(
   source: string,
   offset: number,

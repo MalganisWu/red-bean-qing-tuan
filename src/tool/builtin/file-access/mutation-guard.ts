@@ -36,6 +36,13 @@ export async function assertFreshRead(check: FreshReadCheck): Promise<void> {
   if (record === undefined) {
     throw new Error(`修改已存在的文件前必须先读取: ${check.filePath}`);
   }
+  /*
+   * 用 mtime 判「有没有变过」。这是个**启发式**，边界要说清楚：
+   * 某些文件系统（尤其部分容器叠加层与老式 FS）的 mtime 粒度较粗，
+   * 同一时间片内先读后改再写，两次 mtime 可能相等，闸门漏过。
+   * 要更严的宿主应当提供带内容哈希的 FileReadLedger 实现——
+   * 契约由 `port/file-read-ledger.ts` 定义，这里只依赖它返回的记录。
+   */
   if (record.mtimeMs !== information.mtimeMs) {
     throw new Error(
       `文件在读取后已发生变化，请重新读取再写入: ${check.filePath}`,

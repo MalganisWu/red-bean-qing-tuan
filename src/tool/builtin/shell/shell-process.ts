@@ -95,7 +95,17 @@ function signalGroup(pid: number, signal: NodeJS.Signals): void {
   }
 }
 
-/** 执行一条 shell 命令，返回分离的输出与结束原因。 */
+/**
+ * 执行一条 shell 命令，返回分离的输出与结束原因。
+ *
+ * 收尾监听的是 `close` 而不是 `exit`：`exit` 只表示进程结束了，
+ * 而 stdout/stderr 的管道里可能还有没读完的缓冲数据。用 `exit` 会稳定丢掉输出的尾巴——
+ * 命令报错时最后的错误信息恰恰就在那里。
+ *
+ * `termination` 的三个取值由超时与取消分别设置，`close` 时原样带出：
+ * 调用方需要区分「命令自己退出（哪怕是非零）」与「被我们杀掉的」，
+ * 后者不该被报成命令的失败。
+ */
 export function runShellCommand(
   request: ShellRunRequest,
   signal: AbortSignal,

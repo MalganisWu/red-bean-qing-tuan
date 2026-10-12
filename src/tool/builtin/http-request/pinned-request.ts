@@ -19,7 +19,16 @@ function normalizeHeaders(
   return normalized;
 }
 
-/** 连接到策略已批准的固定 IP，避免授权后再次 DNS 解析产生 rebinding。 */
+/**
+ * 连接到策略已批准的固定 IP，避免授权后再次 DNS 解析产生 rebinding。
+ *
+ * 建连目标是 IP，但**三个地方仍保留原始主机名**，缺一不可：
+ * - `headers.host`：HTTP/1.1 的虚拟主机路由靠它，不设会打到默认站点。
+ * - `servername`：TLS SNI，不设会拿不到正确证书（多数 CDN 直接握手失败）。
+ * - URL 路径与 query 保持原样。
+ * 也就是说：**连接用 IP，语义用域名**。
+ */
+
 export const nativePinnedRequest: PinnedRequest = (
   request: HttpClientRequest,
   address,
@@ -78,6 +87,8 @@ export const nativePinnedRequest: PinnedRequest = (
           response.destroy(new Error("响应包含未知数据块"));
           return;
         }
+        // `+1` 是为了多读一个字节来判断「是不是还有更多」：正好读到上限时无法区分
+        // 「刚好读完」和「被截断」，多收一字节就能确定该把 truncated 标成 true。
         const remaining = request.maxResponseBytes + 1 - bytes;
         if (remaining > 0) {
           const accepted = data.subarray(0, remaining);
