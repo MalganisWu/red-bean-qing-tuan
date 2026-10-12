@@ -208,10 +208,19 @@ export function installPlugins(
 }
 
 /**
- * 把中间件叠成洋葱：逆序包裹，使 `middleware[0]` 成为最外层，最先看到调用、最后看到结果。
+ * 把中间件叠成洋葱：`dispatch(0)` 进入最外层，`middleware[0]` 最先看到调用、最后看到结果。
+ *
+ * 「包一层」这个动作在这里**有名字**：哪一行进入下一层
+ * （`runNext` → `dispatch(index + 1)`）、哪一行开始执行
+ * （`current(info, runNext, nextSignal)`）都能顺着读出来。
+ * 反过来，在循环里把 handler 变量反复赋值为匿名闭包，会让洋葱结构藏在赋值里，
+ * 读代码时看不出层与层的关系（见 `docs/decisions/2026-10-13-named-functions-and-middleware-dispatch.md`）。
  *
  * 注意 `nextSignal`：每个中间件收到的是**上游传给它的**信号，而不是最初那个。
  * 中间件因此可以在自己的作用域内收窄或替换取消信号，而不影响外层。
+ *
+ * `middleware` 视为稠密数组（`registry.runMiddleware()` 由 `push` 构造），
+ * 因此遇到 `undefined` 即视为已越过最后一层，交给 `finalHandler`。
  */
 export function runWithMiddleware(
   info: RunInfo,
@@ -219,13 +228,21 @@ export function runWithMiddleware(
   finalHandler: RunHandler,
   signal: AbortSignal,
 ): Promise<RuntimeResult> {
-  let handler = finalHandler;
-  for (let index = middleware.length - 1; index >= 0; index -= 1) {
+  /** 进入第 `index` 层；越过最后一层时调用最终处理器。 */
+  function dispatch(
+    index: number,
+    nextSignal: AbortSignal,
+  ): Promise<RuntimeResult> {
     const current = middleware[index];
-    if (!current) continue;
-    const next = handler;
-    handler = (nextSignal: AbortSignal): Promise<RuntimeResult> =>
-      current(info, next, nextSignal);
+    if (current === undefined) return finalHandler(nextSignal);
+
+    /** 当前层的下一跳；单独命名，让「进入下一层」在调用点可见。 */
+    function runNext(innerSignal: AbortSignal): Promise<RuntimeResult> {
+      return dispatch(index + 1, innerSignal);
+    }
+
+    return current(info, runNext, nextSignal);
   }
-  return handler(signal);
+
+  return dispatch(0, signal);
 }

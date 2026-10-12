@@ -54,9 +54,9 @@ export class DefaultThreadExecutionCoordinator implements ThreadExecutionCoordin
       throw error;
     }
 
-    // 释放幂等：重复调用不会二次解开链条，也不会误删别人的尾巴。
     let released = false;
-    return (): void => {
+    /** 释放：幂等，且不会误删别人的尾巴（只有自己仍是链尾时才摘指针）。 */
+    const release = (): void => {
       if (released) return;
       released = true;
       releaseCurrent();
@@ -64,6 +64,7 @@ export class DefaultThreadExecutionCoordinator implements ThreadExecutionCoordin
         this.#threadTails.delete(threadId);
       }
     };
+    return release;
   }
 }
 

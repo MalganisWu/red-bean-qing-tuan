@@ -25,7 +25,8 @@ export class DefaultRuntimeLifecycle implements RuntimeLifecycle {
     if (this.#closing) throw new Error("runtime is closed");
     this.#activeRuns += 1;
     let released = false;
-    return (): void => {
+    /** 结束本次运行记账：幂等；最后一个运行结束时唤醒所有等待空转的调用方。 */
+    const endRun = (): void => {
       if (released) return;
       released = true;
       this.#activeRuns -= 1;
@@ -33,6 +34,7 @@ export class DefaultRuntimeLifecycle implements RuntimeLifecycle {
       for (const resolve of this.#idleWaiters) resolve();
       this.#idleWaiters.clear();
     };
+    return endRun;
   }
 
   public async close(

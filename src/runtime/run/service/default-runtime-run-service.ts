@@ -16,6 +16,7 @@ import {
   RUN_KINDS,
   runWithMiddleware,
   type PluginRegistry,
+  type RunInfo,
   type RunMiddleware,
 } from "../../../runtime/plugin/runtime-plugin.js";
 import type { RuntimeLifecycle } from "../../lifecycle/port/runtime-lifecycle.js";
@@ -93,18 +94,22 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
       );
       return executionFailure(result, normalizeError(cause).message, cause);
     }
+    const info: RunInfo = {
+      kind: RUN_KINDS.RUN,
+      threadId: request.threadId ?? "",
+      userId: request.userId ?? "",
+      requestId: request.requestId ?? "",
+      traceId: request.traceId ?? "",
+    };
+    // 最后一跳先放进具名变量再传：箭头函数要保留 `this`，命名后调用点只剩「先包好，再执行」。
+    const runRequest = (nextSignal: AbortSignal): Promise<RuntimeResult> =>
+      this.#runRequest(request, nextSignal);
+
     try {
       return await runWithMiddleware(
-        {
-          kind: RUN_KINDS.RUN,
-          threadId: request.threadId ?? "",
-          userId: request.userId ?? "",
-          requestId: request.requestId ?? "",
-          traceId: request.traceId ?? "",
-        },
+        info,
         this.#runMiddleware,
-        (nextSignal: AbortSignal): Promise<RuntimeResult> =>
-          this.#runRequest(request, nextSignal),
+        runRequest,
         signal,
       );
     } finally {
@@ -130,18 +135,21 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
       );
       return executionFailure(result, normalizeError(cause).message, cause);
     }
+    const info: RunInfo = {
+      kind: RUN_KINDS.RESUME,
+      threadId: request.threadId ?? request.state?.threadId ?? "",
+      userId: request.userId ?? "",
+      requestId: request.requestId ?? "",
+      traceId: request.traceId ?? "",
+    };
+    const resumeRequest = (nextSignal: AbortSignal): Promise<RuntimeResult> =>
+      this.#resumeRequest(request, nextSignal);
+
     try {
       return await runWithMiddleware(
-        {
-          kind: RUN_KINDS.RESUME,
-          threadId: request.threadId ?? request.state?.threadId ?? "",
-          userId: request.userId ?? "",
-          requestId: request.requestId ?? "",
-          traceId: request.traceId ?? "",
-        },
+        info,
         this.#runMiddleware,
-        (nextSignal: AbortSignal): Promise<RuntimeResult> =>
-          this.#resumeRequest(request, nextSignal),
+        resumeRequest,
         signal,
       );
     } finally {

@@ -233,7 +233,8 @@ function eventPublisher(
   captureError: (error: Error) => void,
 ): ((event: RuntimeEvent) => void) | undefined {
   if (!sink) return undefined;
-  return (event: RuntimeEvent): void => {
+  /** 事件出口：按 policy 决定事件出口抛错时是吞掉、上报还是直接中止本次运行。 */
+  const publishEvent = (event: RuntimeEvent): void => {
     if (currentError() && policy === EVENT_SINK_ERROR_POLICIES.FAIL_FAST) {
       return;
     }
@@ -246,6 +247,7 @@ function eventPublisher(
       controller.abort(error);
     }
   };
+  return publishEvent;
 }
 
 /**
