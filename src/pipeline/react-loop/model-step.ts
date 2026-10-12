@@ -1,11 +1,4 @@
 import type { LlmChunk } from "../../llm/model/model.js";
-
-function abortError(signal: AbortSignal): Error {
-  return signal.reason instanceof Error
-    ? signal.reason
-    : new DOMException("operation aborted", "AbortError");
-}
-
 /** 主循环取消或失败后尽力关闭模型流，不覆盖原始错误。 */
 export async function closeModelIterator(
   iterator: AsyncIterator<LlmChunk>,
@@ -16,6 +9,7 @@ export async function closeModelIterator(
     // 主错误或取消发生后，关闭 stream 仅作尽力清理。
   }
 }
+import { abortError } from "../../protocol/abort-signal.js";
 
 /**
  * 等待一个模型增量，同时让**空闲超时**和调用方取消都能立即打断等待。

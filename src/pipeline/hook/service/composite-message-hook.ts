@@ -2,6 +2,7 @@ import type { RuntimeContext } from "../../context/runtime-context.js";
 import type { RawMessage } from "../../../protocol/message.js";
 import { isHookFatalError } from "../hook-error.js";
 import type { MessageHook } from "../port/message-hook.js";
+import { abortError } from "../../../protocol/abort-signal.js";
 
 /** 宿主提供的增量消息追加 Port；存储所有权和持久化失败语义由宿主实现。 */
 export interface MessageAppender {
@@ -9,13 +10,6 @@ export interface MessageAppender {
 }
 
 const DEFAULT_BUFFER_TIMEOUT_MS = 5_000;
-
-function abortError(signal: AbortSignal): Error {
-  return signal.reason instanceof Error
-    ? signal.reason
-    : new DOMException("operation aborted", "AbortError");
-}
-
 /**
  * 带超时地追加一条消息。
  *

@@ -14,6 +14,7 @@ import type { RawMessage } from "../../../protocol/message.js";
 import type { RuntimeContext } from "../../context/runtime-context.js";
 import type { ContextCompressor } from "../port/context-compression.js";
 import { estimateTokens } from "../token-counter.js";
+import { abortError } from "../../../protocol/abort-signal.js";
 
 /** 摘要调用自身的输出上限；与模型声明的 maxTokens 取较小者，避免摘要比被摘要的内容还长。 */
 const DEFAULT_MAX_SUMMARY_TOKENS = 20_000;
@@ -60,13 +61,6 @@ Your entire response must be plain text: an <analysis> block followed by a <summ
 function normalizeError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }
-
-function abortError(signal: AbortSignal): Error {
-  return signal.reason instanceof Error
-    ? signal.reason
-    : new DOMException("operation aborted", "AbortError");
-}
-
 function positiveInteger(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isSafeInteger(value) && value > 0
     ? value

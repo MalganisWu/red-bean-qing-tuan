@@ -12,6 +12,7 @@ import type {
 } from "../../tool/definition/tool.js";
 import type { ToolDispatcher } from "../../tool/dispatcher/port/tool-dispatcher.js";
 import type { ToolCallEntry } from "./tool-call-buffer.js";
+import { abortError, raceAbort } from "../../protocol/abort-signal.js";
 
 interface MutableToolCallEntry {
   id: string;
@@ -285,25 +286,4 @@ function toolCallContext(
     fencingToken: context.fencingToken,
     eventSink: (event): void => context.emit(event),
   };
-}
-
-async function raceAbort<TOutput>(
-  operation: Promise<TOutput>,
-  signal: AbortSignal,
-): Promise<TOutput> {
-  if (signal.aborted) throw abortError(signal);
-  const { promise: cancelled, reject } = Promise.withResolvers<never>();
-  const onAbort = (): void => reject(abortError(signal));
-  signal.addEventListener("abort", onAbort, { once: true });
-  try {
-    return await Promise.race([operation, cancelled]);
-  } finally {
-    signal.removeEventListener("abort", onAbort);
-  }
-}
-
-function abortError(signal: AbortSignal): Error {
-  return signal.reason instanceof Error
-    ? signal.reason
-    : new DOMException("operation aborted", "AbortError");
 }

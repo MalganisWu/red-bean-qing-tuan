@@ -23,6 +23,7 @@ import {
   type MessageObserver,
   type ReactResult,
 } from "../../react-loop/react-loop.js";
+import { abortError } from "../../../protocol/abort-signal.js";
 
 /** 统一 Agent 执行组件的依赖集合；所有依赖均由高层 Runtime 或 AgentNode 显式注入。 */
 export interface ReactAgentExecutionOptions {
@@ -213,13 +214,6 @@ function isHookFatalErrorChain(value: unknown): boolean {
   }
   return false;
 }
-
-function abortError(signal: AbortSignal): Error {
-  return signal.reason instanceof Error
-    ? signal.reason
-    : new DOMException("operation aborted", "AbortError");
-}
-
 function normalizeError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }

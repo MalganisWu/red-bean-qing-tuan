@@ -1,4 +1,5 @@
 import type { ThreadExecutionCoordinator } from "../port/thread-execution-coordinator.js";
+import { raceAbort } from "../../../protocol/abort-signal.js";
 
 /**
  * 使用进程内 Promise 队列串行化同一 Thread 的默认实现。
@@ -65,26 +66,5 @@ export class DefaultThreadExecutionCoordinator implements ThreadExecutionCoordin
       }
     };
     return release;
-  }
-}
-
-function abortError(signal: AbortSignal): Error {
-  return signal.reason instanceof Error
-    ? signal.reason
-    : new DOMException("operation aborted", "AbortError");
-}
-
-async function raceAbort<TOutput>(
-  operation: Promise<TOutput>,
-  signal: AbortSignal,
-): Promise<TOutput> {
-  if (signal.aborted) throw abortError(signal);
-  const { promise: cancellation, reject } = Promise.withResolvers<never>();
-  const onAbort = (): void => reject(abortError(signal));
-  signal.addEventListener("abort", onAbort, { once: true });
-  try {
-    return await Promise.race([operation, cancellation]);
-  } finally {
-    signal.removeEventListener("abort", onAbort);
   }
 }

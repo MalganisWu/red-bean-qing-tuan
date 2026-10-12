@@ -1,4 +1,5 @@
 import type { RuntimeLifecycle } from "../port/runtime-lifecycle.js";
+import { raceAbort } from "../../../protocol/abort-signal.js";
 
 /**
  * 等待存量运行退出并保证底层资源只关闭一次的默认生命周期实现。
@@ -53,26 +54,5 @@ export class DefaultRuntimeLifecycle implements RuntimeLifecycle {
     // 无论有多少个调用者，closeResources 只被调用一次。
     this.#closePromise ??= closeResources();
     await raceAbort(this.#closePromise, signal);
-  }
-}
-
-function abortError(signal: AbortSignal): Error {
-  return signal.reason instanceof Error
-    ? signal.reason
-    : new DOMException("operation aborted", "AbortError");
-}
-
-async function raceAbort<TOutput>(
-  operation: Promise<TOutput>,
-  signal: AbortSignal,
-): Promise<TOutput> {
-  if (signal.aborted) throw abortError(signal);
-  const { promise: cancellation, reject } = Promise.withResolvers<never>();
-  const onAbort = (): void => reject(abortError(signal));
-  signal.addEventListener("abort", onAbort, { once: true });
-  try {
-    return await Promise.race([operation, cancellation]);
-  } finally {
-    signal.removeEventListener("abort", onAbort);
   }
 }
