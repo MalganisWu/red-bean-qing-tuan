@@ -47,6 +47,17 @@ export class ReactAgentExecution implements AgentExecution {
     this.#options = options;
   }
 
+  /**
+   * 跑一次 ReAct 并把结果写回上下文元数据。
+   *
+   * 三处结构值得注意：
+   * - **先回放已有消息给 observer**：`context.messages` 是本次运行开始前就存在的历史，
+   *   宿主 hook 需要先看到它们才能正确判断「哪些是新的」。
+   * - **失败也要留住部分结果**：`ReactLoopError` 带着出事那一刻的 `llmContext` 与 tokensUsed，
+   *   这里把它们写回 context，让上层还能持久化已经产生的进展。
+   * - **`finally` 里写元数据**：无论成功、失败还是抛出，`success`/`reason`/`tokensUsed`
+   *   都必须在 context 上可见。写成 try 内的一步会让失败路径完全没有归因信息。
+   */
   public async execute(
     context: RuntimeContext,
     signal: AbortSignal,
@@ -178,6 +189,13 @@ function reasonForError(
   return AGENT_RESULT_REASONS.LLM_ERROR;
 }
 
+/**
+ * 沿 `cause` 链找 fatal hook 错误。
+ *
+ * 必须遍历整条链：真正的 fatal 错误往往被中间层包了一层（例如被包进 ReactAgentExecutionError），
+ * 只看最外层会漏判。`visited` 集合防的是 cause 链成环——出错路径上什么都可能发生，
+ * 一个自引用会让这里变成死循环。
+ */
 function isHookFatalErrorChain(value: unknown): boolean {
   let current: unknown = value;
   const visited = new Set<unknown>();

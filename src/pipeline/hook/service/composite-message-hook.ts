@@ -16,6 +16,14 @@ function abortError(signal: AbortSignal): Error {
     : new DOMException("operation aborted", "AbortError");
 }
 
+/**
+ * 带超时地追加一条消息。
+ *
+ * 用 `Promise.race` 而不是把信号交给 appender：宿主的实现未必理会 `signal`，
+ * 赛跑至少保证**本次运行**不会被一次卡住的写入拖住。
+ * 代价是写入可能在我们放弃之后才完成——这正是这个缓冲定位于「尽力而为」的原因，
+ * 权威状态由主 Checkpoint 承担。
+ */
 async function appendWithTimeout(
   appender: MessageAppender,
   key: string,
@@ -47,6 +55,10 @@ export class MessageBufferCheckpointer implements MessageHook {
     this.#timeoutMs = timeoutMs;
   }
 
+  /**
+   * user 消息**不入缓冲**：它来自本次调用方传入的输入，调用方自己已经持有它。
+   * 缓冲存在的意义是「崩溃后能补回宿主还不知道的增量」，而 user 消息宿主本来就不知道不了。
+   */
   public onUserMessage(
     _context: RuntimeContext,
     _message: RawMessage,
@@ -124,6 +136,13 @@ export class CompositeMessageHook implements MessageHook {
     );
   }
 
+  /**
+   * **跑完全部 hook**，把错误收集起来再抛，而不是遇到第一个就中断。
+   *
+   * 理由：hook 之间彼此独立（一个写审计、一个推展示），前一个失败不该让后面的看不到这条消息。
+   * 抛出时 fatal 优先于普通错误——fatal 意味着运行必须停下来，掩盖它而去报一个可忽略的错误，
+   * 会让调用方以为还能继续。同类错误只记第一个（`??=`），后续是同一根因的重复。
+   */
   async #runAll(operation: HookOperation): Promise<void> {
     let firstError: Error | undefined;
     let fatalError: Error | undefined;
