@@ -13,6 +13,7 @@ import {
   type ShellRunResult,
 } from "./shell-process.js";
 
+/** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const SHELL_TOOL_NAME = "sys_shell";
 
 /** 调用方给出的执行条件，已通过运行时校验。 */

@@ -9,6 +9,7 @@ import { assertFreshRead } from "../file-access/mutation-guard.js";
 import { ledgerFileKey } from "../file-access/ledger-key.js";
 import type { FileReadLedger } from "../file-access/port/file-read-ledger.js";
 
+/** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const WRITE_FILE_TOOL_NAME = "sys_write_file";
 
 /** 调用方给出的写入目标与内容，已通过运行时校验。 */

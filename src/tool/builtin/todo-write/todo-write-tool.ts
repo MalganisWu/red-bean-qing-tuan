@@ -2,6 +2,7 @@ import type { JsonObject, JsonValue } from "../../../protocol/json.js";
 import type { Tool, ToolResult, ToolSchema } from "../../definition/tool.js";
 import { throwIfReadAborted } from "../read-file/safe-file-reader.js";
 
+/** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const TODO_WRITE_TOOL_NAME = "sys_todo_write";
 
 /** 待办事项状态常量表；比较与渲染都引用成员，避免散落的字符串字面量。 */

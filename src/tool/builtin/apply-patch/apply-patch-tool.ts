@@ -12,6 +12,7 @@ import { ledgerFileKey } from "../file-access/ledger-key.js";
 import { assertFreshRead } from "../file-access/mutation-guard.js";
 import type { FileReadLedger } from "../file-access/port/file-read-ledger.js";
 
+/** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const APPLY_PATCH_TOOL_NAME = "sys_apply_patch";
 
 /** 单处改动：把 oldString 字面替换为 newString。 */

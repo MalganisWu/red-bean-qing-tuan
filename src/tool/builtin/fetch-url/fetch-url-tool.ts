@@ -9,6 +9,7 @@ import {
   type HttpClient,
 } from "../http-request/http-client.js";
 
+/** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const FETCH_URL_TOOL_NAME = "sys_fetch_url";
 export const MAX_FETCH_BODY_BYTES = 2 * 1_048_576;
 export const MAX_FETCH_OUTPUT_BYTES = 64 * 1_024;

@@ -12,6 +12,7 @@ import {
   MAX_GREP_MATCHES,
 } from "../file-access/limits.js";
 
+/** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const GREP_TOOL_NAME = "sys_grep";
 
 /**

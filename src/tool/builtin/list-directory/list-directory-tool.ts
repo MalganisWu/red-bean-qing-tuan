@@ -7,6 +7,7 @@ import { throwIfReadAborted } from "../read-file/safe-file-reader.js";
 import { compareByName } from "../file-access/ordering.js";
 import { MAX_DIRECTORY_ENTRIES } from "../file-access/limits.js";
 
+/** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const LIST_DIRECTORY_TOOL_NAME = "sys_list_directory";
 
 /** 调用方给出的目录路径，已通过运行时校验。 */

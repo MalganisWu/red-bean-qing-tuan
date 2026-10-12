@@ -29,6 +29,7 @@ export {
   MAX_READ_TOKENS,
 } from "./safe-file-reader.js";
 
+/** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const READ_FILE_TOOL_NAME = "sys_read_file";
 
 function parameters(rooted: boolean): JsonObject {
