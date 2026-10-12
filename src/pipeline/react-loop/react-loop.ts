@@ -33,7 +33,18 @@ export {
 export const INTERRUPT_CALL_ID_METADATA_KEY = "interrupt_call_id";
 export const INTERRUPT_METADATA_KEY = "interrupt";
 
+/** 没有配置 maxToolIterations 时的轮次上限，防止模型陷入工具调用死循环时耗尽预算。 */
 const DEFAULT_MAX_TOOL_ITERATIONS = 30;
+
+/**
+ * ReAct 主循环：准备上下文 → 模型流 → 写回 assistant 消息 → 执行工具批次 → 合并结果，
+ * 直到模型不再请求工具、命中轮次上限、被取消，或在 interrupt 屏障处挂起。
+ *
+ * 循环的每一次迭代恰好产生一轮「模型 → 工具」往返。中断是**执行屏障**：
+ * 一批工具里只要有任意一个要求人工确认，这一批的其他工具都不会执行——
+ * 合并结果时会把中断识别出来并让整个运行进入挂起态，而不是只跳过那一个调用。
+ * 挂起状态通过 `context.metadata` 传给上层，`stopReason` 为 `awaiting_user`。
+ */
 export async function runReactLoop(
   options: RunReactLoopOptions,
 ): Promise<ReactResult> {
@@ -55,6 +66,8 @@ export async function runReactLoop(
     config,
     signal,
   } = options;
+  // 同一 context 可能被复用（例如挂起后恢复），先把上一轮遗留的中断痕迹清掉，
+  // 否则一次失败的恢复会让后续运行带着一个早已失效的 interrupt 启动。
   context.metadata.delete(INTERRUPT_CALL_ID_METADATA_KEY);
   context.metadata.delete(INTERRUPT_METADATA_KEY);
 
@@ -64,6 +77,8 @@ export async function runReactLoop(
     systemOffset = 1;
     messages.push({ role: "system", content: systemPrompt });
   }
+  // systemPrompt 每轮都由配置重新注入，而 llmContext 里可能已经存着一份（恢复场景）。
+  // 这里把历史开头那份同样的 system 消息去掉再拼接，避免提示词出现两次。
   let history = [...context.llmContext];
   while (
     systemPrompt !== "" &&
@@ -74,6 +89,8 @@ export async function runReactLoop(
   }
   messages.push(...history, ...context.messages);
 
+  // llmContext 始终不含系统提示词（见 copyVisibleContext）：它由配置持有，
+  // 存进历史只会带来「更新提示词后旧副本还在」的问题。
   const result: ReactResult = {
     llmContext: copyVisibleContext(messages, systemOffset),
     tokensUsed: 0,

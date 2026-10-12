@@ -17,7 +17,14 @@ export async function closeModelIterator(
   }
 }
 
-/** 等待一个模型增量，同时让超时和调用方取消可以立即打断等待。 */
+/**
+ * 等待一个模型增量，同时让**空闲超时**和调用方取消都能立即打断等待。
+ *
+ * 三个 Promise 赛跑：取下一帧、超时、取消。超时按「距上一帧的间隔」计，
+ * 所以持续吐字的流不会被总时长限制打断。
+ * `timer.unref()` 保证一个待机的超时不会把进程钉在事件循环里；
+ * `finally` 里清计时器、摘监听器，避免每次读取都往长生命周期的 signal 上挂监听。
+ */
 export async function nextModelChunk(
   iterator: AsyncIterator<LlmChunk>,
   timeoutMs: number,

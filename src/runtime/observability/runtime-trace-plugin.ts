@@ -28,10 +28,23 @@ import {
 } from "../../tool/delegation/runner/port/child-runner.js";
 import { ChildRunError } from "../../tool/delegation/error/child-run-error.js";
 
+/**
+ * Runtime 的中性观测插件：只记录低基数调用属性。
+ *
+ * 全文件贯穿一条硬边界——**span 属性里不出现 prompt、模型输出、工具参数或工具结果**。
+ * 记录的是「调了几次、调了什么名字、成功还是失败、属于哪个 trace」这类可聚合的量。
+ * 一旦把正文写进属性，观测后端就从可丢弃的旁路变成了一个新的数据泄露面，
+ * 而且基数会随用户内容爆炸。自定义 Tracer 实现同样受这条约束。
+ */
 function normalizeError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }
 
+/**
+ * 丢掉值为空串的属性。
+ * 与序列化层「空值即缺席」保持同一套语义：一个 `""` 的属性既没有信息量，
+ * 又会让「字段存在」这件事在不同后端上含义不一。
+ */
 function compactAttributes(
   ...attributes: readonly Attribute[]
 ): readonly Attribute[] {
@@ -57,6 +70,13 @@ class TracedLlmAdapter implements LlmAdapter {
     this.#next = next;
   }
 
+  /**
+   * 只在「拿到迭代器」这一步建立 span，真正的采集交给 `traceStream`。
+   *
+   * 这一点容易写错：`streamCompletion` resolve 时流的读取才刚刚开始，
+   * 若在这里 `span.end()`，span 的耗时会退化成「建连耗时」，
+   * 流中途的错误也无处附着。所以 span 的所有权被移交给返回的生成器。
+   */
   public async streamCompletion(
     request: LlmRequest,
     signal: AbortSignal,
@@ -81,6 +101,18 @@ class TracedLlmAdapter implements LlmAdapter {
   }
 }
 
+/**
+ * 包裹整条流的消费，并在流真正结束时收尾 span。
+ *
+ * 三处细节：
+ * - 每次 `iterator.next()` 都走 `span.within`，让异步上下文穿透到生产者一侧，
+ *   否则上游创建的嵌套 span 会挂错父节点。
+ * - 错误有两个来源：**带内**的错误 chunk（`item.value.error`，协议层用它表达
+ *   「流还能继续但这一帧是错的」）和**带外**的抛出。两者都记，但只保留第一个，
+ *   避免收尾时的二次错误覆盖掉真正的根因。
+ * - `finally` 一定调用 `iterator.return()`：消费者提前 break 时上游需要被显式关闭，
+ *   否则连接会挂到超时。
+ */
 async function* traceStream(
   source: AsyncIterable<LlmChunk>,
   span: Span,
@@ -203,6 +235,8 @@ class TracedChildRunner implements ChildRunner {
       return result;
     } catch (cause: unknown) {
       const error = normalizeError(cause);
+      // 子运行失败时它并非一无所知：ChildRunError 带着失败那一刻的部分结果。
+      // 把这些补进 span，排障时才能区分「模型就报错了」和「跑到一半才失败」。
       if (cause instanceof ChildRunError) {
         span.setAttributes(
           ...compactAttributes(
@@ -236,6 +270,12 @@ export class RuntimeTracePlugin implements RuntimePlugin {
     this.#tracer = tracer;
   }
 
+  /**
+   * 一次性登记 run 中间件与 LLM / Tool 包装器。
+   * 三层覆盖的是三种不同的调用来源：run 中间件管顶层执行，
+   * LLM 与 Tool 包装器管运行内部的调用（包括子运行自己发起的那些），
+   * 因此子 Agent 的模型与工具调用同样会被记录，无需额外接线。
+   */
   public register(registry: PluginRegistry): void {
     const llmMiddleware: LlmMiddleware = {
       wrapLlm: (next: LlmAdapter): LlmAdapter => wrapLlm(this.#tracer, next),

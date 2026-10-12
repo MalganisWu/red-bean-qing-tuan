@@ -44,6 +44,17 @@ export class OpenAiAdapter implements LlmAdapter {
     this.#fetch = options.fetch ?? fetch;
   }
 
+  /**
+   * 建连并返回未消费的事件流；响应体的读取发生在调用方消费返回的迭代器时。
+   *
+   * 错误分成三条通道，宿主的重试策略直接依赖这个划分：
+   * - **取消**：`signal.aborted` 时抛原始 reason，与「网络失败」区分开——
+   *   取消是调用方的意图，不该被当成可重试的故障。
+   * - **临时（TEMPORARY）**：连接层面的失败，以及 `openAiHttpError` 判定为 429/5xx 的响应，可重试。
+   * - **永久（PERMANENT）**：base URL 非法、响应没有 body 等协议问题，重试没有意义。
+   *
+   * 末尾的 `stream` 参数再传一次 signal：建连之后仍要能被取消。
+   */
   public async streamCompletion(
     request: LlmRequest,
     signal: AbortSignal,
@@ -85,6 +96,11 @@ export class OpenAiAdapter implements LlmAdapter {
   }
 }
 
+/**
+ * 默认工厂：目前只认 `openai`，其他 provider 直接报错而不是回退到某个默认实现。
+ * 空串的 baseUrl / modelName 视为「未提供」而落到默认值——
+ * 宿主配置里留空的字段不应该把请求打到一个空 URL 上。
+ */
 export function createDefaultLlmAdapterFactory(): LlmAdapterFactory {
   return (provider, apiKey, baseUrl, modelName): LlmAdapter => {
     if (provider !== "openai")

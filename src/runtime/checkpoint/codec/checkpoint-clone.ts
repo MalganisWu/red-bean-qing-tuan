@@ -44,7 +44,14 @@ function cloneInterrupt(interrupt: Interrupt): Interrupt {
   };
 }
 
-/** 隔离调用方可变引用，确保 Store 与 Runtime 不共享 Checkpoint 内部对象。 */
+/**
+ * 深拷贝 Checkpoint，确保 Store 与 Runtime 不共享任何可变内部对象。
+ *
+ * 逐字段重建而不是 `structuredClone`：`ContentRef.fetch` 是一个函数，
+ * 结构化拷贝会直接失败，而它必须按引用原样带过去。
+ * 可选字段一律用条件展开，避免把 `undefined` 显式写进对象——
+ * 序列化与快照比对都依赖「可选字段缺席」与「显式为 undefined」是同一件事。
+ */
 export function cloneCheckpoint(checkpoint: Checkpoint): Checkpoint {
   return {
     version: checkpoint.version,

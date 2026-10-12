@@ -10,6 +10,11 @@ import {
   type ContractContext,
 } from "./contract-support.js";
 
+/**
+ * 身份与 CAS 的基础契约，不涉及 resume 与 fencing。
+ *
+ * 三个用例合起来锁死一件事：revision 是唯一的写入门槛，身份不匹配时错误里不许夹带内容。
+ */
 export function basicCheckpointStoreCases(): readonly ContractCase[] {
   return [
     {
@@ -52,6 +57,11 @@ export function basicCheckpointStoreCases(): readonly ContractCase[] {
       },
     },
     {
+      /**
+       * 读一个不存在的 thread 不是「什么都没有」：错误必须携带一条合成的空记录，
+       * 且 threadId/userId 回填为**调用方请求的身份**、revision 为 0。
+       * 调用方据此可以直接发起 expectedRevision=0n 的首次保存，而不必再查一次。
+       */
       name: "missing record returns requested identity",
       run: async ({ freshStore, signal }: ContractContext): Promise<void> => {
         const store = await freshStore();
@@ -68,6 +78,12 @@ export function basicCheckpointStoreCases(): readonly ContractCase[] {
       },
     },
     {
+      /**
+       * 越权必须返回 `CHECKPOINT_NOT_FOUND`，且**错误里不得夹带任何快照**——
+       * `denied.record` 为 undefined 正是这条断言。若把 alice 的记录附在 bob 的错误上，
+       * 「隐藏所有权」就形同虚设：调用方靠错误对象就能读到别人的内容。
+       * 四个方法逐一验证，避免只挡住读、漏掉写。
+       */
       name: "owner mismatch",
       run: async ({ freshStore, signal }: ContractContext): Promise<void> => {
         const store = await freshStore();
@@ -79,6 +95,8 @@ export function basicCheckpointStoreCases(): readonly ContractCase[] {
           },
           signal,
         );
+        // 注意这次 load 还带了 fencingToken 99n：越权判定必须先于 fence 推进，
+        // 否则 bob 的一次越权读取就能污染 thread 的 fence 高水位。
         const denied = await expectStoreError(
           store.load(
             { threadId: "owned", userId: "bob", fencingToken: 99n },

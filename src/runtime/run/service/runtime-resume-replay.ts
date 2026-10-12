@@ -14,7 +14,15 @@ import { RUNTIME_ERROR_CODES, RuntimeError } from "../error/runtime-error.js";
 import { failRuntimeExecution } from "../error/runtime-execution-error.js";
 import { validateCheckpointIdentity } from "./runtime-checkpoint-session.js";
 
-/** 无 Store 模式命中进程内 receipt 时，校验幂等身份并返回防御性副本。 */
+/**
+ * 无 Store 模式命中进程内 receipt 时，校验幂等身份并返回防御性副本。
+ *
+ * 这是「宿主没接 CheckpointStore，但同进程内又收到同一个 resume 请求」的兜底路径。
+ * 校验顺序：先确认两侧身份都属于这个 thread（state 与 receipt 各查一次，
+ * 因为两者可能来自不同的请求），再逐项比对幂等三元组。
+ * 原请求失败过的话，重放必须照样以失败返回——把一次失败重放成成功，
+ * 会让上层以为工具真的执行完了。
+ */
 export function replayStatelessResume(
   receipts: ResumeReceiptStore,
   threadId: string,
@@ -48,7 +56,16 @@ export function replayStatelessResume(
   return cloneRuntimeResult(receipt.result);
 }
 
-/** Store 已有 replay/in-progress 结果时在再次执行模型前结束恢复流程。 */
+/**
+ * Store 已有 replay/in-progress 结果时在再次执行模型前结束恢复流程。
+ *
+ * 返回值语义：**`undefined` 表示「继续往下跑」**，非 undefined 则是可以直接交回给调用方的终态。
+ * 三种 disposition 各自对应一条：
+ * - `REPLAYED`：这次请求早先已完成，直接返回当时的记录。但记录若是 failed/cancelled，
+ *   必须改抛错误——已经失败过的运行不能靠重放变成一次成功。
+ * - `IN_PROGRESS`：另一次认领还没落终态，本次只能如实报「进行中」。
+ * - `CLAIMED`：本次真的抢到了，交由调用方继续执行模型。
+ */
 export function resultForConsumedResume(
   consumed: ConsumeInterruptResult,
 ): RuntimeResult | undefined {

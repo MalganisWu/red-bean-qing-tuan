@@ -41,6 +41,11 @@ export class MemoryCheckpointReceiptLedger {
     });
   }
 
+  /**
+   * 把回执翻成已完成，并更新为终态记录。
+   * `interruptId`/`response` 保留首次认领时写入的值：终态写入只是结束这次请求，
+   * 不应借此改写「这次请求本来是什么」，否则后续重放的身份校验会失去参照。
+   */
   public saveCompletion(
     threadId: string,
     requestId: string,

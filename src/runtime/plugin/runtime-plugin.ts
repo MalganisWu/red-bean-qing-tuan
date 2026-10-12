@@ -49,6 +49,13 @@ function normalizeError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }
 
+/**
+ * 构造期开放的插件注册表，`seal()` 之后任何登记都会抛错。
+ *
+ * 「注册后封闭」是这套插件模型的核心约束：能力图在构造期定死，
+ * 运行期不会出现新中间件，所以 wrap 的结果可以被安全地缓存与复用，
+ * 也不存在「插件在运行中途改变行为」这类难以复现的问题。
+ */
 export class PluginRegistry {
   readonly #run: RunMiddleware[] = [];
   readonly #llm: LlmMiddleware[] = [];
@@ -97,6 +104,11 @@ export class PluginRegistry {
     return [...this.#run];
   }
 
+  /**
+   * **逆序**包装，使先注册的中间件位于最外层。
+   * 这就是「先注册的 middleware 位于外层」那条契约的实现：注册顺序即嵌套顺序，
+   * 因此最外层的插件能看到并改写后续所有插件与模型之间的交互。
+   */
   public wrapLlm(adapter: LlmAdapter): LlmAdapter {
     let wrapped = adapter;
     for (let index = this.#llm.length - 1; index >= 0; index -= 1) {
@@ -110,6 +122,7 @@ export class PluginRegistry {
     return wrapped;
   }
 
+  /** 与 `wrapLlm` 同规则：逆序包装，先注册者在外层。 */
   public wrapToolDispatcher(dispatcher: ToolDispatcher): ToolDispatcher {
     let wrapped = dispatcher;
     for (let index = this.#tool.length - 1; index >= 0; index -= 1) {
@@ -125,6 +138,12 @@ export class PluginRegistry {
     return wrapped;
   }
 
+  /**
+   * 逆序释放资源（后创建的先释放），并**收集全部失败后一次性抛出**。
+   * 逐个抛出会让第一个失败把后面的清理全部跳过；这里保证每个 closer 都有机会执行，
+   * 最终用一个 `AggregateError` 汇总。
+   * 幂等：重复调用直接返回，避免宿主在多层关闭流程里重复释放同一批资源。
+   */
   public async close(signal: AbortSignal): Promise<void> {
     if (this.#closed) return;
     this.#closed = true;
@@ -151,6 +170,14 @@ export class PluginRegistry {
   }
 }
 
+/**
+ * 校验插件清单并完成注册。
+ *
+ * `seal()` 放在 `finally` 里是刻意的：**插件注册失败时注册表也必须封闭**。
+ * 否则一个中途抛错的安装会留下一个半成品注册表，而它看起来仍然可用——
+ * 后续再往里面登记就会得到一张与构造期预期不符的能力图。
+ * 名字去重同理：两个同名插件无法在日志与排障中被区分。
+ */
 export function installPlugins(
   plugins: readonly RuntimePlugin[],
 ): PluginRegistry {
@@ -179,6 +206,12 @@ export function installPlugins(
   }
 }
 
+/**
+ * 把中间件叠成洋葱：逆序包裹，使 `middleware[0]` 成为最外层，最先看到调用、最后看到结果。
+ *
+ * 注意 `nextSignal`：每个中间件收到的是**上游传给它的**信号，而不是最初那个。
+ * 中间件因此可以在自己的作用域内收窄或替换取消信号，而不影响外层。
+ */
 export function runWithMiddleware(
   info: RunInfo,
   middleware: readonly RunMiddleware[],

@@ -34,7 +34,19 @@ interface ConfiguredRuntime {
   readonly runMiddleware: readonly RunMiddleware[];
 }
 
-/** 组装入口集中选择 SDK 默认实现，业务代码不会隐藏具体绑定关系。 */
+/**
+ * 组装入口集中选择 SDK 默认实现，业务代码不会隐藏具体绑定关系。
+ *
+ * 包装顺序是这个函数的实质内容，且**不可调换**：
+ * 1. 先由插件包装 ToolDispatcher（`plugins.wrapToolDispatcher`）；
+ * 2. **再把 ToolPolicy 套在最外层**。
+ *
+ * 顺序反过来，插件就在授权策略之外，一次拒绝授权仍然会走到真实工具——
+ * 这正是「任何插件都不能短路 ToolPolicy」这条承诺的实现方式。
+ *
+ * 工具与 toolDispatcher 是互斥的两条接入方式：前者由 SDK 建默认分发器，
+ * 后者由宿主完全接管，同时给会让人无法判断该用哪个。
+ */
 function configureRuntime(options: AgentRuntimeOptions): ConfiguredRuntime {
   const tools = [...(options.tools ?? [])];
   const schemas: ToolSchema[] = [];
@@ -63,6 +75,8 @@ function configureRuntime(options: AgentRuntimeOptions): ConfiguredRuntime {
     throw new Error("tools and toolDispatcher are mutually exclusive");
   }
 
+  // 没有显式 dispatcher 时：有工具就用 Map 分发器，一个工具都没有则用 Noop
+  // （空工具集是合法的，模型只是没有工具可调）。
   let dispatcher: ToolDispatcher =
     options.toolDispatcher ??
     (tools.length > 0
@@ -71,6 +85,7 @@ function configureRuntime(options: AgentRuntimeOptions): ConfiguredRuntime {
   const plugins = installPlugins(options.plugins ?? []);
   const model = plugins.wrapLlm(options.model);
   dispatcher = plugins.wrapToolDispatcher(dispatcher);
+  // 策略放在插件**之后**包装，因此位于最外层，见函数注释。
   if (options.toolPolicy) {
     dispatcher = new PolicyDispatcher(dispatcher, options.toolPolicy);
   }
@@ -100,7 +115,10 @@ function configureRuntime(options: AgentRuntimeOptions): ConfiguredRuntime {
   };
 }
 
-/** 在默认 ToolDispatcher 外执行宿主授权策略，拒绝后不会调用真实工具。 */
+/**
+ * 在默认 ToolDispatcher 外执行宿主授权策略，拒绝后不会调用真实工具。
+ * 策略抛出的异常会被包装并带上工具名——宿主只知道「策略拒绝了」，排障时需要知道是哪个工具。
+ */
 class PolicyDispatcher implements ToolDispatcher {
   readonly #next: ToolDispatcher;
   readonly #policy: ToolPolicy;
@@ -128,7 +146,7 @@ class PolicyDispatcher implements ToolDispatcher {
   }
 }
 
-/** AgentRuntime 公开门面的唯一默认实现绑定。 */
+/** AgentRuntime 公开门面的唯一默认实现绑定；改默认实现只需要改这一处。 */
 export function createRuntimeRunService(
   options: AgentRuntimeOptions,
 ): RuntimeRunService {

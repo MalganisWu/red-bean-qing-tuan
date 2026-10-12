@@ -37,7 +37,18 @@ export interface LoadedRunCheckpoint {
   readonly terminalResult?: ReturnType<typeof runtimeResultFromRecord>;
 }
 
-/** 装载 run 起点并统一处理 identity、revision、resume claim 与 Store 错误语义。 */
+/**
+ * 装载 run 起点并统一处理 identity、revision、resume claim 与 Store 错误语义。
+ *
+ * 两条来源的优先级与各自的终止条件是这段代码的全部内容：
+ * - **显式 `state` 优先**。它带着完整 Checkpoint，无需访问 Store；若其中已有 `interrupt`
+ *   或 `resumeClaim`，说明不该继续跑，直接返回终态结果（`terminalResult`）。
+ * - **没有 state 才查 Store**。`CHECKPOINT_NOT_FOUND` **不是**错误：它带着一条空记录，
+ *   表示这是一次全新运行，照常返回空的起点让上层去创建。
+ *
+ * 其余判定：`expectedRevision` 不符即 CAS 冲突；存在 `resumeClaim` 表示有别的请求
+ * 正在处理，返回 `THREAD_BUSY` 而不是排队等待。
+ */
 export async function loadRunCheckpoint(
   store: CheckpointStore | undefined,
   request: AgentRequest,
@@ -53,6 +64,8 @@ export async function loadRunCheckpoint(
 
   if (request.state) {
     validateCheckpointIdentity(request.state, threadId, requestedUserId);
+    // 显式 state 且处于挂起/已认领状态：这次调用的结果已经由 state 决定，不需要再跑。
+    // revision 传 0n 是因为 state 模式没有 Store 的 revision 概念。
     if (request.state.interrupt || request.state.resumeClaim) {
       return {
         history,
@@ -66,6 +79,7 @@ export async function loadRunCheckpoint(
         }),
       };
     }
+    // `||=`：请求没带 userId 时才采用 state 里的，调用方显式声明的身份优先。
     history = cloneRuntimeMessages(request.state.messages);
     contentRefs = request.state.contentRefs.map(cloneRuntimeContentRef);
     userId ||= request.state.userId;
@@ -87,6 +101,8 @@ export async function loadRunCheckpoint(
       signal,
     );
   } catch (value: unknown) {
+    // NOT_FOUND 携带空记录，是「全新 thread」的正常信号而非故障：拿记录、标记未找到、继续。
+    // 其余错误才是真的读失败。
     if (
       value instanceof CheckpointStoreError &&
       value.code === RUNTIME_ERROR_CODES.CHECKPOINT_NOT_FOUND &&
@@ -115,10 +131,12 @@ export async function loadRunCheckpoint(
       error,
     );
   }
+  // 新 thread：返回调用方自己带来的 history（若有），revision 用 Store 给的 0。
   if (!found) {
     return { history, contentRefs, userId, lastResumeInterrupt, revision };
   }
   validateCheckpointIdentity(record.checkpoint, threadId, requestedUserId);
+  // 已有他人认领在手：本次不能覆盖，直接以当前记录构造 THREAD_BUSY 的结果返回。
   if (record.checkpoint.resumeClaim) {
     const error = new RuntimeError(RUNTIME_ERROR_CODES.THREAD_BUSY);
     return failRuntimeExecution(
@@ -127,6 +145,7 @@ export async function loadRunCheckpoint(
       error,
     );
   }
+  // 存在挂起：run 不该继续推进，返回挂起态让调用方改走 resume。
   if (record.checkpoint.interrupt) {
     return {
       history,
@@ -144,7 +163,17 @@ export async function loadRunCheckpoint(
   return { history, contentRefs, userId, lastResumeInterrupt, revision };
 }
 
-/** 以 state 或 Store 原子领取 interrupt，且不承担后续模型执行。 */
+/**
+ * 以 state 或 Store 原子领取 interrupt，且不承担后续模型执行。
+ *
+ * 两种模式互斥：
+ * - **state 模式**：在克隆出来的 Checkpoint 上直接做状态迁移，不落任何持久化。
+ *   三种既有状态各有归宿——同 interrupt 已消费过 → `REPLAYED`；
+ *   已有 claim → 同 interrupt 报进行中、不同 interrupt 报忙碌；
+ *   否则校验挂起点匹配后落 claim，返回 `CLAIMED`。
+ * - **Store 模式**：先 load 校验身份，再把 expectedRevision 交给 Store 去原子消费。
+ *   请求没带期望 revision 时用刚读到的值，等价于「以读到的版本为准」。
+ */
 export async function consumeResumeCheckpoint(
   store: CheckpointStore | undefined,
   threadId: string,
@@ -200,6 +229,16 @@ export async function consumeResumeCheckpoint(
   );
 }
 
+/**
+ * 校验 Checkpoint 属于请求所指的 thread 与用户。
+ *
+ * 两类不匹配走**不同的错误**，这个区别是刻意的：
+ * - `threadId` 对不上是调用方把两个对象拼错了（编程错误），用普通 `Error` 直接暴露。
+ * - `userId` 对不上是越权，必须伪装成 `CHECKPOINT_NOT_FOUND`，不能让人靠错误码
+ *   探测出「这个 thread 存在，只是不属于我」。
+ *
+ * 任一方的 userId 为空串都视为「未声明身份」，跳过校验。
+ */
 export function validateCheckpointIdentity(
   checkpoint: Checkpoint,
   threadId: string,
@@ -217,6 +256,7 @@ export function validateCheckpointIdentity(
   }
 }
 
+/** 确认要恢复的正是当前挂起的那个工具调用；「没挂起」与「挂起的是别人」分开报错。 */
 function validatePendingInterrupt(
   checkpoint: Checkpoint,
   interruptId: string,

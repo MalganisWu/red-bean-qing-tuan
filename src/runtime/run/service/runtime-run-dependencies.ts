@@ -8,7 +8,12 @@ import type { ResumeReceiptStore } from "../../resume-receipt/port/resume-receip
 import type { ThreadExecutionCoordinator } from "../../thread-execution/port/thread-execution-coordinator.js";
 import type { RuntimeConfiguration } from "../model/runtime-configuration.js";
 
-/** DefaultRuntimeRunService 的显式依赖图，仅由 composition root 构造。 */
+/**
+ * DefaultRuntimeRunService 的显式依赖图，仅由 composition root 构造。
+ *
+ * 单列一个接口而不是让服务直接读构造参数，是为了让「这个服务到底依赖哪些东西」
+ * 成为类型上可见的事实；测试也据此注入替身，不必启动整条组装链。
+ */
 export interface RuntimeRunDependencies {
   readonly configuration: RuntimeConfiguration;
   readonly plugins: PluginRegistry;

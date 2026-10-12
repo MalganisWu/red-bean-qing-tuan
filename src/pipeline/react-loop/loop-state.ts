@@ -60,6 +60,7 @@ export function abortLoopError(signal: AbortSignal): Error {
     : new DOMException("operation aborted", "AbortError");
 }
 
+/** 统一的失败出口：把当前进度装进 `ReactLoopError` 再抛，保证异常里带着可诊断的部分状态。 */
 export function failReactLoop(
   result: ReactResult,
   message: string,
@@ -68,6 +69,11 @@ export function failReactLoop(
   throw new ReactLoopError(message, result, cause);
 }
 
+/**
+ * 剥掉系统提示词，得到要持久化的可见上下文。
+ * `systemOffset` 是循环开头记录的前缀长度（0 或 1）——用偏移量而非按内容过滤，
+ * 是为了让「只有紧跟开头的那条 system 消息」被排除，历史中间出现的 system 消息照常保留。
+ */
 export function copyVisibleContext(
   messages: readonly RawMessage[],
   systemOffset: number,
@@ -75,6 +81,12 @@ export function copyVisibleContext(
   return messages.slice(systemOffset);
 }
 
+/**
+ * 提交一条消息：先入内存数组，再通知观察者。
+ *
+ * 顺序不能反——`onMessage` 由宿主实现，可能异步落库；先入数组保证即使观察者抛错，
+ * 内存里的对话状态也与已发生的事实一致（调用方随后会把 messages 快照进错误的 `llmContext`）。
+ */
 export async function persistLoopMessage(
   messages: RawMessage[],
   message: RawMessage,

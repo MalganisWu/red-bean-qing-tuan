@@ -18,6 +18,11 @@ import { normalizeChunk } from "./message-normalizer.js";
 import { closeModelIterator, nextModelChunk } from "./model-step.js";
 import { updateToolCallBuffer } from "./tool-step.js";
 
+/**
+ * 完全空响应（没有正文、没有工具调用、没有终止原因）的重试次数。
+ * 这类响应多半是上游的偶发抖动，重试有意义；但它也意味着「这一次什么都没发生」，
+ * 所以重试前必须把累积的片段全部清空，不能与上一次的残留拼在一起。
+ */
 const MAX_EMPTY_RESPONSE_RETRIES = 2;
 
 /** 单次模型流结束后交给 ReAct 主循环的文本、Tool Call 与终止原因。 */
@@ -40,7 +45,13 @@ interface ModelTurnOptions {
   readonly signal: AbortSignal;
 }
 
-/** 完成一次模型回合；空响应重试与流资源关闭都在这一层闭环。 */
+/**
+ * 完成一次模型回合；空响应重试与流资源关闭都在这一层闭环。
+ *
+ * 每轮尝试有自己的 `streamController`，与外层取消信号合成 `streamSignal`：
+ * 这样单次尝试结束时能主动关掉这条流（`streamController.abort()`），
+ * 而不必、也不能去动外层的取消信号。
+ */
 export async function executeModelTurn(
   options: ModelTurnOptions,
 ): Promise<ModelTurnResult> {
@@ -49,6 +60,7 @@ export async function executeModelTurn(
   let finishReason = "";
 
   for (let emptyAttempt = 0; ; emptyAttempt += 1) {
+    // usage 可能出现在多个 chunk 里，但只应计入一次。
     let usageCounted = false;
     const streamController = new AbortController();
     const streamSignal = AbortSignal.any([
@@ -80,6 +92,11 @@ export async function executeModelTurn(
     }
 
     const iterator = iterable[Symbol.asyncIterator]();
+    /**
+     * 流中途失败时，把已经吐出来的正文落成一条 assistant 消息。
+     * 不这么做的话，模型已经说了半段话，而这些内容既不在上下文里也没给用户看过，就直接消失了。
+     * hook 自身抛错被吞掉是刻意的——此刻真正要报的是 stream 的错，不能被 hook 的错顶掉。
+     */
     const persistPartial = async (): Promise<void> => {
       const content = contentParts.join("");
       if (content === "") return;
@@ -132,11 +149,16 @@ export async function executeModelTurn(
       await persistPartial();
       if (options.signal.aborted) options.result.cancelled = true;
       const error = normalizeLoopError(value);
+      // `chunk.error` 分支就在上面的 try 里调用 failReactLoop，它抛出的 ReactLoopError
+      // 会落到这里。原样再抛一次，否则会被下面的 failReactLoop 包成第二层，错误链多一层噪音。
       if (error instanceof ReactLoopError) throw error;
       failReactLoop(options.result, error.message, error);
     }
+    // 正常读完后同样要关闭流：迭代器被丢弃不等于底层连接已归还。
     streamController.abort();
 
+    // 三项全空才算「什么都没发生」。只要有 finishReason 就不算空——
+    // 模型明确说了「我结束于某个原因」，重试它没有意义。
     const empty =
       contentParts.length === 0 && toolBuffer.size === 0 && finishReason === "";
     if (!empty) return { contentParts, toolBuffer, finishReason };
@@ -146,6 +168,7 @@ export async function executeModelTurn(
         `LLM returned ${emptyAttempt + 1} consecutive empty responses`,
       );
     }
+    // 重试前清空累积状态，避免把两次空响应的碎片拼成一条消息。
     contentParts = [];
     toolBuffer = new Map<number, MutableToolCallEntry>();
     finishReason = "";

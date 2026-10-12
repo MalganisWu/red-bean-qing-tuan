@@ -22,6 +22,14 @@ import {
 /**
  * 合并一轮工具执行结果并识别 interrupt 屏障。
  * 普通结果先持久化为 tool 消息；interrupt 只返回中性结构，由主循环统一进入挂起终态。
+ *
+ * 三处刻意的严格：
+ * - 一个批次里出现**第二个**中断请求直接判错。一批工具最多只能有一个屏障，
+ *   否则「等谁确认」就没有唯一答案了。
+ * - 中断的那个调用**不写 tool 消息**（`continue` 跳过）：它的结果要等宿主确认后才产生，
+ *   此刻写一条空结果会让历史里出现一条永远对不上的工具调用。
+ * - 工具失败不抛出，而是序列化成 `{"error": ...}` 写进 tool 消息——
+ *   工具出错是模型需要读到并据此调整的**信息**，不是运行的故障。
  */
 export async function applyToolExecutionResults(
   executions: readonly ToolExecution[],
@@ -33,6 +41,8 @@ export async function applyToolExecutionResults(
 ): Promise<Interrupt | undefined> {
   let interrupt: Interrupt | undefined;
   for (const execution of executions) {
+    // 工具可以把大块内容「寄存」成引用而不是塞进上下文，这里统一登记到 context 上，
+    // 供后续压缩后的内容恢复使用。
     if (execution.result.preserve) {
       appendContentRef(context, execution.result.preserve);
     }

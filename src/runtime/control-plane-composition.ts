@@ -12,7 +12,14 @@ export interface RuntimeControlPlane {
   readonly resumeReceipts: ResumeReceiptStore;
 }
 
-/** 创建并明确绑定 Runtime 内部三个状态所有者。 */
+/**
+ * 创建并明确绑定 Runtime 内部三个状态所有者。
+ *
+ * 三者互不依赖，各自管一份进程内状态：生命周期（运行计数与关闭）、
+ * 逐 thread 串行化（Promise 队列）、resume 幂等收据（Map）。
+ * 它们都是**进程内**实现，跨实例共享状态必须由宿主换掉——这也是为什么它们被抽成单独的
+ * Port 并在组装层显式绑定，而不是藏在 DefaultRuntimeRunService 的字段里。
+ */
 export function createRuntimeControlPlane(): RuntimeControlPlane {
   return {
     lifecycle: new DefaultRuntimeLifecycle(),

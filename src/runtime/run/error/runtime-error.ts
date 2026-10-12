@@ -1,4 +1,11 @@
-/** Runtime 公开错误码与可编程错误类型。 */
+/**
+ * Runtime 公开错误码与可编程错误类型。
+ *
+ * 这些字符串是**宿主分支判断的唯一依据**，属于公共 API：新增码是兼容的，
+ * 改名或删除则是破坏性变更（由 api surface 快照与声明基线守住）。
+ * 配套的 `RUNTIME_ERROR_MESSAGES` 也刻意固定——文案不作为判断依据，
+ * 但保持稳定才能让日志与告警的聚合规则不因版本升级而失效。
+ */
 export const RUNTIME_ERROR_CODES = Object.freeze({
   CHECKPOINT_NOT_FOUND: "checkpoint_not_found",
   CHECKPOINT_NOT_SUSPENDED: "checkpoint_not_suspended",
@@ -43,6 +50,7 @@ export class RuntimeError extends Error {
   }
 }
 
+/** `code` 省略时只判断「是不是 RuntimeError」，给出时额外比对错误码。 */
 export function isRuntimeError(
   value: unknown,
   code?: RuntimeErrorCode,

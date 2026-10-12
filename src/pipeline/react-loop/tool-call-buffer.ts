@@ -7,6 +7,14 @@ export interface ToolCallEntry {
   readonly argumentParts: readonly string[];
 }
 
+/**
+ * 把流式累积的 Tool Call 片段拼成完整调用，按 `index` 排序。
+ *
+ * 必须排序：模型是并发下发多个工具调用的，分片按到达顺序进 Map，
+ * 与调用本身的先后无关。不排序会让工具的执行顺序随网络抖动而变，
+ * 对「先读后写」这类有顺序依赖的批次是致命的。
+ * 名字与参数各自 `join("")`，因为同一字段也可能被切成多个增量片段。
+ */
 export function assembleToolCalls(
   buffer: ReadonlyMap<number, ToolCallEntry>,
 ): readonly ToolCall[] {

@@ -17,6 +17,19 @@ export type {
   CheckpointStoreContractOptions,
 } from "./contract-support.js";
 
+/**
+ * 顺序执行用例，并保证每个用例都被隔离与收尾。
+ *
+ * 三条规则：
+ * - **逐用例新建 Store**：`freshStore` 每次调用工厂，用例之间不共享实例，
+ *   这样「用例 A 写脏了数据导致用例 B 通过」不可能发生。
+ * - **失败也要收尾**：用例中途抛错时，之前创建的 Store 仍会被释放；
+ *   派生 Store 以相反的创建顺序释放（后创建的依赖先创建的）。
+ * - **失败不被掩盖**：用例自身的失败与释放时的失败会聚合成 `AggregateError`，
+ *   只报其中一个会让真正的根因时有时无。
+ *
+ * `afterCase` 只在用例通过后执行——它是「重置外部状态」的钩子，用例已失败时没有意义。
+ */
 async function runCases(
   factory: CheckpointStoreContractFactory,
   options: CheckpointStoreContractOptions,
@@ -77,7 +90,12 @@ async function runCases(
   }
 }
 
-/** 运行可复用的 CAS、恢复、回执、墓碑、复制及可选 fencing 契约。 */
+/**
+ * 运行可复用的 CAS、恢复、回执、墓碑、复制及可选 fencing 契约。
+ *
+ * `supportsFencing` 决定是否纳入 fencing 用例组：声明 false 时套件不会替你验证
+ * 「非零 token 一律拒绝」，那部分必须另行运行 `runCheckpointStoreFencingUnsupportedContract`。
+ */
 export async function runCheckpointStoreContract(
   factory: CheckpointStoreContractFactory,
   options: CheckpointStoreContractOptions = {},
@@ -88,7 +106,13 @@ export async function runCheckpointStoreContract(
   await runCases(factory, options, cases);
 }
 
-/** 验证不支持 fencing 的 Store 会以 fail-closed 方式拒绝所有非零 token。 */
+/**
+ * 验证不支持 fencing 的 Store 会以 fail-closed 方式拒绝所有非零 token。
+ *
+ * 关键在「所有」：四个方法必须逐一拒绝。只挡住写入而放行读取的实现，
+ * 会让一个已经被接管（或本不该再持有 lease）的实例仍然读到最新状态，
+ * 因此本用例对 load / save / consumeInterrupt / delete 逐个断言 `FENCING_UNSUPPORTED`。
+ */
 export async function runCheckpointStoreFencingUnsupportedContract(
   factory: CheckpointStoreContractFactory,
   options: Omit<CheckpointStoreContractOptions, "supportsFencing"> = {},

@@ -14,7 +14,13 @@ import type {
 import type { CheckpointRecord } from "../../checkpoint/store/port/checkpoint-store.js";
 import type { RuntimeResult } from "./runtime-result.js";
 
-/** Runtime 结果与 checkpoint 之间的纯映射；不执行模型、工具或持久化。 */
+/**
+ * Runtime 结果与 checkpoint 之间的纯映射；不执行模型、工具或持久化。
+ *
+ * 本文件所有 `clone*` 函数都做深拷贝到消息与嵌套对象的层级，原因与 checkpoint 侧一致：
+ * 调用方拿到的结果不能与 Runtime 内部状态共享可变引用，否则调用方的一次手滑改写
+ * 会隔着几层影响后续持久化。`ContentRef.fetch` 是唯一按引用带过去的字段——它是函数。
+ */
 export function cloneRuntimeResult(result: RuntimeResult): RuntimeResult {
   return {
     status: result.status,
@@ -47,6 +53,11 @@ export function emptyRuntimeCheckpoint(
   };
 }
 
+/**
+ * 由 Checkpoint 构造结果。**revision 恒为 0n**：传入的只是内容，不含 Store 版本。
+ * 需要真实 revision 时必须走 `runtimeResultFromRecord`——0n 在这里表示「未知」，
+ * 不是一个可以直接拿去 CAS 的期望值。
+ */
 export function runtimeResultFromCheckpoint(
   checkpointInput: Checkpoint,
 ): RuntimeResult {
@@ -71,6 +82,11 @@ export function runtimeResultFromRecord(
   return result;
 }
 
+/**
+ * 序列化结果，遵循与 Checkpoint codec 相同的「空值即缺席」约定：
+ * 空串、0、空数组都不写进 payload，因此同一结果的输出逐字节稳定。
+ * revision 为 0n 时同样省略——它表示「未知」，写个 `"revision": 0` 反而像是真的第 0 版。
+ */
 export function serializeRuntimeResult(result: RuntimeResult): JsonObject {
   const payload: Record<string, JsonValue> = {
     status: result.status,
@@ -129,6 +145,13 @@ function revisionToJson(revision: bigint): number {
   return value;
 }
 
+/**
+ * 取最后一条有正文的 assistant 消息作为 `output`。
+ *
+ * 倒序扫描而非取末条：末条可能是工具调用轮次的 assistant 消息（`content` 为 null），
+ * 也可能是工具结果。跳过 null 正文才能拿到模型真正说过的话。
+ * 全都没有时返回空串，由调用方结合 status 判断这是不是一种失败。
+ */
 function lastAssistantOutput(messages: readonly RawMessage[]): string {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];

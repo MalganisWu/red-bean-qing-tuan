@@ -25,6 +25,10 @@ export type { RuntimeResult } from "../run/result/runtime-result.js";
 /**
  * Runtime 的稳定公开门面。
  * 默认实现的完整组装与运行编排位于 DefaultRuntimeRunService。
+ *
+ * 本类只做三件事：构造期组装一次、把 run/resume/close 透传下去。
+ * 它不是运行期 Service Locator——依赖在构造函数里一次装配完毕，之后不再变化。
+ * 本文件同时是这些类型的公开导出点，改导出清单等于改公共 API（由 api surface 快照守住）。
  */
 export class AgentRuntime {
   readonly #service: RuntimeRunService;

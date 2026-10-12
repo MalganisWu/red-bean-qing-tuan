@@ -44,7 +44,17 @@ import {
   normalizeRuntimeError as normalizeError,
 } from "../error/runtime-execution-error.js";
 
-/** 面向 SDK 消费方的高层门面，负责组装并执行一次完整 model-tool 循环。 */
+/**
+ * 面向 SDK 消费方的高层门面，负责组装并执行一次完整 model-tool 循环。
+ *
+ * `run` 与 `resume` 的骨架相同——生命周期记账 → 逐 thread 串行 → 建立起点 → 交给
+ * `executeRuntimeAgent` 执行并保存——差别只在于**起点怎么来**：
+ * run 从 `state` 或 Store 读，resume 还要先原子领取 interrupt、把应答合成一条 tool 消息补进历史。
+ * 领到之后两者走的是同一段代码，这是刻意的：恢复路径若单独实现一套，两边的保存与中断语义迟早会分叉。
+ *
+ * **失败以结果形式返回，不以异常抛出。** 只有 `RuntimeExecutionError` 会被调用方看到
+ * （它带着可诊断的部分结果），其余情况一律返回 status 为 failed/cancelled 的 `RuntimeResult`。
+ */
 export class DefaultRuntimeRunService implements RuntimeRunService {
   readonly #config: RuntimeConfiguration;
   readonly #plugins: PluginRegistry;
@@ -139,6 +149,7 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
     }
   }
 
+  /** 关闭顺序交给 lifecycle 决定：插件必须在其他资源之前反序清理，这里只是把插件关闭登记进去。 */
   public async close(signal: AbortSignal): Promise<void> {
     await this.#lifecycle.close(() => this.#plugins.close(signal), signal);
   }
@@ -152,11 +163,14 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
     const validated = validateRunRequest(request, store !== undefined);
     const { threadId, userId, fencingToken, messages } = validated;
 
+    // 逐 thread 串行：同一个 thread 的并发 run 会在这里排队，而不是各自跑完再靠 CAS 互相覆盖。
+    // 拿不到锁（队列满、被取消）时按「这次运行还没开始」构造结果，因此没有 history 可带。
     let release: () => void;
     try {
       release = await this.#threadExecution.acquire(threadId, signal);
     } catch (value: unknown) {
       const error = normalizeError(value);
+      // 取消与失败要分开：宿主的重试与告警策略对这两者完全不同。
       const result = resultFromCheckpoint(
         emptyCheckpoint(
           threadId,
@@ -275,6 +289,8 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
       }
 
       // claim 成功后补入 tool 响应，再复用与 run 完全相同的执行与保存路径。
+      // 合成的这条 tool 消息就是模型眼里「那个工具终于返回了」——历史因此与从未中断过一样。
+      // `lastResumeInterrupt` 置为本次 interruptId，供后续重放判定「这个中断已处理过」。
       const resultPromise = executeRuntimeAgent(
         {
           execution: this.#execution,
@@ -311,6 +327,8 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
           this.#resumeReceipts.save(threadId, request, result, undefined);
         return result;
       } catch (value: unknown) {
+        // 失败同样要留痕。否则一个「执行到一半就炸」的恢复请求被重试时，
+        // 会被当成全新请求再跑一遍，工具就被执行了两次。
         if (!store && value instanceof RuntimeExecutionError) {
           this.#resumeReceipts.save(threadId, request, value.result, value);
         }
