@@ -31,6 +31,7 @@ export function classifyLlmError(
   return cause ? new LlmError(kind, cause) : undefined;
 }
 
+/** `kind` 省略时只判断「是不是 LlmError」，给出时额外比对分类。 */
 export function isLlmError(
   value: unknown,
   kind?: LlmErrorKind,

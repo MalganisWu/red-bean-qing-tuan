@@ -174,6 +174,11 @@ export function updateToolCallBuffer(
   }
 }
 
+/**
+ * 把可变缓冲暴露为只读视图。这里只是类型层面的收窄（运行时仍是同一个 Map），
+ * 目的是让「组装期可变、消费期只读」这条边界在类型上可见——
+ * 交给 `assembleToolCalls` 之后就不该再有人往里写。
+ */
 export function immutableToolCallBuffer(
   buffer: ReadonlyMap<number, MutableToolCallEntry>,
 ): ReadonlyMap<number, ToolCallEntry> {

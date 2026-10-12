@@ -2,6 +2,7 @@ import type { ToolCallContext } from "../../../protocol/run-identity.js";
 import type { JsonObject, JsonValue } from "../../../protocol/json.js";
 import type { Tool, ToolResult, ToolSchema } from "../../definition/tool.js";
 
+/** 未指定 timezone 时使用的默认时区。 */
 export const DEFAULT_TIMEZONE = "Asia/Shanghai";
 
 interface ZonedParts {

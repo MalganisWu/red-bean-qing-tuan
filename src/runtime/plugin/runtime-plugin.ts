@@ -3,6 +3,7 @@ import type { ToolDispatcher } from "../../tool/dispatcher/port/tool-dispatcher.
 import type { RuntimeResult } from "../run/result/runtime-result.js";
 import type { RunIdentity } from "../../protocol/run-identity.js";
 
+/** Run 中间件可观察到的调用种类；`resume` 与 `run` 在中间件看来是两次不同的调用。 */
 export const RUN_KINDS = Object.freeze({
   RUN: "run",
   RESUME: "resume",

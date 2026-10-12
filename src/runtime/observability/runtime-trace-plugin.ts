@@ -186,6 +186,7 @@ export function wrapLlm(tracer: Tracer, next: LlmAdapter): LlmAdapter {
   return new TracedLlmAdapter(tracer, next);
 }
 
+/** 用观测装饰器包住工具分发器；每次 dispatch 记一个 `tool.execute` span。 */
 export function wrapToolDispatcher(
   tracer: Tracer,
   next: ToolDispatcher,

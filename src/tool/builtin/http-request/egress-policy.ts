@@ -7,6 +7,7 @@ import type {
   ResolvedAddress,
 } from "./http-contracts.js";
 
+/** 取取消原因并抛出；优先沿用 `signal.reason`，不把它换成通用文案。 */
 export function throwIfHttpAborted(signal: AbortSignal): void {
   if (!signal.aborted) return;
   throw signal.reason instanceof Error
@@ -14,6 +15,7 @@ export function throwIfHttpAborted(signal: AbortSignal): void {
     : new DOMException("operation aborted", "AbortError");
 }
 
+/** 判定地址族；`BlockList.check` 必须传对 family，传错会静默匹配失败（等于放行）。 */
 export function addressFamily(address: string): "ipv4" | "ipv6" {
   const family = isIP(address);
   if (family === 4) return "ipv4";
@@ -21,6 +23,7 @@ export function addressFamily(address: string): "ipv4" | "ipv6" {
   throw new Error(`无效 IP 地址 ${JSON.stringify(address)}`);
 }
 
+/** 去掉 IPv6 字面量的方括号：`URL.hostname` 会保留 `[::1]`，而 DNS 与 socket 都不接受它。 */
 export function unbracketHostname(hostname: string): string {
   return hostname.startsWith("[") && hostname.endsWith("]")
     ? hostname.slice(1, -1)

@@ -2,8 +2,11 @@ import type { FileHandle } from "node:fs/promises";
 
 import type { JsonObject, JsonValue } from "../../../protocol/json.js";
 
+/** 单次读取的字节上限（256KiB）；超出的文件必须先确认大小，再用 offset/limit 分片读。 */
 export const MAX_READ_SIZE_BYTES = 256 * 1_024;
+/** 单次输出交给模型的 token 上限（估算值）；与字节上限互为兜底，谁先到算谁。 */
 export const MAX_READ_TOKENS = 25_000;
+/** 未指定 limit 时默认读取的行数。 */
 export const MAX_LINES_TO_READ = 2_000;
 /**
  * 「文件没变过」的占位回复。命中时 Read 只回这一句，不再重发内容——
@@ -46,6 +49,11 @@ function optionalInteger(value: JsonObject, key: string): number {
   return field;
 }
 
+/**
+ * 校验并归一化入参。`offset`/`limit` 给非正数或省略时按默认值处理（从第 1 行、读满上限）。
+ * `ranged` 标记「调用方是否显式指定了范围」——读取工具据此决定要不要强制重新读取，
+ * 与「读了多少」是两回事。
+ */
 export function parseReadFileParams(value: JsonValue): ReadFileParams {
   if (!isObject(value)) throw new Error("read parameters must be an object");
   const filePath = value["file_path"];
@@ -62,6 +70,7 @@ export function parseReadFileParams(value: JsonValue): ReadFileParams {
   };
 }
 
+/** 取取消原因并抛出；优先沿用 `signal.reason`，不把它换成通用文案。 */
 export function throwIfReadAborted(signal: AbortSignal): void {
   if (!signal.aborted) return;
   throw signal.reason instanceof Error
@@ -69,6 +78,7 @@ export function throwIfReadAborted(signal: AbortSignal): void {
     : new DOMException("operation aborted", "AbortError");
 }
 
+/** 与压缩侧同一套粗略换算：ASCII 约 4 字符 1 token、非 ASCII 1 字符 1 token。只用于量级判断，不作精确计费。 */
 export function roughTokenCount(value: string): number {
   let ascii = 0;
   let nonAscii = 0;

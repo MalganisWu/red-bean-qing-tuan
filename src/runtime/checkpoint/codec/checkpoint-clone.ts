@@ -72,6 +72,7 @@ export function cloneCheckpoint(checkpoint: Checkpoint): Checkpoint {
   };
 }
 
+/** 深拷贝整条记录（checkpoint + revision）；Store 的每个出入口都该经过它。 */
 export function cloneCheckpointRecord(
   record: CheckpointRecord,
 ): CheckpointRecord {

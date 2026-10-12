@@ -30,7 +30,9 @@ export {
   type RunReactLoopOptions,
 } from "./loop-state.js";
 
+/** `RuntimeContext.metadata` 中存放本次挂起的工具调用 ID 的键。 */
 export const INTERRUPT_CALL_ID_METADATA_KEY = "interrupt_call_id";
+/** `RuntimeContext.metadata` 中存放完整 `Interrupt` 的键；上层据此构造挂起结果。 */
 export const INTERRUPT_METADATA_KEY = "interrupt";
 
 /** 没有配置 maxToolIterations 时的轮次上限，防止模型陷入工具调用死循环时耗尽预算。 */

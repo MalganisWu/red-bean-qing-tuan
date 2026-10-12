@@ -1,6 +1,7 @@
 import type { RuntimeContext } from "../../context/runtime-context.js";
 import type { RawMessage } from "../../../protocol/message.js";
 
+/** `RuntimeContext.metadata` 中存放本次运行 token 用量的键；与 execution 侧同名同义。 */
 export const TOKENS_USED_METADATA_KEY = "tokens_used";
 
 /**

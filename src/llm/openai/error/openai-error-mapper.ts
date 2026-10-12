@@ -1,5 +1,6 @@
 import { LLM_ERROR_KINDS, LlmError } from "../../error/llm-error.js";
 
+/** 把任意抛出物统一成 Error；非 Error 一律 `String(...)`，不做结构探测。 */
 export function normalizeError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }

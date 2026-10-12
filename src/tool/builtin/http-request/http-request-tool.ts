@@ -9,6 +9,7 @@ import {
 
 /** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const HTTP_REQUEST_TOOL_NAME = "sys_http_request";
+/** 单次响应最多读取的字节数（1MiB）；超出即截断，避免一个大响应把上下文撑爆。 */
 export const MAX_HTTP_RESPONSE_BYTES = 1_048_576;
 const MAX_REDIRECTS = 10;
 const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);

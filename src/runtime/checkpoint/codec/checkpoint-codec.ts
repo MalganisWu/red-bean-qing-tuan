@@ -70,6 +70,7 @@ export function serializeCheckpoint(checkpoint: Checkpoint): JsonObject {
   return payload;
 }
 
+/** 序列化整条记录；revision 超出 JSON 安全整数范围时抛错，不静默截断。 */
 export function serializeCheckpointRecord(
   record: CheckpointRecord,
 ): JsonObject {

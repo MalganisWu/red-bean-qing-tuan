@@ -98,6 +98,7 @@ export function withMessage(
   };
 }
 
+/** 取记录中首条消息的正文，供用例断言「存下来的就是当时写的」。 */
 export function firstMessageContent(record: CheckpointRecord): string | null {
   const message = record.checkpoint.messages[0];
   assert.ok(message, "checkpoint must contain a message");
