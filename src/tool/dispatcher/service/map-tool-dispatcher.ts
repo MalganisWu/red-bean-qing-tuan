@@ -4,6 +4,11 @@ import type { ToolCallContext } from "../../../protocol/run-identity.js";
 import type { Tool, ToolResult } from "../../definition/tool.js";
 import type { ToolDispatcher } from "../port/tool-dispatcher.js";
 
+/**
+ * 分发阶段的稳定错误码。
+ * `NOT_FOUND` 尤其重要：组合分发器（见产品侧的 CompositeDispatcher）靠它判断
+ * 「这个工具不在这张表里，去另一张表找」，而不是靠消息文本匹配。
+ */
 export const TOOL_DISPATCH_ERROR_CODES = Object.freeze({
   NOT_FOUND: "tool_not_found",
   INVALID_ARGUMENTS: "invalid_tool_arguments",
@@ -13,6 +18,7 @@ export const TOOL_DISPATCH_ERROR_CODES = Object.freeze({
 export type ToolDispatchErrorCode =
   (typeof TOOL_DISPATCH_ERROR_CODES)[keyof typeof TOOL_DISPATCH_ERROR_CODES];
 
+/** 分发失败的稳定类型；`code` 是供机器分支的判据，消息只供人读。 */
 export class ToolDispatchError extends Error {
   public readonly code: ToolDispatchErrorCode;
 

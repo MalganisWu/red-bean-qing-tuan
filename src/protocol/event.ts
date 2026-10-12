@@ -1,5 +1,6 @@
 import type { JsonObject } from "./json.js";
 
+/** Runtime 中性事件的类型标签；同时作为可辨识联合的判别字段与 wire 上的 `type`。 */
 export const EVENT_TYPES = Object.freeze({
   TOKEN: "token",
   STATUS: "status",
@@ -9,6 +10,10 @@ export const EVENT_TYPES = Object.freeze({
   COMPACTION: "compaction",
 } as const);
 
+/**
+ * status 事件的机器码。这里刻意不放文案：Runtime 不拼面向用户的句子，
+ * 宿主按码映射本地化文本（产品侧见 `chat-event-presenter.ts`）。
+ */
 export const STATUS_CODES = Object.freeze({
   THINKING: "thinking",
   ANALYZING_RESULTS: "analyzing_results",

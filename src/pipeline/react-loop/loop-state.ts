@@ -17,6 +17,12 @@ export interface ReactResult {
   interrupt?: Interrupt | undefined;
 }
 
+/**
+ * 循环失败时抛出的错误，**始终携带出错那一刻的 `ReactResult`**。
+ * 这是它存在的全部意义：一次跑了一半的循环里已经有模型输出、工具结果和 token 消耗，
+ * 这些不该因为抛出而消失。上层（`ReactAgentExecution`）会把 `result.llmContext`
+ * 写回上下文并持久化，让失败的运行也能留下进展。
+ */
 export class ReactLoopError extends Error {
   public readonly result: ReactResult;
 
@@ -50,10 +56,12 @@ export interface MutableToolCallEntry {
   argumentParts: string[];
 }
 
+/** 把任意抛出物统一成 Error；非 Error 一律 `String(...)`，不做结构探测。 */
 export function normalizeLoopError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }
 
+/** 取取消原因；优先沿用 `signal.reason`，调用方通过 `abort(customReason)` 传入的原因不该被换掉。 */
 export function abortLoopError(signal: AbortSignal): Error {
   return signal.reason instanceof Error
     ? signal.reason

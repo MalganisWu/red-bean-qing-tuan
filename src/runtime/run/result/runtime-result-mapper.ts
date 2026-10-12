@@ -34,6 +34,10 @@ export function cloneRuntimeResult(result: RuntimeResult): RuntimeResult {
   };
 }
 
+/**
+ * 造一个空 Checkpoint。`version` 固定为 1（0 只属于未落盘的内存态），
+ * `messages` 会被深拷贝——传入的数组通常是调用方自己的，不能共享。
+ */
 export function emptyRuntimeCheckpoint(
   threadId: string,
   userId: string,
@@ -74,6 +78,7 @@ export function runtimeResultFromCheckpoint(
   };
 }
 
+/** 由 Store 记录构造结果——与 `runtimeResultFromCheckpoint` 的唯一差别是把真实 revision 带出来。 */
 export function runtimeResultFromRecord(
   record: CheckpointRecord,
 ): RuntimeResult {
@@ -105,12 +110,17 @@ export function serializeRuntimeResult(result: RuntimeResult): JsonObject {
   return payload;
 }
 
+/** 逐条深拷贝消息；`toolCalls.function` 也是新建对象，不共享引用。 */
 export function cloneRuntimeMessages(
   messages: readonly RawMessage[],
 ): RawMessage[] {
   return messages.map(cloneMessage);
 }
 
+/**
+ * 拷贝内容引用。浅展开 + 复制 `meta` 即可——`fetch` 是函数，必须按引用带过去
+ * （`structuredClone` 会直接失败），其余字段都是值类型。
+ */
 export function cloneRuntimeContentRef(reference: ContentRef): ContentRef {
   return {
     ...reference,

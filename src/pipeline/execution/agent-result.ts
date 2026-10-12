@@ -1,6 +1,13 @@
+/** `RuntimeContext.metadata` 中存放 `AgentResult` 的键；Pipeline 外的调用方按它读执行结论。 */
 export const AGENT_RESULT_METADATA_KEY = "agent_result";
+/** `RuntimeContext.metadata` 中存放本次运行 token 用量的键。 */
 export const TOKENS_USED_METADATA_KEY = "tokens_used";
 
+/**
+ * Agent 执行停止原因的稳定取值。
+ * 与 `AgentResult.success` 配合使用：`success: false` 说明没跑完，`reason` 说明卡在哪一步。
+ * `AWAITING_USER` 是唯一「没跑完但也不是失败」的取值——它在等用户对中断作出回应。
+ */
 export const AGENT_RESULT_REASONS = Object.freeze({
   COMPLETED: "completed",
   CANCELLED: "cancelled",
