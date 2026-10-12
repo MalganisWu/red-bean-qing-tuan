@@ -24,7 +24,20 @@ function joinErrors(errors: readonly Error[]): Error | undefined {
   );
 }
 
-/** 顺序执行普通节点，并保证 finally 节点在独立清理信号下运行。 */
+/**
+ * 顺序执行普通节点，并保证 finally 节点在独立清理信号下运行。
+ *
+ * 执行分三段，边界由异常处理划定：
+ * 1. **正常段**：`onPipelineStart` → 逐节点（`beforeNode` → execute → `afterNode`）。
+ *    节点抛错会中断后续节点，但**不立即上抛**——先记下来，让清理段还能跑。
+ * 2. **清理段**：`onPipelineEnd` 与 finally 节点都跑在 `AbortSignal.timeout(finallyTimeoutMs)` 上，
+ *    **刻意不复用运行信号**。运行被取消时信号已中止，复用会让清理全部跳过，
+ *    而「无论成败都要收尾」正是 finally 节点的意义。
+ * 3. **汇总段**：把正常段的错误与清理段的错误合并后抛出；两者都为空才视为成功。
+ *
+ * `afterNode` 的失败被吞掉（见下方注释），`context.pipelineError` 则**逐步更新**——
+ * 让后跑的 finally 节点能看到「目前已知的失败」，而不是等到最后才拿到。
+ */
 export class SequentialPipeline implements RuntimePipeline {
   readonly #nodes: readonly RuntimeNode[];
   readonly #finalNodes: readonly RuntimeNode[];
@@ -73,6 +86,8 @@ export class SequentialPipeline implements RuntimePipeline {
           nodeError = normalizeError(error);
         }
 
+        // afterNode 是纯观察点：它拿得到节点错误，但它的失败不改变主结果——
+        // 一个诊断 hook 出问题不该把一次成功的运行变成失败。
         for (const hook of this.#hooks) {
           try {
             await hook.afterNode(context, node, nodeError, signal);
@@ -127,7 +142,11 @@ export class SequentialPipeline implements RuntimePipeline {
   }
 }
 
-/** 显式收集节点与 Hook 的轻量构建器，不保存全局注册状态。 */
+/**
+ * 显式收集节点与 Hook 的轻量构建器，不保存全局注册状态。
+ * 链式方法返回 `this`，`build()` 时把数组复制进 Pipeline——
+ * 因此构建完再往 builder 里加东西，不会影响已经建好的那一个。
+ */
 export class PipelineBuilder {
   readonly #nodes: RuntimeNode[] = [];
   readonly #finalNodes: RuntimeNode[] = [];
@@ -149,6 +168,7 @@ export class PipelineBuilder {
     return this;
   }
 
+  /** 非正整数一律退回默认值而不是抛错：清理超时配错不该让整条 pipeline 起不来。 */
   public withFinallyTimeout(timeoutMs: number): this {
     this.#finallyTimeoutMs =
       Number.isSafeInteger(timeoutMs) && timeoutMs > 0

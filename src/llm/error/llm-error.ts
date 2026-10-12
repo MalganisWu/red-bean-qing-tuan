@@ -8,6 +8,11 @@ export const LLM_ERROR_KINDS = Object.freeze({
 export type LlmErrorKind =
   (typeof LLM_ERROR_KINDS)[keyof typeof LLM_ERROR_KINDS];
 
+/**
+ * LLM 调用失败的载体。`kind` 是**唯一**供重试策略分支的字段，文案不是判据。
+ * 消息直接从 cause 复制一份，使得 `error.message` 在不追进 cause 链时也可读——
+ * 日志系统通常只打最外层。
+ */
 export class LlmError extends Error {
   public readonly kind: LlmErrorKind;
 

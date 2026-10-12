@@ -29,7 +29,13 @@ export interface RuntimeContextOptions {
   readonly metadata?: ReadonlyMap<string, unknown> | undefined;
 }
 
-/** 单次 pipeline 执行共享的可变状态，绝不能存入全局对象。 */
+/**
+ * 单次 pipeline 执行共享的可变状态，绝不能存入全局对象。
+ *
+ * 「单次」是硬约束：构造时把来参里的集合都**复制**一份（`[...]` / `new Map()`），
+ * 因此调用方后续改动自己那份不会影响本次运行；反过来，这个实例也不能跨运行复用——
+ * `llmContext` 与 `metadata` 都会被运行过程改写，复用等于把上一次的残留带进下一次。
+ */
 export class RuntimeContext {
   public readonly sessionId: string;
   public readonly checkpointId: string;
@@ -67,6 +73,7 @@ export class RuntimeContext {
   }
 }
 
+/** 从 `ToolCallContext` 发事件；工具拿到的只有这个窄上下文，不持有整个 RuntimeContext。 */
 export function emitToolCallEvent(
   context: ToolCallContext,
   event: RuntimeEvent,

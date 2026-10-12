@@ -24,7 +24,13 @@ export interface LlmRequest {
   readonly params: ModelParams;
 }
 
-/** 模型流的单个增量；厂商响应必须先转换为该结构。 */
+/**
+ * 模型流的单个增量；厂商响应必须先转换为该结构。
+ *
+ * `error` 是**带内**错误通道：设置它表示「这一帧是错的」，流本身仍会正常结束。
+ * 厂商侧的协议错误（JSON 解析失败、字段类型不对）走这条通道而不是抛出，
+ * 消费者因此只需要处理一种终止方式。`content: null` 是合法的——工具调用轮次就没有正文。
+ */
 export interface LlmChunk {
   readonly content: string | null;
   readonly reasoningContent?: string | null | undefined;
