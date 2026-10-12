@@ -60,7 +60,7 @@ void describe("Runtime TypeScript get-time tool", () => {
     );
   });
 
-  void it("uses the default timezone and supports Go-compatible layouts", async () => {
+  void it("uses the default timezone and formats with strftime specifiers", async () => {
     const fixed = new Date("2026-08-03T09:30:00.000Z");
     const tool = new GetTimeTool((): Date => fixed);
     const defaultResult = await execute(tool, {});
@@ -68,8 +68,14 @@ void describe("Runtime TypeScript get-time tool", () => {
     assert.equal(defaultResult["timezone"], DEFAULT_TIMEZONE);
     assert.equal(defaultResult["iso"], "2026-08-03T17:30:00+08:00");
 
-    const customFormat = await execute(tool, { format: "2006-01-02" });
+    const customFormat = await execute(tool, { format: "%Y-%m-%d" });
     assert.equal(customFormat["iso"], "2026-08-03");
+
+    const offsetSpecifiers = await execute(tool, { format: "%z/%:z" });
+    assert.equal(offsetSpecifiers["iso"], "+0800/+08:00");
+
+    const literalPercent = await execute(tool, { format: "%%Y" });
+    assert.equal(literalPercent["iso"], "%Y");
 
     const newYork = await execute(tool, { timezone: "America/New_York" });
     assert.equal(newYork["iso"], "2026-08-03T05:30:00-04:00");

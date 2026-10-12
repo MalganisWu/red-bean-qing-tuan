@@ -39,9 +39,9 @@ void describe("Runtime TypeScript post-compaction restorer", () => {
     const references: readonly ContentRef[] = [
       {
         kind: "file",
-        key: "go.mod",
+        key: "src/config.json",
         fetch: (): Promise<Uint8Array> =>
-          Promise.resolve(encoder.encode("module github.com/x")),
+          Promise.resolve(encoder.encode("demo config content")),
       },
       {
         kind: "file",
@@ -51,9 +51,9 @@ void describe("Runtime TypeScript post-compaction restorer", () => {
       },
       {
         kind: "file",
-        key: "main.go",
+        key: "src/notes.md",
         fetch: (): Promise<Uint8Array> =>
-          Promise.resolve(encoder.encode("package main")),
+          Promise.resolve(encoder.encode("notes content")),
       },
     ];
 
@@ -62,8 +62,8 @@ void describe("Runtime TypeScript post-compaction restorer", () => {
       AbortSignal.timeout(1_000),
     );
     assert.equal(messages.length, 2);
-    assert.match(messages[0]?.content ?? "", /Read\("go\.mod"\)/);
-    assert.match(messages[0]?.content ?? "", /module github\.com\/x/);
+    assert.match(messages[0]?.content ?? "", /Read\("src\/config\.json"\)/);
+    assert.match(messages[0]?.content ?? "", /demo config content/);
   });
 
   void it("sorts newest first and restores at most five references", async () => {

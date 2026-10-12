@@ -12,7 +12,7 @@ interface ZonedParts {
   readonly minute: string;
   readonly second: string;
   readonly offset: string;
-  readonly zoneOffset: string;
+  readonly colonOffset: string;
 }
 
 function isObject(value: JsonValue): value is JsonObject {
@@ -33,15 +33,14 @@ function part(
   return parts.find((candidate) => candidate.type === type)?.value ?? "";
 }
 
-function formatOffset(offsetMinutes: number, useZulu: boolean): string {
-  if (useZulu && offsetMinutes === 0) return "Z";
+function formatOffset(offsetMinutes: number, separator: string): string {
   const sign = offsetMinutes >= 0 ? "+" : "-";
   const absolute = Math.abs(offsetMinutes);
   const hours = Math.floor(absolute / 60)
     .toString()
     .padStart(2, "0");
   const minutes = (absolute % 60).toString().padStart(2, "0");
-  return `${sign}${hours}:${minutes}`;
+  return `${sign}${hours}${separator}${minutes}`;
 }
 
 function zonedParts(value: Date, timeZone: string): ZonedParts {
@@ -84,24 +83,25 @@ function zonedParts(value: Date, timeZone: string): ZonedParts {
     hour,
     minute,
     second,
-    offset: formatOffset(offsetMinutes, false),
-    zoneOffset: formatOffset(offsetMinutes, true),
+    offset: formatOffset(offsetMinutes, ""),
+    colonOffset: formatOffset(offsetMinutes, ":"),
   };
 }
 
-function formatGoLayout(layout: string, parts: ZonedParts): string {
+function formatStrftime(format: string, parts: ZonedParts): string {
   const replacements: Readonly<Record<string, string>> = {
-    "2006": parts.year,
-    "01": parts.month,
-    "02": parts.day,
-    "15": parts.hour,
-    "04": parts.minute,
-    "05": parts.second,
-    "Z07:00": parts.zoneOffset,
-    "-07:00": parts.offset,
+    "%%": "%",
+    "%Y": parts.year,
+    "%m": parts.month,
+    "%d": parts.day,
+    "%H": parts.hour,
+    "%M": parts.minute,
+    "%S": parts.second,
+    "%z": parts.offset,
+    "%:z": parts.colonOffset,
   };
-  return layout.replace(
-    /Z07:00|-07:00|2006|01|02|15|04|05/g,
+  return format.replace(
+    /%(?::z|[%YmdHMSz])/gu,
     (token: string): string => replacements[token] ?? token,
   );
 }
@@ -111,7 +111,8 @@ const TIME_PARAMETERS: JsonObject = {
   properties: {
     format: {
       type: "string",
-      description: "时间格式，使用 Go layout；默认 RFC3339",
+      description:
+        "时间格式，strftime 语法；支持 %Y %m %d %H %M %S %z %:z %%，默认 %Y-%m-%dT%H:%M:%S%:z",
     },
     timezone: {
       type: "string",
@@ -155,14 +156,13 @@ export class GetTimeTool implements Tool {
     }
     try {
       const timezone = optionalString(params, "timezone") || DEFAULT_TIMEZONE;
-      const layout =
-        optionalString(params, "format") || "2006-01-02T15:04:05Z07:00";
+      const format = optionalString(params, "format") || "%Y-%m-%dT%H:%M:%S%:z";
       const now = this.#now();
       if (!Number.isFinite(now.getTime()))
         throw new Error("clock returned an invalid date");
       const result = {
         unix: Math.floor(now.getTime() / 1_000),
-        iso: formatGoLayout(layout, zonedParts(now, timezone)),
+        iso: formatStrftime(format, zonedParts(now, timezone)),
         timezone,
       };
       return Promise.resolve({ content: JSON.stringify(result) });

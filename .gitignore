@@ -1,28 +1,11 @@
 # Binaries
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
 bin/
 dist/
 .test-dist/
 node_modules/
 *.tsbuildinfo
 
-# Test binary
-*.test
-
-# Output of the go coverage tool
-*.out
-coverage.txt
-coverage.html
-
-# Go workspace file
-go.work
-
 # Config
-backend/config.local.yaml
 .env*
 !**/.env.example
 
@@ -37,10 +20,7 @@ backend/config.local.yaml
 .DS_Store
 Thumbs.db
 
-# Dependency directories
-vendor/
-
-# Air live reload
+# 临时目录
 tmp/
 
 # Claude Code worktrees（保留 .claude/CLAUDE.md 被跟踪）

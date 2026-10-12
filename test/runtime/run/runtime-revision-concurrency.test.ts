@@ -152,7 +152,7 @@ void describe("Runtime TypeScript revision and concurrency semantics", () => {
       checkpointStore: new FailingSaveStore(new MemoryCheckpointStore()),
     });
     await assert.rejects(
-      runtime.run({ threadId: "save-fails", input: "go" }, activeSignal()),
+      runtime.run({ threadId: "save-fails", input: "hello" }, activeSignal()),
       (error: unknown): boolean => {
         assert.equal(error instanceof RuntimeExecutionError, true);
         if (!(error instanceof RuntimeExecutionError)) return false;
@@ -167,8 +167,8 @@ void describe("Runtime TypeScript revision and concurrency semantics", () => {
 
   void it("rejects stateless revision and fencing before calling the model", async () => {
     for (const request of [
-      { input: "go", expectedRevision: 0n },
-      { input: "go", fencingToken: 1n },
+      { input: "hello", expectedRevision: 0n },
+      { input: "hello", fencingToken: 1n },
     ]) {
       const adapter = new SequenceAdapter([[{ content: "unused" }]]);
       const runtime = new AgentRuntime({ model: adapter });
@@ -188,7 +188,7 @@ void describe("Runtime TypeScript revision and concurrency semantics", () => {
       runtime.run(
         {
           threadId: "unsupported-fence",
-          input: "go",
+          input: "hello",
           fencingToken: 1n,
         },
         activeSignal(),

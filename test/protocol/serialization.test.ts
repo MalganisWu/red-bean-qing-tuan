@@ -7,7 +7,7 @@ import { serializeRawMessage } from "../../src/protocol/message.js";
 import { serializeModelParams } from "../../src/llm/codec/model-params-serializer.js";
 
 void describe("Runtime TypeScript serialization contracts", () => {
-  void it("preserves the OpenAI message shape and Go omitempty behavior", () => {
+  void it("preserves the OpenAI message shape and omits empty optional fields", () => {
     const payload = serializeRawMessage({
       role: "assistant",
       content: null,
