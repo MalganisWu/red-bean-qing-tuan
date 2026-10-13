@@ -65,6 +65,10 @@ export class PluginRegistry {
   #sealed = false;
   #closed = false;
 
+  /**
+   * 登记一条 run 中间件；登记顺序即洋葱嵌套顺序，先登记者位于外层。
+   * @param middleware - 包裹一次 run/resume 调用的中间件；非函数或注册表已封闭时抛错。
+   */
   public useRun(middleware: RunMiddleware): void {
     this.#requireOpen();
     if (typeof middleware !== "function") {
@@ -73,6 +77,10 @@ export class PluginRegistry {
     this.#run.push(middleware);
   }
 
+  /**
+   * 登记一条 LLM 中间件；它在构造期包装模型适配器，运行期不再变化。
+   * @param middleware - 必须定义 `wrapLlm` 的对象；缺失该方法或注册表已封闭时抛错。
+   */
   public useLlm(middleware: LlmMiddleware): void {
     this.#requireOpen();
     if (typeof middleware.wrapLlm !== "function") {
@@ -81,6 +89,10 @@ export class PluginRegistry {
     this.#llm.push(middleware);
   }
 
+  /**
+   * 登记一条 Tool 中间件；它在构造期包装工具分发器，运行期不再变化。
+   * @param middleware - 必须定义 `wrapToolDispatcher` 的对象；缺失该方法或注册表已封闭时抛错。
+   */
   public useTool(middleware: ToolMiddleware): void {
     this.#requireOpen();
     if (typeof middleware.wrapToolDispatcher !== "function") {
@@ -89,6 +101,10 @@ export class PluginRegistry {
     this.#tool.push(middleware);
   }
 
+  /**
+   * 登记一个关闭回调；`close` 时按登记的**逆序**调用，后登记者先释放。
+   * @param handler - 接收关闭信号的释放回调；每个回调都会被调用，单个失败不会阻断其余清理。
+   */
   public onClose(handler: CloseHandler): void {
     this.#requireOpen();
     if (typeof handler !== "function") {
@@ -97,10 +113,20 @@ export class PluginRegistry {
     this.#closers.push(handler);
   }
 
+  /**
+   * 封闭注册表：此后任何登记都会抛错。
+   *
+   * 封闭把能力图钉死在构造期，因此 wrap 的结果可以被安全缓存与复用，
+   * 也不存在「插件在运行中途改变行为」这类难以复现的问题。幂等且不可逆。
+   */
   public seal(): void {
     this.#sealed = true;
   }
 
+  /**
+   * 取当前登记的 run 中间件快照。
+   * @returns 按登记顺序排列的只读数组；它是新数组，之后的登记不会影响调用方已拿到的这份。
+   */
   public runMiddleware(): readonly RunMiddleware[] {
     return [...this.#run];
   }
@@ -109,6 +135,8 @@ export class PluginRegistry {
    * **逆序**包装，使先注册的中间件位于最外层。
    * 这就是「先注册的 middleware 位于外层」那条契约的实现：注册顺序即嵌套顺序，
    * 因此最外层的插件能看到并改写后续所有插件与模型之间的交互。
+   * @param adapter - 最内层的真实适配器；中间件不得返回空值，否则抛错。
+   * @returns 逐层包好的适配器；无中间件时原样返回传入的那个。
    */
   public wrapLlm(adapter: LlmAdapter): LlmAdapter {
     let wrapped = adapter;
@@ -123,7 +151,11 @@ export class PluginRegistry {
     return wrapped;
   }
 
-  /** 与 `wrapLlm` 同规则：逆序包装，先注册者在外层。 */
+  /**
+   * 与 `wrapLlm` 同规则：逆序包装，先注册者在外层。
+   * @param dispatcher - 最内层的真实分发器；中间件不得返回空值，否则抛错。
+   * @returns 逐层包好的分发器；无中间件时原样返回传入的那个。
+   */
   public wrapToolDispatcher(dispatcher: ToolDispatcher): ToolDispatcher {
     let wrapped = dispatcher;
     for (let index = this.#tool.length - 1; index >= 0; index -= 1) {
@@ -144,6 +176,7 @@ export class PluginRegistry {
    * 逐个抛出会让第一个失败把后面的清理全部跳过；这里保证每个 closer 都有机会执行，
    * 最终用一个 `AggregateError` 汇总。
    * 幂等：重复调用直接返回，避免宿主在多层关闭流程里重复释放同一批资源。
+   * @param signal - 关闭的取消信号；原样传给每个 closer，由它们自行决定如何配合取消。
    */
   public async close(signal: AbortSignal): Promise<void> {
     if (this.#closed) return;
@@ -178,6 +211,8 @@ export class PluginRegistry {
  * 否则一个中途抛错的安装会留下一个半成品注册表，而它看起来仍然可用——
  * 后续再往里面登记就会得到一张与构造期预期不符的能力图。
  * 名字去重同理：两个同名插件无法在日志与排障中被区分。
+ * @param plugins - 待安装的插件清单；逐个校验名称非空并去重后按序注册。
+ * @returns 已 `seal()` 的注册表；无论注册成功还是中途失败，它都处于封闭态。
  */
 export function installPlugins(
   plugins: readonly RuntimePlugin[],
@@ -221,6 +256,11 @@ export function installPlugins(
  *
  * `middleware` 视为稠密数组（`registry.runMiddleware()` 由 `push` 构造），
  * 因此遇到 `undefined` 即视为已越过最后一层，交给 `finalHandler`。
+ * @param info - 本次调用的身份与种类；原样透传给每个中间件，本函数不读取或改写它。
+ * @param middleware - 已封闭的 run 中间件数组；视为稠密数组，遇 `undefined` 即视为越过最后一层。
+ * @param finalHandler - 越过全部中间件后执行的真实处理器。
+ * @param signal - 最外层收到的取消信号；它只是第一层拿到的信号，逐层可被收窄或替换。
+ * @returns 最外层中间件的返回值，即本次调用的终态结果。
  */
 export function runWithMiddleware(
   info: RunInfo,

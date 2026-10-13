@@ -56,6 +56,13 @@ export class SequentialPipeline implements RuntimePipeline {
     this.#finallyTimeoutMs = finallyTimeoutMs;
   }
 
+  /**
+   * 顺序跑完整条 pipeline：普通节点在运行信号下执行，清理段与 finally 节点改用独立的超时信号。
+   * 失败不立即上抛，先完成清理再汇总抛出；只有正常段与清理段都无错才算成功。
+   *
+   * @param context - 本次运行上下文；pipelineError 会在清理段被逐步更新。
+   * @param signal - 运行取消信号；取消会中断正常段，但不影响清理段照常运行。
+   */
   public async run(
     context: RuntimeContext,
     signal: AbortSignal,
@@ -153,22 +160,45 @@ export class PipelineBuilder {
   readonly #hooks: PipelineHook[] = [];
   #finallyTimeoutMs = DEFAULT_FINALLY_TIMEOUT_MS;
 
+  /**
+   * 追加一个按注册顺序执行的主流程节点。
+   *
+   * @param node - 要追加的节点，按添加顺序执行。
+   * @returns 当前 builder，便于链式调用。
+   */
   public add(node: RuntimeNode): this {
     this.#nodes.push(node);
     return this;
   }
 
+  /**
+   * 追加一个 finally 节点；它在主流程结束后、独立清理信号下运行，无论成败都会执行。
+   *
+   * @param node - 要追加的清理节点，按添加顺序执行。
+   * @returns 当前 builder，便于链式调用。
+   */
   public addFinally(node: RuntimeNode): this {
     this.#finalNodes.push(node);
     return this;
   }
 
+  /**
+   * 注册一个 Pipeline Hook，用于观察 pipeline 与节点的生命周期。
+   *
+   * @param hook - 要注册的 Hook，按添加顺序回调。
+   * @returns 当前 builder，便于链式调用。
+   */
   public addHook(hook: PipelineHook): this {
     this.#hooks.push(hook);
     return this;
   }
 
-  /** 非正整数一律退回默认值而不是抛错：清理超时配错不该让整条 pipeline 起不来。 */
+  /**
+   * 非正整数一律退回默认值而不是抛错：清理超时配错不该让整条 pipeline 起不来。
+   *
+   * @param timeoutMs - 清理段与 finally 节点的超时毫秒数；非正安全整数会被替换为默认值。
+   * @returns 当前 builder，便于链式调用。
+   */
   public withFinallyTimeout(timeoutMs: number): this {
     this.#finallyTimeoutMs =
       Number.isSafeInteger(timeoutMs) && timeoutMs > 0
@@ -177,6 +207,12 @@ export class PipelineBuilder {
     return this;
   }
 
+  /**
+   * 用当前收集的内容构建 pipeline；会把节点与 Hook 数组复制一份，
+   * 因此构建后再往 builder 添加不会影响已建好的实例。
+   *
+   * @returns 一个新的 SequentialPipeline 实例。
+   */
   public build(): RuntimePipeline {
     return new SequentialPipeline(
       this.#nodes,

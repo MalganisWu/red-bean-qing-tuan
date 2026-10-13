@@ -21,7 +21,12 @@ function estimateTextTokens(value: string): number {
   return Math.floor((asciiCharacters + 3) / 4) + nonAsciiCharacters;
 }
 
-/** 统计消息正文与工具调用的名称、参数；不含角色名与消息骨架的固定开销。 */
+/**
+ * 统计消息正文与工具调用的名称、参数；不含角色名与消息骨架的固定开销。
+ *
+ * @param messages - 待估算的消息序列。
+ * @returns 粗略 Token 数，仅用于压缩触发判定，不是真实分词结果。
+ */
 export function estimateTokens(messages: readonly RawMessage[]): number {
   let total = 0;
   for (const message of messages) {

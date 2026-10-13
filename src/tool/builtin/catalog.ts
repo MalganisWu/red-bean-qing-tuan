@@ -11,7 +11,12 @@ import {
 
 const GET_TIME_TOOL_NAME = "sys_get_time";
 
-/** 返回新的可选内置工具实例，不注册任何全局状态。 */
+/**
+ * 返回新的可选内置工具实例，不注册任何全局状态。
+ *
+ * @param id - Tool Registry 中的注册名，如 `sys_get_time`
+ * @returns 匹配的实例；未注册的 id 返回 `undefined`
+ */
 export function lookupBuiltinTool(id: string): Tool | undefined {
   switch (id) {
     case GET_TIME_TOOL_NAME:

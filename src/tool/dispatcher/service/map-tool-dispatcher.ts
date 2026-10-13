@@ -20,6 +20,7 @@ export type ToolDispatchErrorCode =
 
 /** 分发失败的稳定类型；`code` 是供机器分支的判据，消息只供人读。 */
 export class ToolDispatchError extends Error {
+  /** 分发阶段的稳定错误码；供组合分发器机器分支，消息文本仅供人读。 */
   public readonly code: ToolDispatchErrorCode;
 
   public constructor(
@@ -57,6 +58,17 @@ export class MapToolDispatcher implements ToolDispatcher {
     for (const tool of tools) this.#tools.set(tool.name, tool);
   }
 
+  /**
+   * 按工具名查找并执行显式注册的 Tool。
+   *
+   * 找不到工具或参数不是合法 JSON 时都不抛异常，而是返回**被拒绝的 Promise**——
+   * 这正是组合分发器靠 `NOT_FOUND` 决定「换下一张表」的判据来源。
+   *
+   * @param call - 模型给出的工具调用；其 `function.name` 是查表键，未注册时以 `NOT_FOUND` 拒绝。
+   * @param context - 透传给目标 Tool 的调用上下文。
+   * @param signal - 透传给目标 Tool 的取消信号。
+   * @returns 目标 Tool 的执行结果；工具未注册或参数解析失败时以 `ToolDispatchError` 拒绝。
+   */
   public dispatch(
     call: ToolCall,
     context: ToolCallContext,
@@ -90,6 +102,12 @@ export class MapToolDispatcher implements ToolDispatcher {
 
 /** 未配置工具时的拒绝式实现，避免静默吞掉模型产生的 Tool Call。 */
 export class NoopToolDispatcher implements ToolDispatcher {
+  /**
+   * 恒以 `NOT_FOUND` 拒绝，绝不静默吞掉模型产生的 Tool Call。
+   *
+   * @param call - 被拒绝的工具调用，仅用于错误消息里的工具名。
+   * @returns 永远被拒绝的 Promise，附带 `NOT_FOUND` 错误码供上层判定。
+   */
   public dispatch(call: ToolCall): Promise<ToolResult> {
     return Promise.reject(
       new ToolDispatchError(

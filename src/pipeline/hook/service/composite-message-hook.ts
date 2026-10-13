@@ -51,6 +51,10 @@ export class MessageBufferCheckpointer implements MessageHook {
   /**
    * user 消息**不入缓冲**：它来自本次调用方传入的输入，调用方自己已经持有它。
    * 缓冲存在的意义是「崩溃后能补回宿主还不知道的增量」，而 user 消息宿主本来就不知道不了。
+   *
+   * @param _context - 契约占位，未使用；本方法不读运行上下文。
+   * @param _message - 契约占位，未使用；user 消息不入缓冲。
+   * @param _signal - 契约占位，未使用；本方法立即完成，无需取消。
    */
   public onUserMessage(
     _context: RuntimeContext,
@@ -60,6 +64,13 @@ export class MessageBufferCheckpointer implements MessageHook {
     return Promise.resolve();
   }
 
+  /**
+   * 把已提交的 assistant 消息限时追加进宿主缓冲区；写入失败被吞掉，不打断主运行。
+   *
+   * @param context - 本次运行上下文，用于取 checkpoint 键；键为空串时跳过追加。
+   * @param message - 要缓冲的 assistant 消息。
+   * @param _signal - 契约占位，未使用；超时由内部自建的信号控制。
+   */
   public onAssistantMessage(
     context: RuntimeContext,
     message: RawMessage,
@@ -68,6 +79,13 @@ export class MessageBufferCheckpointer implements MessageHook {
     return this.#append(context, message);
   }
 
+  /**
+   * 把已提交的 tool 消息限时追加进宿主缓冲区；语义与失败处理和 assistant 消息一致。
+   *
+   * @param context - 本次运行上下文，用于取 checkpoint 键；键为空串时跳过追加。
+   * @param message - 要缓冲的 tool 消息。
+   * @param _signal - 契约占位，未使用；超时由内部自建的信号控制。
+   */
   public onToolMessage(
     context: RuntimeContext,
     message: RawMessage,
@@ -99,6 +117,13 @@ export class CompositeMessageHook implements MessageHook {
     this.#hooks = [...hooks];
   }
 
+  /**
+   * 把 user 消息依次派发给全部已注册 Hook；跑完全部后再按 fatal 优先抛错。
+   *
+   * @param context - 本次运行上下文，原样传给每个 Hook。
+   * @param message - 刚提交的 user 消息。
+   * @param signal - 运行取消信号，原样传给每个 Hook。
+   */
   public onUserMessage(
     context: RuntimeContext,
     message: RawMessage,
@@ -109,6 +134,13 @@ export class CompositeMessageHook implements MessageHook {
     );
   }
 
+  /**
+   * 把 assistant 消息依次派发给全部已注册 Hook；跑完全部后再按 fatal 优先抛错。
+   *
+   * @param context - 本次运行上下文，原样传给每个 Hook。
+   * @param message - 刚提交的 assistant 消息。
+   * @param signal - 运行取消信号，原样传给每个 Hook。
+   */
   public onAssistantMessage(
     context: RuntimeContext,
     message: RawMessage,
@@ -119,6 +151,13 @@ export class CompositeMessageHook implements MessageHook {
     );
   }
 
+  /**
+   * 把 tool 消息依次派发给全部已注册 Hook；跑完全部后再按 fatal 优先抛错。
+   *
+   * @param context - 本次运行上下文，原样传给每个 Hook。
+   * @param message - 刚提交的 tool 消息。
+   * @param signal - 运行取消信号，原样传给每个 Hook。
+   */
   public onToolMessage(
     context: RuntimeContext,
     message: RawMessage,

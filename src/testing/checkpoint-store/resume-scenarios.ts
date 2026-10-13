@@ -276,6 +276,8 @@ async function checksFinalSaveOwnershipAndCas({
  * 恢复（resume）的契约：认领、幂等回放、并发互斥与终态写入门槛。
  *
  * 这三个用例是 CheckpointStore 最难实现对的部分，宿主自研 Store 时最该逐条对照。
+ *
+ * @returns 本组的契约用例列表，每个用例都要求套件提供隔离的 `freshStore`。
  */
 export function resumeCheckpointStoreCases(): readonly ContractCase[] {
   return [

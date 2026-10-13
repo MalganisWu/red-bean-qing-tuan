@@ -10,6 +10,9 @@ import path from "node:path";
  * 落盘后再用一次 `rename` 原子替换目标；任何失败点都清理临时文件并保持原文件不变。
  *
  * 覆盖既有文件时保留其权限位，避免把可执行脚本改写成普通文件。
+ *
+ * @param targetPath - 目标文件路径，父目录必须已存在
+ * @param content - 要写入的完整内容，整体替换原文件
  */
 export async function writeFileAtomically(
   targetPath: string,

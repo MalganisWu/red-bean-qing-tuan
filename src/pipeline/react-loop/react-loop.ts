@@ -46,6 +46,10 @@ const DEFAULT_MAX_TOOL_ITERATIONS = 30;
  * 一批工具里只要有任意一个要求人工确认，这一批的其他工具都不会执行——
  * 合并结果时会把中断识别出来并让整个运行进入挂起态，而不是只跳过那一个调用。
  * 挂起状态通过 `context.metadata` 传给上层，`stopReason` 为 `awaiting_user`。
+ *
+ * @param options - 主循环的全部依赖与本次运行状态，字段见 `RunReactLoopOptions`。
+ * @returns 循环终止时的完整状态；`stopReason` 区分正常结束、轮次用尽与等待确认，
+ *   而失败或取消一律抛出 `ReactLoopError` 而非正常返回。
  */
 export async function runReactLoop(
   options: RunReactLoopOptions,

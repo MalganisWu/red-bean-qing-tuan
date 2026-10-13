@@ -11,6 +11,10 @@ import type { ToolSchema } from "../../../protocol/tool-schema.js";
  *   但并非全部——省掉字段是唯一在各方都安全的写法。
  * - 恒开 `stream_options.include_usage`：usage 只在流的最后一帧出现，
  *   不主动要就不会有，token 统计便无从落地。
+ *
+ * @param modelName - 要写入 payload 的模型名，由适配器配置注入。
+ * @param request - 中性 LLM 请求，消息与工具 schema 在此映射到 wire 形态。
+ * @returns 可直接 JSON 序列化的 OpenAI-compatible 请求体。
  */
 export function openAiRequestPayload(
   modelName: string,

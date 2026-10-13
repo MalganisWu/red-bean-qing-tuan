@@ -181,12 +181,22 @@ class TracedToolDispatcher implements ToolDispatcher {
   }
 }
 
-/** 用观测装饰器包住模型适配器；返回的仍是 `LlmAdapter`，调用方无需感知被包过。 */
+/**
+ * 用观测装饰器包住模型适配器；返回的仍是 `LlmAdapter`，调用方无需感知被包过。
+ * @param tracer - 宿主提供的 Tracer；本层只开启 `llm.stream` span，不解释其内容。
+ * @param next - 被包裹的真实适配器；失败原样透传，这一层不吞错也不重试。
+ * @returns 记录低基数调用属性的适配器；span 的生命周期移交给它返回的流。
+ */
 export function wrapLlm(tracer: Tracer, next: LlmAdapter): LlmAdapter {
   return new TracedLlmAdapter(tracer, next);
 }
 
-/** 用观测装饰器包住工具分发器；每次 dispatch 记一个 `tool.execute` span。 */
+/**
+ * 用观测装饰器包住工具分发器；每次 dispatch 记一个 `tool.execute` span。
+ * @param tracer - 宿主提供的 Tracer；span 名固定为 `tool.execute`，属性只取自调用元数据。
+ * @param next - 被包裹的真实分发器；工具结果与抛出的错误原样透传，本层不改变派发语义。
+ * @returns 每次 dispatch 都记 span 的分发器；不采集工具参数与输出。
+ */
 export function wrapToolDispatcher(
   tracer: Tracer,
   next: ToolDispatcher,
@@ -260,6 +270,9 @@ class TracedChildRunner implements ChildRunner {
  * 用观测装饰器包住子运行执行器。
  * 与 LLM / Tool 的包装器不同，它记录的是 `agent.delegate` span——
  * 「父 Agent 委派了一次子任务」这件事本身，而不是子运行的内部调用。
+ * @param tracer - 宿主提供的 Tracer；span 名固定为 `agent.delegate`，不随子运行的种类变化。
+ * @param next - 被包裹的真实子运行执行器；子运行失败时原样抛出，仅在抛出前补记部分结果属性。
+ * @returns 记录委派 span 的执行器；它不拥有子运行状态，也不参与恢复。
  */
 export function wrapChildRunner(
   tracer: Tracer,
@@ -270,6 +283,7 @@ export function wrapChildRunner(
 
 /** 在构造期统一包装 Runtime、LLM、Tool 与子运行的高层观测插件。 */
 export class RuntimeTracePlugin implements RuntimePlugin {
+  /** 插件名，用于注册期的去重与排障时的来源识别。 */
   public readonly name = "observability.trace";
   readonly #tracer: Tracer;
 
@@ -282,6 +296,7 @@ export class RuntimeTracePlugin implements RuntimePlugin {
    * 三层覆盖的是三种不同的调用来源：run 中间件管顶层执行，
    * LLM 与 Tool 包装器管运行内部的调用（包括子运行自己发起的那些），
    * 因此子 Agent 的模型与工具调用同样会被记录，无需额外接线。
+   * @param registry - 构造期开放的插件注册表；这里只登记能力，运行期不再改动它。
    */
   public register(registry: PluginRegistry): void {
     const llmMiddleware: LlmMiddleware = {

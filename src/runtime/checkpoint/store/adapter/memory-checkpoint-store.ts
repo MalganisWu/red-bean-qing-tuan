@@ -47,6 +47,12 @@ export class MemoryCheckpointStore implements CheckpointStore {
     this.#now = now;
   }
 
+  /**
+   * 读取指定 thread 的记录。
+   * @param request - 读取输入；threadId 与 userId 决定所有权检查，非零 fencingToken 会先推进高水位再读。
+   * @param signal - 调用方的取消信号；已中止时在任何校验之前抛出，不产生状态改动。
+   * @returns 记录的深拷贝副本；不存在/已删除/越权一律抛 CHECKPOINT_NOT_FOUND，并附带当前记录供调用方据 revision 参与后续 CAS。
+   */
   public load(
     request: LoadCheckpointRequest,
     signal: AbortSignal,
@@ -54,6 +60,12 @@ export class MemoryCheckpointStore implements CheckpointStore {
     return rejected((): CheckpointRecord => this.#load(request, signal));
   }
 
+  /**
+   * CAS 保存：`expectedRevision` 必须与当前 revision 相等，写入后 revision 递增。
+   * @param request - 保存输入；claimRequestId 非空表示这是在给已认领的 resume 落终态，空串会被当作越权写而拒绝。
+   * @param signal - 调用方的取消信号；已中止时在推进 fence 之前抛出。
+   * @returns 落盘后的记录副本，其 revision 为递增后的新值；越权/revision 冲突/认领冲突分别映射到 NOT_FOUND/REVISION_CONFLICT/THREAD_BUSY。
+   */
   public save(
     request: SaveCheckpointRequest,
     signal: AbortSignal,
@@ -61,6 +73,12 @@ export class MemoryCheckpointStore implements CheckpointStore {
     return rejected((): CheckpointRecord => this.#save(request, signal));
   }
 
+  /**
+   * 原子消费一次 resume 中断：把挂起态推进到「已认领」并登记幂等回执。
+   * @param request - 消费输入；requestId 是幂等键，interruptId 必须匹配当前挂起点，expectedRevision 参与 CAS。
+   * @param signal - 调用方的取消信号；已中止时在任何状态校验之前抛出。
+   * @returns 认领或重放结果；同一 requestId 重放返回原记录，已被他人认领时抛 THREAD_BUSY。
+   */
   public consumeInterrupt(
     request: ConsumeInterruptRequest,
     signal: AbortSignal,
@@ -70,6 +88,12 @@ export class MemoryCheckpointStore implements CheckpointStore {
     );
   }
 
+  /**
+   * 删除 thread：写出墓碑而非移除记录，以保住 fencing 高水位。
+   * @param request - 删除输入；expectedRevision 参与 CAS，userId 参与所有权检查。
+   * @param signal - 调用方的取消信号；已中止时在校验参数之前抛出。
+   * @returns 墓碑记录的 revision（递增后的值）；fencingToken 与 revision 均保留原位不回落。
+   */
   public delete(
     request: DeleteCheckpointRequest,
     signal: AbortSignal,

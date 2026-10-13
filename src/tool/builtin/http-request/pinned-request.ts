@@ -31,6 +31,12 @@ function normalizeHeaders(
  * - `servername`：TLS SNI，不设会拿不到正确证书（多数 CDN 直接握手失败）。
  * - URL 路径与 query 保持原样。
  * 也就是说：**连接用 IP，语义用域名**。
+ *
+ * @param request - 已解析的出站请求，连接目标被替换为 `address`
+ * @param address - 出口策略已批准的解析结果，IP 与地址族都在此固定
+ * @param signal - 调用方的取消信号，与超时信号合并后交给 socket
+ * @param timeoutMilliseconds - 单次请求超时毫秒数，到点即中止
+ * @returns 状态码、响应头、响应体与是否被上限截断
  */
 
 export function nativePinnedRequest(

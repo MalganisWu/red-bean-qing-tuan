@@ -54,6 +54,10 @@ export class OpenAiAdapter implements LlmAdapter {
    * - **永久（PERMANENT）**：base URL 非法、响应没有 body 等协议问题，重试没有意义。
    *
    * 末尾的 `stream` 参数再传一次 signal：建连之后仍要能被取消。
+   *
+   * @param request - 中性 LLM 请求，wire 字段组装由相邻的请求映射器负责。
+   * @param signal - 取消信号；同时约束建连阶段与返回流后续的读取，两者都要能中断。
+   * @returns 建连成功后的 chunk 流迭代器，响应体的读取与解析在消费时才发生。
    */
   public async streamCompletion(
     request: LlmRequest,
@@ -100,6 +104,8 @@ export class OpenAiAdapter implements LlmAdapter {
  * 默认工厂：目前只认 `openai`，其他 provider 直接报错而不是回退到某个默认实现。
  * 空串的 baseUrl / modelName 视为「未提供」而落到默认值——
  * 宿主配置里留空的字段不应该把请求打到一个空 URL 上。
+ *
+ * @returns 按 provider 分发适配器的工厂；仅支持 `openai`，未知 provider 在被调用时抛错。
  */
 export function createDefaultLlmAdapterFactory(): LlmAdapterFactory {
   /** 按 provider 造适配器；认不出的 provider 直接报错，不静默回退到某个默认实现。 */

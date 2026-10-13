@@ -149,7 +149,9 @@ const DELEGATION_PARAMETERS: JsonObject = {
 
 /** 将通用 Tool 调用映射为宿主 ChildRunner 请求，并规范化完成、挂起与失败结果。 */
 export class DelegationTool implements Tool {
+  /** 暴露给模型的工具名；直接取构造配置，需在宿主注册的工具表内唯一。 */
   public readonly name: string;
+  /** 供 LLM 生成调用参数的 function schema；固定使用委派参数表，与调度方的注册表无关。 */
   public readonly schema: ToolSchema;
   readonly #agentId: string;
   readonly #runner: ChildRunner;
@@ -187,6 +189,12 @@ export class DelegationTool implements Tool {
    * 另外两处刻意的严格：
    * - 续跑返回的 `executionId` 必须与请求一致，否则父子会挂到不同的执行记录上。
    * - `completed` 但输出为空也算失败：子 Agent 什么都没说，父 Agent 无从继续。
+   *
+   * @param value - 模型产出的原始参数；必须是非数组普通对象，字段类型不符即抛错。
+   * @param context - 当前工具调用上下文，提供调用/线程/用户/请求/trace 身份与可选 eventSink。
+   * @param signal - 取消信号，原样透传给宿主 ChildRunner，本工具不自行中止子运行。
+   * @returns 给模型读的 JSON 文本结果；失败与挂起都序列化为 `{"status": ...}` 而**不抛异常**，
+   *   只有参数本身不合法才抛出。
    */
   public async execute(
     value: JsonValue,

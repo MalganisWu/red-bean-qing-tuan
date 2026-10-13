@@ -20,6 +20,9 @@ export class HookFatalError extends Error {
 /**
  * 用 `instanceof` 判定而不是匹配消息前缀：前缀是给人读的，可能被翻译或改写；
  * 类型才是机器判据。跨包边界（例如被包进 AggregateError）时由调用方沿 cause 链查找。
+ *
+ * @param value - 待判定的值；非 HookFatalError 实例一律返回 false，且不会抛错。
+ * @returns 该值是否为 HookFatalError。
  */
 export function isHookFatalError(value: unknown): value is HookFatalError {
   return value instanceof HookFatalError;

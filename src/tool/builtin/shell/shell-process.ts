@@ -105,6 +105,10 @@ function signalGroup(pid: number, signal: NodeJS.Signals): void {
  * `termination` 的三个取值由超时与取消分别设置，`close` 时原样带出：
  * 调用方需要区分「命令自己退出（哪怕是非零）」与「被我们杀掉的」，
  * 后者不该被报成命令的失败。
+ *
+ * @param request - 已校验的执行条件：命令、工作目录、超时与输出上限
+ * @param signal - 取消信号，中止时终止整个进程组
+ * @returns 分离的 stdout/stderr、结束原因与截断标记
  */
 export function runShellCommand(
   request: ShellRunRequest,

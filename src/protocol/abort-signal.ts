@@ -9,7 +9,12 @@
  * 不加入 `pipeline/public-api.ts`：它不是公开契约，只是内部实现共用的助手。
  */
 
-/** 取取消原因；优先沿用 `signal.reason`，不把它换成通用文案。 */
+/**
+ * 取取消原因；优先沿用 `signal.reason`，不把它换成通用文案。
+ *
+ * @param signal - 待取原因的取消信号；其 `reason` 不是 Error 时才替换成通用 AbortError。
+ * @returns 取消原因本身；`reason` 非 Error 时返回兜底的 `DOMException`，原始信息在此丢失。
+ */
 export function abortError(signal: AbortSignal): Error {
   return signal.reason instanceof Error
     ? signal.reason
@@ -21,6 +26,10 @@ export function abortError(signal: AbortSignal): Error {
  *
  * 两处细节是为了不留悬挂监听：前置的 `signal.aborted` 检查直接短路，
  * `finally` 里必须摘掉监听器——等待方已经离开，监听器再挂在长生命周期的 signal 上就是累积泄漏。
+ *
+ * @param operation - 被等待的实际操作；它不会被取消，只是取消后不再等它的结果。
+ * @param signal - 触发取消的信号；`aborted` 时立即短路抛错，否则在返回前（含拒绝路径）摘掉监听器。
+ * @returns `operation` 的结果；`signal` 先中止时则以取消原因拒绝，不会返回半成品。
  */
 export async function raceAbort<TOutput>(
   operation: Promise<TOutput>,

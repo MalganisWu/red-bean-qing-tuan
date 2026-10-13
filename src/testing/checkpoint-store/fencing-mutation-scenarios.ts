@@ -195,6 +195,8 @@ async function keepsFenceOnWrongOwnerMutations({
  *
  * 与 fencing-high-water 那组的分工：那组验证水位怎么推进，这组验证推进之后
  * 调用方**手里那个 token 什么时候作废**。
+ *
+ * @returns 本组的契约用例列表，仅在宿主声明 `supportsFencing` 时才应纳入执行。
  */
 export function fencingMutationCases(): readonly ContractCase[] {
   return [

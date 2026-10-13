@@ -19,6 +19,8 @@ export interface FreshReadCheck {
  * 别人（或另一个会话）在此期间写入的改动。任何一项无法确认都 fail-closed。
  *
  * 新建场景（`allowMissing`）没有内容可覆盖，因此不要求先读。
+ *
+ * @param check - 目标路径、conversation 标识、账本与「允许目标缺失」开关
  */
 export async function assertFreshRead(check: FreshReadCheck): Promise<void> {
   const key = ledgerFileKey(check.filePath);

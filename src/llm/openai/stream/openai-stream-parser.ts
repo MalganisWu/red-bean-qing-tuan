@@ -27,6 +27,10 @@ interface StreamReadResult {
  * 本函数不抛协议错误：见 `parseEvent` 的带内错误约定。
  * `finally` 里无条件 cancel + releaseLock，保证消费者提前 break 时底层连接不会悬着；
  * 清理失败被吞掉是对的——此时主流程已经结束，再抛只会掩盖真正的结果。
+ *
+ * @param body - 上游响应体字节流；调用方无需自行关闭，函数退出时会 cancel 并释放读取锁。
+ * @param signal - 取消信号，读取期间始终生效，触发后抛原始取消原因。
+ * @returns 逐条产出的中性 chunk 流；协议错误作为带内 error chunk 而非抛出。
  */
 export async function* parseOpenAiEventStream(
   body: ReadableStream<Uint8Array>,

@@ -104,6 +104,14 @@ export class PolicyHttpClient implements HttpClient {
     this.#connect = options.connect ?? nativePinnedRequest;
   }
 
+  /**
+   * 解析主机、逐个授权地址并固定 IP 建连。任一地址被策略拒绝则跳到下一个，
+   * 全部失败时抛最后一次错误；取消优先于「换下一个地址」，避免中止后继续发包。
+   *
+   * @param request - 出站请求描述，连接仍用其原始 URL 的路径与主机名语义
+   * @param signal - 调用方的取消信号，与实例超时合并为操作信号
+   * @returns 目标返回的状态码、响应头与（受限的）响应体
+   */
   public async request(
     request: HttpClientRequest,
     signal: AbortSignal,

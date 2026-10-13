@@ -42,6 +42,9 @@ function positiveSeconds(
  * 把配置收敛成一次运行实际使用的参数。
  * 非法值（非整数、负数、0）一律退回默认值而不是抛错：运行时的容错优先于配置的严格性，
  * 一个写错的退避秒数不该让整个 Agent 起不来。
+ *
+ * @param config - 运行配置；其中的重试与超时字段可能缺失或非法，均按默认值兜底。
+ * @returns 本次运行实际采用的重试次数、退避基数与上限、空闲超时（毫秒）。
  */
 export function resolveLlmRunParams(config: RuntimeConfig): LlmRunParams {
   return {
@@ -64,6 +67,11 @@ export function resolveLlmRunParams(config: RuntimeConfig): LlmRunParams {
 /**
  * 指数退避：基数逐次翻倍，封顶后不再增长。
  * 用循环累乘而不是 `base * 2 ** attempt`，是为了在高重试次数下也不会先把中间值撑到溢出。
+ *
+ * @param attempt - 已发生的重试序号，从 0 起；越大退避越久，直到封顶。
+ * @param baseMs - 首次重试的退避毫秒数，也是逐次翻倍的起点。
+ * @param capMs - 单次退避的上限毫秒数，达到后不再翻倍。
+ * @returns 本次重试应等待的毫秒数，介于 baseMs 与 capMs 之间。
  */
 export function llmBackoff(
   attempt: number,
@@ -90,6 +98,9 @@ export type RetryNotification = (attempt: number, maximum: number) => void;
  * 可被取消的等待。
  * `timer.unref()` 是必要的：一次待机的重试不应把 Node 进程钉在事件循环里，
  * 否则宿主在等退避时无法正常退出。
+ *
+ * @param delayMs - 等待的毫秒数；到点即正常返回。
+ * @param signal - 取消信号；已取消或等待期间被取消都以取消原因拒绝而非静默返回。
  */
 export async function sleepWithSignal(
   delayMs: number,
@@ -128,6 +139,13 @@ export async function sleepWithSignal(
  * `sleep` 与 `onRetry` 都是注入的：宿主可以把退避接到自己的调度器上，
  * 测试则能把它换成确定性实现，不必真的等两秒。
  * 最终失败时用 `cause` 保留原始错误，外层才能分辨「重试耗尽」与「首次就永久失败」。
+ *
+ * @param params - 重试与退避参数，给出最大重试次数与退避区间。
+ * @param sleep - 可替换的等待实现，宿主可接自己的调度器、测试可换成确定性实现。
+ * @param onRetry - 每次实际重试前的同步通知，传 undefined 则不通知。
+ * @param call - 真正发起调用的工厂；每次尝试都会调用它一次。
+ * @param signal - 取消信号，透传给 sleep 以便退避等待可被打断。
+ * @returns 调用成功时的返回值；重试耗尽或永久错误时抛出带 cause 的 Error。
  */
 export async function runWithLlmRetry<TOutput>(
   params: LlmRunParams,

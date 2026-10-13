@@ -51,6 +51,9 @@ interface ModelTurnOptions {
  * 每轮尝试有自己的 `streamController`，与外层取消信号合成 `streamSignal`：
  * 这样单次尝试结束时能主动关掉这条流（`streamController.abort()`），
  * 而不必、也不能去动外层的取消信号。
+ *
+ * @param options - 单次回合所需的依赖与共享状态；`messages` 与 `result` 会被就地更新。
+ * @returns 本回合累积的正文片段、Tool Call 组装缓冲与终止原因。
  */
 export async function executeModelTurn(
   options: ModelTurnOptions,

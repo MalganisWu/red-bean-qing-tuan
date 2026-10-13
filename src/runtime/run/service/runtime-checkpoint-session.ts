@@ -48,6 +48,10 @@ export interface LoadedRunCheckpoint {
  *
  * 其余判定：`expectedRevision` 不符即 CAS 冲突；存在 `resumeClaim` 表示有别的请求
  * 正在处理，返回 `THREAD_BUSY` 而不是排队等待。
+ * @param store - CheckpointStore；为 undefined 表示 state 或无 Store 模式，此时不访问持久化。
+ * @param request - run 输入；显式 `state` 优先于 Store，两者都缺时返回空起点让上层创建。
+ * @param signal - 取消信号；Store 读取失败（NOT_FOUND 除外）时以携带失败结果的异常抛出。
+ * @returns 归一化的运行起点；若已处于挂起或已认领状态，则带 `terminalResult` 让调用方直接返回。
  */
 export async function loadRunCheckpoint(
   store: CheckpointStore | undefined,
@@ -173,6 +177,11 @@ export async function loadRunCheckpoint(
  *   否则校验挂起点匹配后落 claim，返回 `CLAIMED`。
  * - **Store 模式**：先 load 校验身份，再把 expectedRevision 交给 Store 去原子消费。
  *   请求没带期望 revision 时用刚读到的值，等价于「以读到的版本为准」。
+ * @param store - CheckpointStore；为 undefined 且请求也未带 state 时直接抛错（恢复没有可用起点）。
+ * @param threadId - 恢复目标 thread；state 模式会用它补齐 Checkpoint 里缺失的 threadId。
+ * @param request - 恢复请求；interruptId 必须匹配当前挂起点，Store 模式下 requestId 是幂等键。
+ * @param signal - 取消信号，透传给 Store 的 load 与 consumeInterrupt。
+ * @returns 认领或重放结果；只有 disposition 为 CLAIMED 时调用方才应继续执行模型。
  */
 export async function consumeResumeCheckpoint(
   store: CheckpointStore | undefined,
@@ -238,6 +247,9 @@ export async function consumeResumeCheckpoint(
  *   探测出「这个 thread 存在，只是不属于我」。
  *
  * 任一方的 userId 为空串都视为「未声明身份」，跳过校验。
+ * @param checkpoint - 待校验的 Checkpoint；只读取其 threadId 与 userId。
+ * @param threadId - 请求声明的 thread；与 Checkpoint 不一致（且 Checkpoint 非空）即抛普通 Error，属调用方的编程错误。
+ * @param userId - 请求声明的身份；空串表示未声明而跳过校验，不匹配则以 CHECKPOINT_NOT_FOUND 伪装越权。
  */
 export function validateCheckpointIdentity(
   checkpoint: Checkpoint,

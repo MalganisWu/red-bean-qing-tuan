@@ -71,6 +71,10 @@ export interface RuntimeAgentExecutionDependencies {
 /**
  * 执行一次已经准备好的 Runtime 上下文，并把终态可靠映射、保存为 Checkpoint。
  * 请求校验、历史装载和 resume claim 不属于此职责。
+ * @param dependencies - 显式依赖（执行器、Store、事件出口与策略）；没有 Store 时状态只留在返回的结果里。
+ * @param input - 已整理好的单次执行输入；其中的 revision 与 fencing 决定保存时的 CAS 与高水位。
+ * @param signal - 本次运行的取消信号；已中止时模型一次都不调用，但仍会尝试写一次 CANCELLED 的 Checkpoint。
+ * @returns 保存后的终态结果（携带 Store 的 revision）；保存失败或事件出口出错时抛携带结果的 RuntimeExecutionError。
  */
 export async function executeRuntimeAgent(
   dependencies: RuntimeAgentExecutionDependencies,

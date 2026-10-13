@@ -22,6 +22,15 @@ import { raceAbort } from "../../../protocol/abort-signal.js";
 export class DefaultThreadExecutionCoordinator implements ThreadExecutionCoordinator {
   readonly #threadTails = new Map<string, Promise<void>>();
 
+  /**
+   * 取得该 thread 的串行执行权，并返回幂等的释放函数。
+   *
+   * 返回的释放函数必须在本轮运行结束时调用，否则同 thread 的后续请求会一直排在队尾。
+   * 空 threadId 表示不做串行化（无 Store 的单次调用场景），直接返回空释放函数。
+   * @param threadId - 串行化键；相同值的调用按入队顺序依次获得执行权。
+   * @param signal - 排队期间的取消信号；已中止或排队时被取消会解开自己占的链环，好让后面的请求继续前进。
+   * @returns 释放本次执行权的回调；幂等，重复调用无副作用。
+   */
   public async acquire(
     threadId: string,
     signal: AbortSignal,

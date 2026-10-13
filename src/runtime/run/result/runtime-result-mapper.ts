@@ -20,6 +20,8 @@ import type { RuntimeResult } from "./runtime-result.js";
  * 本文件所有 `clone*` 函数都做深拷贝到消息与嵌套对象的层级，原因与 checkpoint 侧一致：
  * 调用方拿到的结果不能与 Runtime 内部状态共享可变引用，否则调用方的一次手滑改写
  * 会隔着几层影响后续持久化。`ContentRef.fetch` 是唯一按引用带过去的字段——它是函数。
+ * @param result - 待拷贝的结果；消息与嵌套对象会被深拷贝，`ContentRef.fetch` 仍按引用带过去。
+ * @returns 与输入结构相同的副本；调用方改写它不会影响 Runtime 内部状态。
  */
 export function cloneRuntimeResult(result: RuntimeResult): RuntimeResult {
   return {
@@ -37,6 +39,11 @@ export function cloneRuntimeResult(result: RuntimeResult): RuntimeResult {
 /**
  * 造一个空 Checkpoint。`version` 固定为 1（0 只属于未落盘的内存态），
  * `messages` 会被深拷贝——传入的数组通常是调用方自己的，不能共享。
+ * @param threadId - 新 Checkpoint 的 thread 标识。
+ * @param userId - 新 Checkpoint 的所有者；空串表示未声明身份。
+ * @param status - 起始状态；调用方据此表达这是失败、取消还是别的终止。
+ * @param messages - 起始消息序列，会被深拷贝，不与调用方共享数组。
+ * @returns version 固定为 1、内容引用与计费字段为空的 Checkpoint。
  */
 export function emptyRuntimeCheckpoint(
   threadId: string,
@@ -61,6 +68,8 @@ export function emptyRuntimeCheckpoint(
  * 由 Checkpoint 构造结果。**revision 恒为 0n**：传入的只是内容，不含 Store 版本。
  * 需要真实 revision 时必须走 `runtimeResultFromRecord`——0n 在这里表示「未知」，
  * 不是一个可以直接拿去 CAS 的期望值。
+ * @param checkpointInput - 作为结果内容的 Checkpoint；会被克隆，不会被就地修改。
+ * @returns revision 恒为 0n 的结果；需要真实 revision 时应改用 `runtimeResultFromRecord`。
  */
 export function runtimeResultFromCheckpoint(
   checkpointInput: Checkpoint,
@@ -78,7 +87,11 @@ export function runtimeResultFromCheckpoint(
   };
 }
 
-/** 由 Store 记录构造结果——与 `runtimeResultFromCheckpoint` 的唯一差别是把真实 revision 带出来。 */
+/**
+ * 由 Store 记录构造结果——与 `runtimeResultFromCheckpoint` 的唯一差别是把真实 revision 带出来。
+ * @param record - Store 返回的记录；其 revision 反映该记录在 Store 中的版本。
+ * @returns 携带真实 revision 的结果，可据此参与后续 CAS。
+ */
 export function runtimeResultFromRecord(
   record: CheckpointRecord,
 ): RuntimeResult {
@@ -91,6 +104,8 @@ export function runtimeResultFromRecord(
  * 序列化结果，遵循与 Checkpoint codec 相同的「空值即缺席」约定：
  * 空串、0、空数组都不写进 payload，因此同一结果的输出逐字节稳定。
  * revision 为 0n 时同样省略——它表示「未知」，写个 `"revision": 0` 反而像是真的第 0 版。
+ * @param result - 待序列化的结果；空值字段（空串、0、空数组）与 revision 为 0n 时会被省略。
+ * @returns 稳定的 JSON 对象；同一结果的输出逐字节可复现。
  */
 export function serializeRuntimeResult(result: RuntimeResult): JsonObject {
   const payload: Record<string, JsonValue> = {
@@ -110,7 +125,11 @@ export function serializeRuntimeResult(result: RuntimeResult): JsonObject {
   return payload;
 }
 
-/** 逐条深拷贝消息；`toolCalls.function` 也是新建对象，不共享引用。 */
+/**
+ * 逐条深拷贝消息；`toolCalls.function` 也是新建对象，不共享引用。
+ * @param messages - 待拷贝的消息序列；只读取，不修改传入的数组。
+ * @returns 元素全部为新对象的消息数组。
+ */
 export function cloneRuntimeMessages(
   messages: readonly RawMessage[],
 ): RawMessage[] {
@@ -120,6 +139,8 @@ export function cloneRuntimeMessages(
 /**
  * 拷贝内容引用。浅展开 + 复制 `meta` 即可——`fetch` 是函数，必须按引用带过去
  * （`structuredClone` 会直接失败），其余字段都是值类型。
+ * @param reference - 待拷贝的内容引用；`fetch` 是函数，必须按引用带过去。
+ * @returns 浅展开并复制了 `meta` 的引用；其余字段都是值类型，可直接搬运。
  */
 export function cloneRuntimeContentRef(reference: ContentRef): ContentRef {
   return {

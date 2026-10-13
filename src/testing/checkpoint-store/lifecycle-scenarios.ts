@@ -393,6 +393,8 @@ async function deepCopiesRecords({
  *
  * 核心命题是「删除是墓碑而非移除」：revision 与 fence 高水位在删除后继续有效，
  * 因此既拦得住旧持有者的 ABA 写回，也允许在同一 revision 序列上安全重建。
+ *
+ * @returns 本组的契约用例列表，覆盖 delete 与 copy 两条生命周期。
  */
 export function checkpointLifecycleCases(): readonly ContractCase[] {
   return [

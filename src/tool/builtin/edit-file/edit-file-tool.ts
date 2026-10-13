@@ -94,7 +94,9 @@ function parseEditFileParams(value: JsonValue): EditFileParams {
  * 避免模型在无法确定改哪一处时擅自扩大改动范围。
  */
 export class EditFileTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `EDIT_FILE_TOOL_NAME` 保持一致。 */
   public readonly name = EDIT_FILE_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -110,6 +112,16 @@ export class EditFileTool implements Tool {
     this.#ledger = options.ledger;
   }
 
+  /**
+   * 执行精确串替换。先确认文件自上次读取后未被改动，再计数匹配：
+   * 零处匹配直接失败，多处匹配且未要求全部替换也失败，避免扩大改动范围；
+   * 写盘后作废该文件的读取记录。
+   *
+   * @param value - 工具入参原始值，尚未校验，需经 `parseEditFileParams` 归一化
+   * @param context - 调用上下文，其 threadId 用于查读取账本
+   * @param signal - 取消信号，进入与写入前检查
+   * @returns 文本结果，说明改动的文件与替换处数
+   */
   public async execute(
     value: JsonValue,
     context: { readonly threadId: string },
@@ -149,6 +161,7 @@ export class EditFileTool implements Tool {
     };
   }
 
+  /** 无常驻资源需要释放；保留以满足 `Tool` 契约。 */
   public close(): Promise<void> {
     return Promise.resolve();
   }

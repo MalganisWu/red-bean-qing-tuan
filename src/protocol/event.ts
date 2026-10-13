@@ -81,7 +81,16 @@ export type RuntimeEvent =
   | ToolResultEvent
   | ToolStartEvent;
 
-/** 将中性 Runtime 事件映射为稳定的 snake_case wire 载荷。 */
+/**
+ * 将中性 Runtime 事件映射为稳定的 snake_case wire 载荷。
+ *
+ * `type` 判别字段本身不进入载荷，由调用方按事件类型另行标注；事件联合是穷尽的，
+ * 因此每个分支都有确定输出，不会出现未知类型落到默认分支。
+ *
+ * @param event - 待序列化的中性事件；只取其 `type` 分支对应的字段。
+ * @returns 键序稳定的 JSON 对象；`status` 的 `code` 为 `undefined`、`attempt`/`max_attempts`
+ *   为 `0`，以及 `tool_result` 的 `error` 为 `undefined`/空串时都不写出该字段，可参与快照比对。
+ */
 export function serializeRuntimeEvent(event: RuntimeEvent): JsonObject {
   switch (event.type) {
     case EVENT_TYPES.TOKEN:

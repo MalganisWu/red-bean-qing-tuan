@@ -100,6 +100,9 @@ async function runCases(
  *
  * `supportsFencing` 决定是否纳入 fencing 用例组：声明 false 时套件不会替你验证
  * 「非零 token 一律拒绝」，那部分必须另行运行 `runCheckpointStoreFencingUnsupportedContract`。
+ *
+ * @param factory - 生成隔离 Store 的工厂；每个用例都会调用一次，实现需保证实例之间不共享状态。
+ * @param options - 套件的能力声明与测试生命周期配置；supportsFencing 决定是否纳入 fencing 用例组。
  */
 export async function runCheckpointStoreContract(
   factory: CheckpointStoreContractFactory,
@@ -117,6 +120,9 @@ export async function runCheckpointStoreContract(
  * 关键在「所有」：四个方法必须逐一拒绝。只挡住写入而放行读取的实现，
  * 会让一个已经被接管（或本不该再持有 lease）的实例仍然读到最新状态，
  * 因此本用例对 load / save / consumeInterrupt / delete 逐个断言 `FENCING_UNSUPPORTED`。
+ *
+ * @param factory - 生成隔离 Store 的工厂；每个用例都会调用一次，实现需保证实例之间不共享状态。
+ * @param options - 套件生命周期配置；supportsFencing 由本入口固定，不接受覆盖。
  */
 export async function runCheckpointStoreFencingUnsupportedContract(
   factory: CheckpointStoreContractFactory,

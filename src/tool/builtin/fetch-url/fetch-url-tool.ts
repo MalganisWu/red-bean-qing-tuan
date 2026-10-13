@@ -165,7 +165,9 @@ function extractHtml(source: string): ExtractedHtml {
 
 /** 逐次校验重定向目标并限制响应大小的网页抓取工具，默认拒绝非公网地址。 */
 export class FetchUrlTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `FETCH_URL_TOOL_NAME` 保持一致。 */
   public readonly name = FETCH_URL_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -185,6 +187,15 @@ export class FetchUrlTool implements Tool {
     this.#lookup = options.lookup ?? defaultAddressLookup;
   }
 
+  /**
+   * 抓取单个 URL。逐跳跟随重定向，每跳都重新过黑名单与地址族校验，
+   * 最终按内容类型决定抽取 HTML 还是原样返回，并对输出按字节上限截断。
+   *
+   * @param value - 工具入参原始值，仅使用其中的 `url` 字段，未校验
+   * @param _context - 未使用；保留以满足 `Tool` 契约
+   * @param signal - 取消信号，请求与逐跳校验时传递
+   * @returns JSON 文本，含最终地址、标题、正文与是否截断
+   */
   public async execute(
     value: JsonValue,
     _context: ToolCallContext,

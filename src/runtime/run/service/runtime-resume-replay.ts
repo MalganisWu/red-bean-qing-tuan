@@ -22,6 +22,10 @@ import { validateCheckpointIdentity } from "./runtime-checkpoint-session.js";
  * 因为两者可能来自不同的请求），再逐项比对幂等三元组。
  * 原请求失败过的话，重放必须照样以失败返回——把一次失败重放成成功，
  * 会让上层以为工具真的执行完了。
+ * @param receipts - 进程内收据存储；无命中即返回 undefined，表示继续往下跑。
+ * @param threadId - 恢复目标 thread；state 与 receipt 两侧都会按它校验身份。
+ * @param request - 本次恢复请求；与收据的幂等三元组（interruptId/requestId/response）不一致时以 IDEMPOTENCY_CONFLICT 失败。
+ * @returns 命中且身份一致时的防御性结果副本；原请求失败过则照样抛携带该结果的异常。
  */
 export function replayStatelessResume(
   receipts: ResumeReceiptStore,
@@ -65,6 +69,8 @@ export function replayStatelessResume(
  *   必须改抛错误——已经失败过的运行不能靠重放变成一次成功。
  * - `IN_PROGRESS`：另一次认领还没落终态，本次只能如实报「进行中」。
  * - `CLAIMED`：本次真的抢到了，交由调用方继续执行模型。
+ * @param consumed - Store 原子消费的返回；其 disposition 决定是否在此结束恢复流程。
+ * @returns `undefined` 表示 CLAIMED、应继续执行模型；REPLAYED 返回当时的记录，IN_PROGRESS 与已失败的 REPLAYED 都以异常抛出。
  */
 export function resultForConsumedResume(
   consumed: ConsumeInterruptResult,

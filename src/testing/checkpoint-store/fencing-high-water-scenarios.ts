@@ -276,6 +276,8 @@ async function retainsFenceHighWaterAfterDelete({
  * 这一组是 CheckpointStore 里最容易被实现错的部分——多数实现会把 fence 校验放在
  * 业务校验之后，结果「失败的写入不推进水位」，于是一个已被接管的旧持有者
  * 只要重试一次就能重新写入。
+ *
+ * @returns 本组的契约用例列表，仅在宿主声明 `supportsFencing` 时才应纳入执行。
  */
 export function fencingHighWaterCases(): readonly ContractCase[] {
   return [

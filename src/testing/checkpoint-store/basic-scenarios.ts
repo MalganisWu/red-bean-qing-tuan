@@ -149,6 +149,8 @@ async function rejectsOwnerMismatch({
  * 身份与 CAS 的基础契约，不涉及 resume 与 fencing。
  *
  * 三个用例合起来锁死一件事：revision 是唯一的写入门槛，身份不匹配时错误里不许夹带内容。
+ *
+ * @returns 本组的契约用例列表，每个用例都要求套件提供隔离的 `freshStore`。
  */
 export function basicCheckpointStoreCases(): readonly ContractCase[] {
   return [

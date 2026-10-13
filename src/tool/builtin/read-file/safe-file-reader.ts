@@ -53,6 +53,9 @@ function optionalInteger(value: JsonObject, key: string): number {
  * 校验并归一化入参。`offset`/`limit` 给非正数或省略时按默认值处理（从第 1 行、读满上限）。
  * `ranged` 标记「调用方是否显式指定了范围」——读取工具据此决定要不要强制重新读取，
  * 与「读了多少」是两回事。
+ *
+ * @param value - 工具入参的原始 `unknown` 值，尚未经过任何校验
+ * @returns 校验并归一化后的读取范围；入参非法时抛错
  */
 export function parseReadFileParams(value: JsonValue): ReadFileParams {
   if (!isObject(value)) throw new Error("read parameters must be an object");
@@ -70,7 +73,11 @@ export function parseReadFileParams(value: JsonValue): ReadFileParams {
   };
 }
 
-/** 取取消原因并抛出；优先沿用 `signal.reason`，不把它换成通用文案。 */
+/**
+ * 取取消原因并抛出；优先沿用 `signal.reason`，不把它换成通用文案。
+ *
+ * @param signal - 调用方传入的取消信号，仅在已中止时才有副作用
+ */
 export function throwIfReadAborted(signal: AbortSignal): void {
   if (!signal.aborted) return;
   throw signal.reason instanceof Error
@@ -78,7 +85,12 @@ export function throwIfReadAborted(signal: AbortSignal): void {
     : new DOMException("operation aborted", "AbortError");
 }
 
-/** 与压缩侧同一套粗略换算：ASCII 约 4 字符 1 token、非 ASCII 1 字符 1 token。只用于量级判断，不作精确计费。 */
+/**
+ * 与压缩侧同一套粗略换算：ASCII 约 4 字符 1 token、非 ASCII 1 字符 1 token。只用于量级判断，不作精确计费。
+ *
+ * @param value - 待估算的文本内容
+ * @returns 估算出的 token 数，仅作量级参考
+ */
 export function roughTokenCount(value: string): number {
   let ascii = 0;
   let nonAscii = 0;
@@ -96,6 +108,12 @@ export function roughTokenCount(value: string): number {
  * 行号是必需的：模型要引用代码位置，而它随后调用 Edit 时用的就是这些行号。
  * 制表符分隔是为了让行号与内容有明确边界——用空格的话，内容以空格开头时就会歧义。
  * `totalLines` 单独返回真实总行数，让调用方能在只读了片段时如实告知还有多少。
+ *
+ * @param source - 文件全文，读取分片在此之上切分
+ * @param offset - 起始行号，从 1 开始，由 `parseReadFileParams` 保证为正
+ * @param limit - 本次最多读取的行数
+ * @param signal - 取消信号，逐行输出前检查
+ * @returns 带行号的内容片段与文件真实总行数
  */
 export function readNumberedLines(
   source: string,

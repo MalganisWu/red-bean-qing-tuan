@@ -32,6 +32,10 @@ function positiveInteger(value: number | undefined, fallback: number): number {
  * 保留头部而不是尾部：内容引用的多半是文件，文件开头（导入、声明、结构）比结尾更有用，
  * 而且截断标记会明确告诉模型「后面还有，自己去 Read」。
  * 按字节切可能切断一个多字节字符，但这里只是喂给模型的近似文本，代价可以接受。
+ *
+ * @param data - 待截断的原始字节内容，通常是恢复出来的文件。
+ * @param maxTokens - 单份内容允许的 Token 上限，按 4 字节/Token 换算为字节数。
+ * @returns 未超限时原样返回，超限时返回「头部 + 截断标记」的新字节数组。
  */
 export function truncateHeadToTokens(
   data: Uint8Array,
@@ -99,6 +103,10 @@ export class DefaultRestorer implements PostCompactRestorer {
    *
    * 失败策略是「跳过」而非「中止」：单份内容取不到（文件已删、权限不足）不影响其余恢复。
    * 超预算时用 `break` 而不是 `continue`，因为预算是总量约束，后面的条目只会更少机会。
+   *
+   * @param references - 待恢复的内容引用，内部按时间戳倒序取最新的一批。
+   * @param signal - 取消信号，透传给引用自带的 `fetch` 或宿主的 `resolver`。
+   * @returns 伪装成 Read 工具结果的 user 消息列表；取不到内容的引用被跳过。
    */
   public async buildAttachments(
     references: readonly ContentRef[],

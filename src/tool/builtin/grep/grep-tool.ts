@@ -120,7 +120,9 @@ interface GrepAccumulator {
  * 结果格式为 `相对路径:行号: 行内容`，按路径与行号排序；被跳过的大文件与二进制文件会明确计数。
  */
 export class GrepTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `GREP_TOOL_NAME` 保持一致。 */
   public readonly name = GREP_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -136,6 +138,15 @@ export class GrepTool implements Tool {
     this.#maxMatches = options?.maxMatches ?? MAX_GREP_MATCHES;
   }
 
+  /**
+   * 执行内容检索。命中行按 `路径:行号: 内容` 输出，超长行截断；
+   * 二进制与超限文件跳过并计数，命中断点超过计数上限时只报「超过」。
+   *
+   * @param value - 工具入参原始值，含 `pattern` 与可选 `path`/`include`，尚未校验
+   * @param _context - 未使用；保留以满足 `Tool` 契约
+   * @param signal - 取消信号，扫描过程中逐文件检查
+   * @returns 匹配行文本，附截断与跳过文件的统计
+   */
   public async execute(
     value: JsonValue,
     _context: unknown,
@@ -258,6 +269,7 @@ export class GrepTool implements Tool {
     return false;
   }
 
+  /** 无常驻资源需要释放；保留以满足 `Tool` 契约。 */
   public close(): Promise<void> {
     return Promise.resolve();
   }

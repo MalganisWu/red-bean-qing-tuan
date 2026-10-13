@@ -37,6 +37,12 @@ export class AgentRuntime {
     this.#service = createRuntimeRunService(options);
   }
 
+  /**
+   * 执行一次新的 Agent 运行直到终态。
+   * @param request - 本次运行的输入；state/history 与 Store 模式互斥，具体约束由请求校验器判定。
+   * @param signal - 调用方的取消信号；Runtime 只消费不拥有它，取消会收敛为 cancelled 结果或携带部分结果的异常。
+   * @returns 终态 RuntimeResult；失败以结果形式返回，或在携带部分结果时抛 RuntimeExecutionError。
+   */
   public run(
     request: AgentRequest,
     signal: AbortSignal,
@@ -44,6 +50,12 @@ export class AgentRuntime {
     return this.#service.run(request, signal);
   }
 
+  /**
+   * 恢复一次中断的运行：回答 interrupt 后继续执行。
+   * @param request - 恢复输入；interruptId 必填，无 Store 模式还需 requestId 作幂等键。
+   * @param signal - 调用方的取消信号；取消同样收敛为结果或异常，不向外传播原始抛出物。
+   * @returns 恢复后的终态 RuntimeResult；命中回执时直接回放，不会二次执行工具。
+   */
   public resume(
     request: ResumeRequest,
     signal: AbortSignal,
@@ -51,6 +63,10 @@ export class AgentRuntime {
     return this.#service.resume(request, signal);
   }
 
+  /**
+   * 关闭门面：按 lifecycle 的顺序释放插件与其他资源。
+   * @param signal - 关闭的取消信号；只约束等待，不取消已经登记的清理工作。
+   */
   public close(signal: AbortSignal): Promise<void> {
     return this.#service.close(signal);
   }

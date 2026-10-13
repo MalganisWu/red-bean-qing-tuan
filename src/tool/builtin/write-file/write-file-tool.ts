@@ -72,7 +72,9 @@ function countLines(content: string): number {
  * 覆盖既有文件要求当前 conversation 先读过且文件版本未变；新建没有内容可覆盖，因此不要求先读。
  */
 export class WriteFileTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `WRITE_FILE_TOOL_NAME` 保持一致。 */
   public readonly name = WRITE_FILE_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -88,6 +90,14 @@ export class WriteFileTool implements Tool {
     this.#ledger = options.ledger;
   }
 
+  /**
+   * 新建或整体覆盖文件。覆盖既有文件前先确认该 conversation 读过且版本未变；写入后作废读取记录。
+   *
+   * @param value - 工具入参原始值，含 `file_path` 与 `content`，尚未校验
+   * @param context - 调用上下文，其 threadId 用于查读取账本
+   * @param signal - 取消信号，进入与写入前检查
+   * @returns 文本结果，说明写入路径与行数、字节数
+   */
   public async execute(
     value: JsonValue,
     context: { readonly threadId: string },
@@ -119,6 +129,7 @@ export class WriteFileTool implements Tool {
     };
   }
 
+  /** 无常驻资源需要释放；保留以满足 `Tool` 契约。 */
   public close(): Promise<void> {
     return Promise.resolve();
   }

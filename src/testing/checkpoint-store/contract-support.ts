@@ -46,7 +46,14 @@ export interface ContractCase {
   readonly run: (context: ContractContext) => Promise<void>;
 }
 
-/** 构造一个 `completed` 的完整 Checkpoint；`version` 固定为 1，因为 0 只属于未落盘的内存记录。 */
+/**
+ * 构造一个 `completed` 的完整 Checkpoint；`version` 固定为 1，因为 0 只属于未落盘的内存记录。
+ *
+ * @param threadId - 目标会话标识，决定这份 checkpoint 归属哪个 thread。
+ * @param userId - 所有者标识，后续 save/load 的身份校验以它为准。
+ * @param content - 首条 assistant 消息的正文，用例据此断言存读一致。
+ * @returns 可直接交给 Store 写入的 `completed` 态 Checkpoint。
+ */
 export function checkpointFor(
   threadId: string,
   userId: string,
@@ -65,7 +72,14 @@ export function checkpointFor(
   };
 }
 
-/** 构造挂起态 Checkpoint；`interrupt.toolCallId` 即后续 resume 要匹配的 `interruptId`。 */
+/**
+ * 构造挂起态 Checkpoint；`interrupt.toolCallId` 即后续 resume 要匹配的 `interruptId`。
+ *
+ * @param threadId - 目标会话标识，决定这份 checkpoint 归属哪个 thread。
+ * @param userId - 所有者标识，认领与写终态时都要与之一致。
+ * @param interruptId - 挂起中断的标识，后续 `consumeInterrupt` 必须原样传回才能认领。
+ * @returns 一个处于 `suspended` 态、带人工确认型 interrupt 的 Checkpoint。
+ */
 export function suspendedCheckpoint(
   threadId: string,
   userId: string,
@@ -87,6 +101,10 @@ export function suspendedCheckpoint(
  * 派生一个只替换首条消息内容的副本。
  * 这里的 `cloneCheckpoint` 是刻意的：用例会把这个派生对象当作「新值」喂回去，
  * 若直接共享引用，Store 是否做了防御性复制就永远测不出来。
+ *
+ * @param checkpoint - 作为派生基础的 Checkpoint，函数不会改动它。
+ * @param content - 要替换成的首条 assistant 消息正文。
+ * @returns 首条消息被替换、其余字段深拷贝自入参的新 Checkpoint。
  */
 export function withMessage(
   checkpoint: Checkpoint,
@@ -98,7 +116,12 @@ export function withMessage(
   };
 }
 
-/** 取记录中首条消息的正文，供用例断言「存下来的就是当时写的」。 */
+/**
+ * 取记录中首条消息的正文，供用例断言「存下来的就是当时写的」。
+ *
+ * @param record - 从 Store 读回的记录；其 checkpoint 至少应含一条消息，否则断言失败。
+ * @returns 首条消息的正文，原文为 null 时原样返回。
+ */
 export function firstMessageContent(record: CheckpointRecord): string | null {
   const message = record.checkpoint.messages[0];
   assert.ok(message, "checkpoint must contain a message");
@@ -112,6 +135,8 @@ export function firstMessageContent(record: CheckpointRecord): string | null {
  * 然后回读并调用本函数。因此它验证的是 Store 的**防御性复制**契约——
  * 写入与读出都不能与调用方共享可变对象，否则调用方后续的修改会隔着 Store 生效。
  * 覆盖点是逐层的：消息内容与 toolCalls、contentRefs 的 meta、interrupt 的 arguments 与 payload。
+ *
+ * @param record - 回读得到的记录；调用方需已先写入本函数所校验的那份 "original" 嵌套结构。
  */
 export function assertOriginalCopy(record: CheckpointRecord): void {
   assert.equal(firstMessageContent(record), "original");
@@ -130,6 +155,10 @@ export function assertOriginalCopy(record: CheckpointRecord): void {
  * 断言操作以指定的 `CheckpointStoreError` 失败，并把错误对象交给调用方。
  * 比 `expectRuntimeError` 多要求一层：错误必须是 CheckpointStore 自己的错误类型，
  * 这样用例才能继续检查它携带的 `record`（冲突快照）。
+ *
+ * @param operation - 期望失败的 Store 调用；其 rejection 才会被消费，正常返回即判为用例失败。
+ * @param code - 期望的 RuntimeError 错误码，用于区分失败原因。
+ * @returns 抛出的 CheckpointStoreError，便于用例继续检查其携带的冲突快照。
  */
 export async function expectStoreError(
   operation: Promise<unknown>,
@@ -154,7 +183,12 @@ export async function expectStoreError(
   assert.fail(`expected CheckpointStoreError code ${code}`);
 }
 
-/** 只校验错误码的宽松版本；用于 fail-closed 类断言，不关心错误由哪个层抛出。 */
+/**
+ * 只校验错误码的宽松版本；用于 fail-closed 类断言，不关心错误由哪个层抛出。
+ *
+ * @param operation - 期望失败的调用；正常返回即判为用例失败。
+ * @param code - 期望的 RuntimeError 错误码。
+ */
 export async function expectRuntimeError(
   operation: Promise<unknown>,
   code: RuntimeErrorCode,
@@ -176,6 +210,9 @@ export async function expectRuntimeError(
  * 结构校验：四个方法都得在且是函数。
  * 套件在工厂返回后立刻调用它，是为了让「工厂返回了半成品」在第一时间报出明确的类型错误，
  * 而不是等到某个用例深处出现 `store.load is not a function`。
+ *
+ * @param value - 待判定的任意值，通常是工厂的返回值。
+ * @returns 是否同时具备四个方法，可直接用于类型收窄。
  */
 export function isCheckpointStore(value: unknown): value is CheckpointStore {
   return (

@@ -30,6 +30,14 @@ import {
  *   此刻写一条空结果会让历史里出现一条永远对不上的工具调用。
  * - 工具失败不抛出，而是序列化成 `{"error": ...}` 写进 tool 消息——
  *   工具出错是模型需要读到并据此调整的**信息**，不是运行的故障。
+ *
+ * @param executions - 本轮的工具执行结果，顺序与调用一致；中断项不写 tool 消息。
+ * @param context - 运行上下文，用于登记工具声明的内容引用。
+ * @param messages - 对话消息数组，普通工具结果会追加进来。
+ * @param systemOffset - 开头系统提示词的条数，用于截取可见上下文。
+ * @param onMessage - 消息提交后的观察回调，省略则只入内存不对外通知。
+ * @param result - 本次运行的阶段结果；失败时会被写入错误与上下文快照。
+ * @returns 批次中发现的唯一中断请求；整批无中断时为 undefined。
  */
 export async function applyToolExecutionResults(
   executions: readonly ToolExecution[],

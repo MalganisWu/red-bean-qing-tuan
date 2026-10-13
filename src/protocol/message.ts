@@ -24,7 +24,14 @@ function serializeToolCall(call: ToolCall): JsonObject {
   return payload;
 }
 
-/** 将中性消息序列化为稳定的 OpenAI-compatible JSON 结构。 */
+/**
+ * 将中性消息序列化为稳定的 OpenAI-compatible JSON 结构。
+ *
+ * @param message - 待序列化的中性消息；`toolCalls` 为空数组、`toolCallId`/`name` 为空串时
+ *   一律视为未设置，与本字段缺失等价。
+ * @returns 键序固定为 `role`、`content` 再按需追加可选字段的 JSON 对象，未设置字段不写出，
+ *   可参与快照比对。
+ */
 export function serializeRawMessage(message: RawMessage): JsonObject {
   const payload: Record<string, JsonValue> = {
     role: message.role,

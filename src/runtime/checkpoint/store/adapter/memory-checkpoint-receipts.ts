@@ -16,6 +16,13 @@ export interface MemoryResumeReceipt {
 export class MemoryCheckpointReceiptLedger {
   readonly #receipts = new Map<string, Map<string, MemoryResumeReceipt>>();
 
+  /**
+   * 按幂等键查回执，返回的是拷贝，调用方改不到账本里的原件。
+   *
+   * @param threadId - 归属的会话标识；账本按 thread 分桶，跨 thread 的 requestId 互不可见
+   * @param requestId - 恢复请求的幂等键；同一 thread 下重复的键指向同一条回执
+   * @returns 回执的快照（含深拷贝的 record）；从未认领过时返回 undefined，调用方据此走首次恢复路径
+   */
   public find(
     threadId: string,
     requestId: string,
@@ -26,6 +33,15 @@ export class MemoryCheckpointReceiptLedger {
       : undefined;
   }
 
+  /**
+   * 记下首次认领，回执进入未完成态；重复认领同一 requestId 会覆盖旧条目。
+   *
+   * @param threadId - 归属的会话标识，决定回执落在哪个桶
+   * @param requestId - 本次恢复请求的幂等键，后续完成写入凭它归位
+   * @param interruptId - 被恢复的中断标识，写入后即固化，用于重放时的身份校验
+   * @param response - 恢复时提交的应答内容，与 interruptId 一同固化
+   * @param record - 认领时刻的检查点记录，入库前深拷贝，与调用方的副本互不影响
+   */
   public saveClaim(
     threadId: string,
     requestId: string,
@@ -45,6 +61,12 @@ export class MemoryCheckpointReceiptLedger {
    * 把回执翻成已完成，并更新为终态记录。
    * `interruptId`/`response` 保留首次认领时写入的值：终态写入只是结束这次请求，
    * 不应借此改写「这次请求本来是什么」，否则后续重放的身份校验会失去参照。
+   *
+   * @param threadId - 归属的会话标识
+   * @param requestId - 要收尾的恢复请求；若该键此前未认领过，则按本次入参新建一条已完成回执
+   * @param interruptId - 中断标识；仅在无既有认领记录时采用，否则沿用首次认领的值
+   * @param response - 应答内容；同样仅在无既有认领记录时采用，避免终态写入篡改请求身份
+   * @param record - 完成时刻的检查点记录，入库前深拷贝
    */
   public saveCompletion(
     threadId: string,
@@ -63,6 +85,11 @@ export class MemoryCheckpointReceiptLedger {
     });
   }
 
+  /**
+   * 随 thread 删除一并清空其回执桶，避免已删线索的恢复请求命中陈旧回执。
+   *
+   * @param threadId - 要清除的会话标识；不存在时静默返回，删除本身幂等
+   */
   public deleteThread(threadId: string): void {
     this.#receipts.delete(threadId);
   }

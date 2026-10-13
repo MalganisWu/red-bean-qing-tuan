@@ -9,6 +9,9 @@ import path from "node:path";
  *
  * 不使用 `realpath`：账本在读取成功路径上写记录，此时再做一次符号链接解析既多一次 I/O，也会把
  * 「同一文件的不同链接」合并成一个键，反而掩盖了链接本身的变化。自动化的失败方向是拒绝写入。
+ *
+ * @param filePath - 模型给出的原始路径，写法可能不一致
+ * @returns 绝对化后的账本键，读取与写入两侧须用同一函数生成
  */
 export function ledgerFileKey(filePath: string): string {
   return path.resolve(filePath);

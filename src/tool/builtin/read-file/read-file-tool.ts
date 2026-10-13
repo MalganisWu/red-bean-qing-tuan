@@ -51,7 +51,9 @@ function parameters(rooted: boolean): JsonObject {
 
 /** 无路径限制的读取工具，只能在宿主已经提供文件系统沙箱时使用。 */
 export class UnrestrictedReadTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `READ_FILE_TOOL_NAME` 保持一致。 */
   public readonly name = READ_FILE_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -71,6 +73,16 @@ export class UnrestrictedReadTool implements Tool {
     this.#ledger = ledger ?? new MemoryFileReadLedger();
   }
 
+  /**
+   * 读取文件并加行号返回。先查账本：内容与范围都与上次读取一致时只回占位文案；
+   * 目录、超限文件与超量 token 会被拒绝。记录本次读取供写入类工具做版本比对，
+   * 并附带一个可重取被引用行段的 `preserve` 句柄。
+   *
+   * @param value - 工具入参原始值，含 `file_path` 及可选 `offset`/`limit`，尚未校验
+   * @param context - 调用上下文，其 threadId 决定读取账本的归属
+   * @param signal - 取消信号，读取与分片时传递
+   * @returns 带行号的内容文本，或「文件未变」占位文案
+   */
   public async execute(
     value: JsonValue,
     context: ToolCallContext,
@@ -158,10 +170,17 @@ export class UnrestrictedReadTool implements Tool {
     }
   }
 
+  /** 无常驻资源需要释放；保留以满足 `Tool` 契约。 */
   public close(): Promise<void> {
     return Promise.resolve();
   }
 
+  /**
+   * 打开目标文件供读取。基类不做路径限制；子类覆写以接入根目录约束。
+   *
+   * @param filePath - 模型给出的路径，使用前未做任何沙箱校验
+   * @returns 已打开的句柄与其去重键，调用方负责关闭
+   */
   protected async openFile(filePath: string): Promise<OpenedFile> {
     return { handle: await open(filePath, constants.O_RDONLY), key: filePath };
   }
@@ -195,6 +214,7 @@ export class UnrestrictedReadTool implements Tool {
 
 /** 默认 fail-closed：所有路径解析与打开均委托给固定根目录访问器。 */
 export class RootedReadTool extends UnrestrictedReadTool implements Tool {
+  /** 工具契约：覆写说明与入参描述以反映根目录约束下的路径语义。 */
   public override readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -216,15 +236,32 @@ export class RootedReadTool extends UnrestrictedReadTool implements Tool {
     this.#access = new RootedFileAccess(rootPath, rootHandle, rootIdentity);
   }
 
+  /** 释放根目录句柄；工具实例因此不可再用。 */
   public override close(): Promise<void> {
     return this.#access.close();
   }
 
+  /**
+   * 经根目录访问器打开文件，路径穿越与根外符号链接在此被拒绝。
+   *
+   * @param filePath - 模型给出的路径，相对路径以沙箱根目录为基准
+   * @returns 已打开的句柄与其去重键，调用方负责关闭
+   */
   protected override openFile(filePath: string): Promise<OpenedFile> {
     return this.#access.open(filePath);
   }
 }
 
+/**
+ * 解析根目录并建立固定的根句柄，组装出 fail-closed 的读取工具。
+ *
+ * 启动即 `realpath` 归一化根目录并校验其为目录，使后续所有访问都以同一句柄为锚点；
+ * 根目录不存在或不是目录时直接失败，不留半可用状态。
+ *
+ * @param root - 沙箱根目录，接受相对路径，会解析为其真实路径
+ * @param ledger - 可选的共享读取账本；省略时工具自建进程内实例
+ * @returns 已绑定根目录的读取工具实例
+ */
 export async function createRootedReadTool(
   root: string,
   ledger?: FileReadLedger,

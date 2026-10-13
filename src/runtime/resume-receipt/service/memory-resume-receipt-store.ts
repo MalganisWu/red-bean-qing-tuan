@@ -18,7 +18,12 @@ import type {
 export class MemoryResumeReceiptStore implements ResumeReceiptStore {
   readonly #receipts = new Map<string, Map<string, ResumeReceipt>>();
 
-  /** 按 `receiptKeys` 的顺序逐个查找，第一个命中即返回。 */
+  /**
+   * 按 `receiptKeys` 的顺序逐个查找，第一个命中即返回。
+   * @param threadId - 收据所属的 thread；该 thread 无记录时直接返回 undefined。
+   * @param request - 用于推导查找键的恢复请求；requestId 缺失时退化为只按 interruptId 查。
+   * @returns 命中的收据本体（未拷贝）；调用方不得就地改写它。
+   */
   public find(
     threadId: string,
     request: ResumeRequest,
@@ -32,7 +37,13 @@ export class MemoryResumeReceiptStore implements ResumeReceiptStore {
     return undefined;
   }
 
-  /** 同一条收据写入它的全部键，因此用 requestId 或 interruptId 查询都能命中。 */
+  /**
+   * 同一条收据写入它的全部键，因此用 requestId 或 interruptId 查询都能命中。
+   * @param threadId - 收据归属的 thread。
+   * @param request - 产生该结果（或失败）的恢复请求；其 interruptId/requestId/response 成为重放时的幂等比对项。
+   * @param result - 本次恢复的终态结果，会被深拷贝后存入，不与调用方共享引用。
+   * @param error - 失败原因；undefined 表示成功，非 undefined 时重放会照样以失败返回。
+   */
   public save(
     threadId: string,
     request: ResumeRequest,

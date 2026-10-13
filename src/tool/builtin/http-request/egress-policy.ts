@@ -3,7 +3,11 @@ import { BlockList, isIP } from "node:net";
 
 import type { EgressPolicy, ResolvedAddress } from "./http-contracts.js";
 
-/** 取取消原因并抛出；优先沿用 `signal.reason`，不把它换成通用文案。 */
+/**
+ * 取取消原因并抛出；优先沿用 `signal.reason`，不把它换成通用文案。
+ *
+ * @param signal - 调用方传入的取消信号，仅在已中止时才有副作用
+ */
 export function throwIfHttpAborted(signal: AbortSignal): void {
   if (!signal.aborted) return;
   throw signal.reason instanceof Error
@@ -11,7 +15,12 @@ export function throwIfHttpAborted(signal: AbortSignal): void {
     : new DOMException("operation aborted", "AbortError");
 }
 
-/** 判定地址族；`BlockList.check` 必须传对 family，传错会静默匹配失败（等于放行）。 */
+/**
+ * 判定地址族；`BlockList.check` 必须传对 family，传错会静默匹配失败（等于放行）。
+ *
+ * @param address - 待判定的 IP 字面量，非 IPv4/IPv6 字面量会直接抛错
+ * @returns 传给 `BlockList` 的 family 标识
+ */
 export function addressFamily(address: string): "ipv4" | "ipv6" {
   const family = isIP(address);
   if (family === 4) return "ipv4";
@@ -19,7 +28,12 @@ export function addressFamily(address: string): "ipv4" | "ipv6" {
   throw new Error(`无效 IP 地址 ${JSON.stringify(address)}`);
 }
 
-/** 去掉 IPv6 字面量的方括号：`URL.hostname` 会保留 `[::1]`，而 DNS 与 socket 都不接受它。 */
+/**
+ * 去掉 IPv6 字面量的方括号：`URL.hostname` 会保留 `[::1]`，而 DNS 与 socket 都不接受它。
+ *
+ * @param hostname - 来自 `URL.hostname` 的主机名，可能带方括号
+ * @returns 去除方括号后的主机名；非 IPv6 字面量原样返回
+ */
 export function unbracketHostname(hostname: string): string {
   return hostname.startsWith("[") && hostname.endsWith("]")
     ? hostname.slice(1, -1)
@@ -75,6 +89,10 @@ export class PublicInternetOnlyPolicy implements EgressPolicy {
    * 而清单里的内网网段是按 ipv4 注册的，`check` 根本匹配不上——
    * 于是攻击者只要把 `127.0.0.1` 写成映射形式就能绕过整张清单。
    * 这类地址一律拒绝，不做进一步判断；真实使用映射地址访问公网是极罕见的需求。
+   *
+   * @param hostname - 原始主机名，仅用于错误信息，不参与匹配
+   * @param address - 已解析的 IP 字面量，是唯一参与限制清单匹配的值
+   * @param signal - 取消信号，进入判定前先检查
    */
   public authorize(
     hostname: string,
@@ -95,6 +113,13 @@ export class PublicInternetOnlyPolicy implements EgressPolicy {
 
 /** 显式关闭 SDK 地址限制的策略，仅供已经提供外部网络沙箱的宿主选用。 */
 export class AllowAllEgressPolicy implements EgressPolicy {
+  /**
+   * 无条件放行任何地址，把网络隔离责任完全交给宿主沙箱。
+   *
+   * @param _hostname - 未使用；保留以满足 `EgressPolicy` 契约
+   * @param _address - 未使用；保留以满足 `EgressPolicy` 契约
+   * @param signal - 取消信号，放行前仍检查，保证取消能及时生效
+   */
   public authorize(
     _hostname: string,
     _address: string,
@@ -136,10 +161,21 @@ export class IpDenyList {
     this.#empty = validEntries === 0;
   }
 
+  /**
+   * 是否一条有效条目都没有；调用方据此可跳过整个解析流程。
+   *
+   * @returns 全部条目都无效时为 `true`
+   */
   public get empty(): boolean {
     return this.#empty;
   }
 
+  /**
+   * 判断某地址是否命中黑名单。
+   *
+   * @param address - 待检查的 IP 字面量；非 IP 字面量会抛错而非静默放行
+   * @returns 命中任一条目时返回 `true`
+   */
   public includes(address: string): boolean {
     return this.#entries.check(address, addressFamily(address));
   }
@@ -150,6 +186,10 @@ export class IpDenyList {
  * `all: true` 是关键：一个域名可能同时解析出公网与内网地址（DNS rebinding 的经典手法），
  * 只取第一条会让策略放过其中一半。这里把全部地址交给调用方逐个校验。
  * `verbatim: true` 保持解析顺序，不做 IPv4/IPv6 重排。
+ *
+ * @param hostname - 待解析的主机名，可能带 IPv6 方括号，会先归一化
+ * @param signal - 取消信号，解析前后各检查一次
+ * @returns 解析出的全部地址，供调用方逐个校验
  */
 export async function defaultAddressLookup(
   hostname: string,

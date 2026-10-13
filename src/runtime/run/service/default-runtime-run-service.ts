@@ -79,6 +79,9 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
    * 执行一次新的 Agent 运行（run 路径），返回终态 RuntimeResult。
    * 失败语义：生命周期拒绝启动（如运行并发预算耗尽）时返回携带错误信息的失败结果，
    * 不向上抛异常；所有路径（含取消/异常）都在 finally 结束本次运行记账。
+   * @param request - 本次运行的输入；state/history 与 Store 模式的互斥由请求校验器判定。
+   * @param signal - 调用方的取消信号；Runtime 只消费不拥有它，取消会收敛为 cancelled 结果或携带部分结果的异常。
+   * @returns 终态 RuntimeResult；除 RuntimeExecutionError 外一律以结果形式返回失败。
    */
   public async run(
     request: AgentRequest,
@@ -120,6 +123,9 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
   /**
    * 恢复一次中断的 Agent 运行（resume 路径）：回答 interrupt 并继续执行。
    * 失败语义同 run；无 Store 模式由进程内 receipt 保证同一恢复请求幂等回放。
+   * @param request - 恢复输入；interruptId 必填，无 Store 模式还需 requestId 作幂等键。
+   * @param signal - 调用方的取消信号；取消同样收敛为结果或异常，不向外传播原始抛出物。
+   * @returns 恢复后的终态 RuntimeResult；命中回执时直接回放，不会二次执行工具。
    */
   public async resume(
     request: ResumeRequest,
@@ -157,7 +163,10 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
     }
   }
 
-  /** 关闭顺序交给 lifecycle 决定：插件必须在其他资源之前反序清理，这里只是把插件关闭登记进去。 */
+  /**
+   * 关闭顺序交给 lifecycle 决定：插件必须在其他资源之前反序清理，这里只是把插件关闭登记进去。
+   * @param signal - 关闭的取消信号；原样转交插件注册表，只约束等待不取消清理。
+   */
   public async close(signal: AbortSignal): Promise<void> {
     await this.#lifecycle.close(() => this.#plugins.close(signal), signal);
   }

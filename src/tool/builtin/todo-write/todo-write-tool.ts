@@ -126,7 +126,9 @@ function renderTodos(todos: readonly TodoItem[]): string {
  * 无法从局部指令推断的歧义。
  */
 export class TodoWriteTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `TODO_WRITE_TOOL_NAME` 保持一致。 */
   public readonly name = TODO_WRITE_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -138,6 +140,15 @@ export class TodoWriteTool implements Tool {
   };
   readonly #byThread = new Map<string, TodoItem[]>();
 
+  /**
+   * 整体替换指定 conversation 的清单并返回渲染结果。校验失败与取消失败都以 rejected Promise 返回，
+   * 不同步抛出，以满足 `Tool` 契约。
+   *
+   * @param value - 工具入参原始值，含 `todos` 数组，尚未校验
+   * @param context - 调用上下文，其 threadId 决定清单归属的 conversation
+   * @param signal - 取消信号，进入处理逻辑前检查
+   * @returns 渲染后的清单与完成进度文本
+   */
   public execute(
     value: JsonValue,
     context: { readonly threadId: string },
@@ -159,11 +170,17 @@ export class TodoWriteTool implements Tool {
     }
   }
 
-  /** 读取某个 conversation 的当前清单，供宿主展示或持久化。 */
+  /**
+   * 读取某个 conversation 的当前清单，供宿主展示或持久化。
+   *
+   * @param threadId - conversation 标识，未记录过时返回空清单而非抛错
+   * @returns 该 conversation 当前的待办清单，无记录时为空数组
+   */
   public current(threadId: string): readonly TodoItem[] {
     return this.#byThread.get(threadId) ?? [];
   }
 
+  /** 无常驻资源需要释放；保留以满足 `Tool` 契约。 */
   public close(): Promise<void> {
     return Promise.resolve();
   }

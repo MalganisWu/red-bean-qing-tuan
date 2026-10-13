@@ -38,6 +38,9 @@ export interface ValidatedResumeRequest {
  *
  * `input` 与 `messages` 也是互斥的：前者是「这一轮用户说了什么」的简写，
  * 后者是完整消息数组。同时给会让人无法判断该以谁为准。
+ * @param request - 调用方带来的 run 输入；state/history 与 Store 模式互斥，input 与 messages 互斥。
+ * @param storeConfigured - 是否配置了 CheckpointStore；它决定 threadId 是否必填、fencing 与 expectedRevision 是否合法。
+ * @returns 只含后续编排所需字段的规范化输入；任何非法组合都以携带失败结果的 RuntimeExecutionError 抛出，不返回错误码。
  */
 export function validateRunRequest(
   request: AgentRequest,
@@ -111,6 +114,9 @@ export function validateRunRequest(
  * 但两处都给了就必须一致，不一致说明调用方搞混了两个 thread。
  * `interruptId` 是恢复的必备信息，缺失直接以 `INTERRUPT_MISMATCH` 失败；
  * Store 模式下还必须有 `requestId`，因为它是这条路径唯一的幂等键。
+ * @param request - 调用方带来的 resume 输入；threadId 可由 state 补齐，interruptId 必填。
+ * @param storeConfigured - 是否配置了 CheckpointStore；Store 模式下 requestId 是唯一幂等键，因此必填。
+ * @returns 规范化后的恢复输入（threadId 与 fencingToken）；校验失败以 RuntimeExecutionError 抛出。
  */
 export function validateResumeRequest(
   request: ResumeRequest,

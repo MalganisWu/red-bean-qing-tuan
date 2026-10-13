@@ -41,6 +41,7 @@ const RUNTIME_ERROR_MESSAGES: Readonly<Record<RuntimeErrorCode, string>> =
 
 /** 可稳定编程识别的 Runtime 错误，替代早期实现中的 sentinel error。 */
 export class RuntimeError extends Error {
+  /** 构造时传入的错误码，也是宿主分支判断的依据；与 message 文案解耦，可安全比较。 */
   public readonly code: RuntimeErrorCode;
 
   public constructor(code: RuntimeErrorCode, options?: ErrorOptions) {
@@ -50,7 +51,13 @@ export class RuntimeError extends Error {
   }
 }
 
-/** `code` 省略时只判断「是不是 RuntimeError」，给出时额外比对错误码。 */
+/**
+ * `code` 省略时只判断「是不是 RuntimeError」，给出时额外比对错误码。
+ *
+ * @param value - 任意待判定值，按 `instanceof` 判定，不做结构探测，因此跨 realm 或包装过的错误不会被误判。
+ * @param code - 可选的期望错误码；给出时必须与实例的 code 全等才算命中，省略则退化为纯类型判定。
+ * @returns 命中类型、且（未指定 code 或 code 相符）时为 true。
+ */
 export function isRuntimeError(
   value: unknown,
   code?: RuntimeErrorCode,

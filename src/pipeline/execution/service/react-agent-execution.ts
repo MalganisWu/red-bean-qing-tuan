@@ -58,6 +58,10 @@ export class ReactAgentExecution implements AgentExecution {
    *   这里把它们写回 context，让上层还能持久化已经产生的进展。
    * - **`finally` 里写元数据**：无论成功、失败还是抛出，`success`/`reason`/`tokensUsed`
    *   都必须在 context 上可见。写成 try 内的一步会让失败路径完全没有归因信息。
+   *
+   * @param context - 本次运行的共享状态；执行过程中会改写其 llmContext 与 metadata。
+   * @param signal - 取消信号；已中止时直接抛 abort 错误，不再发起模型调用。
+   * @returns 本次 ReAct 的中性结果；失败时改为抛出 ReactAgentExecutionError。
    */
   public async execute(
     context: RuntimeContext,

@@ -65,7 +65,9 @@ function parseGlobParams(value: JsonValue): GlobParams {
  * 结果按路径排序，超过上限时截断并报告匹配总数。
  */
 export class GlobTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `GLOB_TOOL_NAME` 保持一致。 */
   public readonly name = GLOB_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -81,6 +83,15 @@ export class GlobTool implements Tool {
     this.#maxResults = options?.maxResults ?? MAX_GLOB_RESULTS;
   }
 
+  /**
+   * 执行 glob 匹配。先收集全部结果再排序，仅在输出阶段按上限截断，
+   * 截断时附上真实匹配总数供调用方判断是否需缩小范围。
+   *
+   * @param value - 工具入参原始值，含 `pattern` 与可选 `path`，尚未校验
+   * @param _context - 未使用；保留以满足 `Tool` 契约
+   * @param signal - 取消信号，枚举过程中逐项检查
+   * @returns 每行一个相对路径的文本结果，或「无匹配」提示
+   */
   public async execute(
     value: JsonValue,
     _context: unknown,
@@ -131,6 +142,7 @@ export class GlobTool implements Tool {
     return matches;
   }
 
+  /** 无常驻资源需要释放；保留以满足 `Tool` 契约。 */
   public close(): Promise<void> {
     return Promise.resolve();
   }

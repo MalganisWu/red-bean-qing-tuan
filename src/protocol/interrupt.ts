@@ -22,7 +22,13 @@ export interface Interrupt {
   readonly payload: JsonValue;
 }
 
-/** 将中性 Interrupt 转换为稳定 JSON，不引入 Checkpoint 或宿主语义。 */
+/**
+ * 将中性 Interrupt 转换为稳定 JSON，不引入 Checkpoint 或宿主语义。
+ *
+ * @param interrupt - 待序列化的中断；其 `arguments` 与 `payload` 必须已在 JSON 值域内。
+ * @returns 键序固定为 `tool_call_id`、`tool_name`、`arguments`、`payload` 的 JSON 对象，
+ *   四个字段恒被写出，可参与快照比对。
+ */
 export function serializeInterrupt(interrupt: Interrupt): JsonObject {
   return {
     tool_call_id: interrupt.toolCallId,

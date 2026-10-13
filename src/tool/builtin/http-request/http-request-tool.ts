@@ -156,7 +156,9 @@ function redirectedHeaders(
  * 循环上限 10 次，防止 A→B→A 的无限跳转把工具挂死。
  */
 export class HttpRequestTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `HTTP_REQUEST_TOOL_NAME` 保持一致。 */
   public readonly name = HTTP_REQUEST_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -172,6 +174,15 @@ export class HttpRequestTool implements Tool {
     this.#client = client;
   }
 
+  /**
+   * 发起请求并跟随重定向。逐跳都经出口策略校验，跳转时按 HTTP 语义降级方法、清空 body 并剥掉凭证类请求头；
+   * 响应体按字节上限截断后以 JSON 文本返回状态码与正文。
+   *
+   * @param value - 工具入参原始值，含 `method`、`url` 及可选 `headers`/`body`，尚未校验
+   * @param _context - 未使用；保留以满足 `Tool` 契约
+   * @param signal - 取消信号，传递给底层 HttpClient
+   * @returns JSON 文本，含 `status_code` 与响应体
+   */
   public async execute(
     value: JsonValue,
     _context: ToolCallContext,

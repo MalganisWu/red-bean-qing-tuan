@@ -74,7 +74,9 @@ async function readEntries(dirPath: string): Promise<Dirent[]> {
  * 目录以 `/` 结尾，符号链接按自身类型列出（指向目录的链接不会带 `/`）。
  */
 export class ListDirectoryTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `LIST_DIRECTORY_TOOL_NAME` 保持一致。 */
   public readonly name = LIST_DIRECTORY_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -90,6 +92,14 @@ export class ListDirectoryTool implements Tool {
     this.#maxEntries = options?.maxEntries ?? MAX_DIRECTORY_ENTRIES;
   }
 
+  /**
+   * 列出目录直接子项。先确认目标是目录，再按名称排序输出，超过上限时截断并报告总条目数。
+   *
+   * @param value - 工具入参原始值，含 `path` 字段，尚未校验
+   * @param _context - 未使用；保留以满足 `Tool` 契约
+   * @param signal - 取消信号，读取前后各检查
+   * @returns 每行一个条目名的文本结果，目录名以 `/` 结尾
+   */
   public async execute(
     value: JsonValue,
     _context: unknown,
@@ -117,6 +127,7 @@ export class ListDirectoryTool implements Tool {
     return { content: shown.join("\n") };
   }
 
+  /** 无常驻资源需要释放；保留以满足 `Tool` 契约。 */
   public close(): Promise<void> {
     return Promise.resolve();
   }

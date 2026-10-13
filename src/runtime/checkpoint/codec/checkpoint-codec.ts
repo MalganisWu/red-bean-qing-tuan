@@ -38,6 +38,9 @@ function revisionToJson(revision: bigint): number {
  *   「确实有内容」的字段，同一状态的序列化结果逐字节稳定，可以直接参与快照比对。
  * - **wire 用 snake_case**：持久化格式与 TypeScript 侧命名解耦，
  *   字段改名不会波及已落盘的存量数据。
+ *
+ * @param checkpoint - 内存态的检查点；本函数只读不改，调用方保留其所有权
+ * @returns 可直接 JSON.stringify 或落盘的对象；同一状态重复序列化逐字节相同，可用于快照比对
  */
 export function serializeCheckpoint(checkpoint: Checkpoint): JsonObject {
   const payload: Record<string, JsonValue> = {
@@ -70,7 +73,12 @@ export function serializeCheckpoint(checkpoint: Checkpoint): JsonObject {
   return payload;
 }
 
-/** 序列化整条记录；revision 超出 JSON 安全整数范围时抛错，不静默截断。 */
+/**
+ * 序列化整条记录；revision 超出 JSON 安全整数范围时抛错，不静默截断。
+ *
+ * @param record - 带版本号的检查点记录；revision 一并写入，供读回侧做 CAS 比较
+ * @returns 含 checkpoint 与 revision 两个字段的宿主中立对象
+ */
 export function serializeCheckpointRecord(
   record: CheckpointRecord,
 ): JsonObject {
@@ -173,6 +181,9 @@ function parseRawMessage(value: unknown): RawMessage {
  * 这是不可信输入（宿主数据库、跨进程传输）进入领域层的唯一入口，因此逐字段做运行时校验，
  * 不用类型断言代替：形状不对就抛 TypeError，而不是让脏数据带着 `as` 往后流。
  * 注意 `version` 必须为正——0 只属于尚未落盘的内存记录，不是合法的持久化状态。
+ *
+ * @param value - 来自宿主数据库或跨进程传输的不可信值；形状或字段类型不符即抛 TypeError，绝不带脏数据向后流
+ * @returns 校验通过后重建的领域对象检查点，可安全交给 Runtime 继续执行
  */
 export function parseCheckpoint(value: unknown): Checkpoint {
   const source = record(value, "checkpoint");

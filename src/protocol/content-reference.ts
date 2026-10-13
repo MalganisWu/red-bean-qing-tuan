@@ -11,7 +11,13 @@ export interface ContentRef {
   readonly fetch?: ((signal: AbortSignal) => Promise<Uint8Array>) | undefined;
 }
 
-/** 去除进程内 fetch 函数，仅保留可稳定序列化的内容引用描述。 */
+/**
+ * 去除进程内 fetch 函数，仅保留可稳定序列化的内容引用描述。
+ *
+ * @param reference - 待序列化的内容引用；`fetch` 是进程内闭包，恒被剥离而不进入输出。
+ * @returns 键序固定为 `kind`、`key` 再按需追加可选字段的 JSON 对象；`version` 为空、
+ *   `meta` 为空对象、`timestamp` 为 `undefined`/`0` 时不写出该字段，故可参与快照比对。
+ */
 export function serializeContentRef(reference: ContentRef): JsonObject {
   const payload: Record<string, JsonValue> = {
     kind: reference.kind,

@@ -146,7 +146,11 @@ class PolicyDispatcher implements ToolDispatcher {
   }
 }
 
-/** AgentRuntime 公开门面的唯一默认实现绑定；改默认实现只需要改这一处。 */
+/**
+ * AgentRuntime 公开门面的唯一默认实现绑定；改默认实现只需要改这一处。
+ * @param options - 宿主传入的门面选项；tools 与 toolDispatcher 互斥，toolSchemas 与 toolDispatcher 必须成对出现。
+ * @returns 已装配完成的 RuntimeRunService，可直接交给 AgentRuntime 使用。
+ */
 export function createRuntimeRunService(
   options: AgentRuntimeOptions,
 ): RuntimeRunService {

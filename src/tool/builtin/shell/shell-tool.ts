@@ -144,7 +144,9 @@ function terminationMarker(
  * 本批只支持前台执行：需要长时间运行的命令会被超时终止，没有后台作业。
  */
 export class ShellTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `SHELL_TOOL_NAME` 保持一致。 */
   public readonly name = SHELL_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -163,6 +165,15 @@ export class ShellTool implements Tool {
     this.#maxOutputBytes = options?.maxOutputBytes ?? MAX_SHELL_OUTPUT_BYTES;
   }
 
+  /**
+   * 前台执行一条 shell 命令。调用方给出的超时会被夹到全局上限内，输出按实例上限截断，
+   * 超时或取消会终止整个进程组并以结束标记区分于普通退出码。
+   *
+   * @param value - 工具入参原始值，含 `command`、`description` 及可选 `timeoutMs`/`workdir`，尚未校验
+   * @param _context - 未使用；保留以满足 `Tool` 契约
+   * @param signal - 取消信号，中止时终止子进程组
+   * @returns 组合了 stdout、stderr 与结束原因的文本
+   */
   public async execute(
     value: JsonValue,
     _context: unknown,
@@ -184,6 +195,7 @@ export class ShellTool implements Tool {
     return { content: formatShellResult(result, request) };
   }
 
+  /** 无常驻资源需要释放；保留以满足 `Tool` 契约。 */
   public close(): Promise<void> {
     return Promise.resolve();
   }

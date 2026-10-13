@@ -114,7 +114,9 @@ function parseApplyPatchParams(value: JsonValue): ApplyPatchParams {
  * 上下文行数量稍有差错即整段失败），而模型本来就有结构化入参可用。本工具的实质价值是原子多处改动。
  */
 export class ApplyPatchTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，与 `APPLY_PATCH_TOOL_NAME` 保持一致。 */
   public readonly name = APPLY_PATCH_TOOL_NAME;
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -130,6 +132,16 @@ export class ApplyPatchTool implements Tool {
     this.#ledger = options.ledger;
   }
 
+  /**
+   * 施加多处改动。先校验入参、确认文件自上次读取后未被改动，再一次性原子写入；
+   * 任一处 old_string 匹配数不为 1 都整体失败，不留下已改动一半的中间态，
+   * 写入后作废该文件的读取记录。
+   *
+   * @param value - 工具入参原始值，尚未校验，需经 `parseApplyPatchParams` 归一化
+   * @param context - 调用上下文，其 threadId 用于查读取账本
+   * @param signal - 取消信号，进入与写入前检查
+   * @returns 文本结果，说明改动的文件与处数
+   */
   public async execute(
     value: JsonValue,
     context: { readonly threadId: string },
@@ -156,6 +168,7 @@ export class ApplyPatchTool implements Tool {
     };
   }
 
+  /** 无常驻资源需要释放；保留以满足 `Tool` 契约。 */
   public close(): Promise<void> {
     return Promise.resolve();
   }

@@ -58,7 +58,12 @@ function normalizeJsonValue(value: unknown, ancestors: Set<object>): JsonValue {
   throw new TypeError(`value of type ${typeof value} is not valid JSON`);
 }
 
-/** 校验并复制不可信输入，使其进入 Runtime 的 JSON 值域。 */
+/**
+ * 校验并复制不可信输入，使其进入 Runtime 的 JSON 值域。
+ *
+ * @param value - 来自外部的未知输入；必须是普通对象且不含环、非有限数、符号键与访问器属性。
+ * @returns 与输入等值的新副本，不共享引用；含上述任一违例时抛 `TypeError` 而非静默裁剪。
+ */
 export function toJsonValue(value: unknown): JsonValue {
   return normalizeJsonValue(value, new Set<object>());
 }

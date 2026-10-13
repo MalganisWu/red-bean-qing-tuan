@@ -56,12 +56,19 @@ export class RootedFileAccess {
     this.#rootIdentity = rootIdentity;
   }
 
+  /** 释放根目录句柄；重复调用是幂等的，关闭后再打开会失败。 */
   public async close(): Promise<void> {
     if (this.#closed) return;
     this.#closed = true;
     await this.#rootHandle.close();
   }
 
+  /**
+   * 在根目录约束下打开文件，越界访问一律拒绝。
+   *
+   * @param filePath - 模型给出的路径，相对路径相对 root、绝对路径须落在 root 内
+   * @returns 已打开的句柄与其去重键，调用方负责关闭
+   */
   public async open(filePath: string): Promise<OpenedFile> {
     if (this.#closed) throw new Error("read root 已关闭");
     const relative = await this.relativePath(filePath);

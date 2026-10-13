@@ -42,6 +42,10 @@ export interface ToolExecution {
  * ——不会报错，只是屏障消失。
  *
  * 一批里出现超过一个声明为中断的调用则直接判错：屏障需要唯一的一个「在等谁确认」。
+ *
+ * @param tools - 本轮可用工具声明；屏障只认其中的 `interrupting` 静态标记，不看运行期结果。
+ * @param calls - 本批待派发的调用；无中断声明时原样返回，不复制。
+ * @returns 本批有中断调用时返回仅含该调用的批次，否则原样返回入参批次。
  */
 export function isolateInterruptingToolCall(
   tools: readonly ToolSchema[],
@@ -65,6 +69,9 @@ export function isolateInterruptingToolCall(
  * 往上下文元数据里追加一条内容引用。
  * 元数据是开放字典，可能被宿主写成任意形状；只有整段都是合法引用时才基于它扩展，
  * 否则从空数组重建——宁可丢掉宿主写入的非法内容，也不要把坏数据带进恢复流程。
+ *
+ * @param context - 运行上下文；引用会写进它的 metadata，覆盖同键的旧值。
+ * @param reference - 要登记的单个内容引用，追加到既有列表末尾。
  */
 export function appendContentRef(
   context: RuntimeContext,
@@ -79,7 +86,12 @@ export function appendContentRef(
   context.metadata.set(CONTENT_REFS_METADATA_KEY, references);
 }
 
-/** 参数解析失败就原样返回字符串：中断是要交给宿主展示的，宁可显示原始文本也不要因为解析失败丢掉请求。 */
+/**
+ * 参数解析失败就原样返回字符串：中断是要交给宿主展示的，宁可显示原始文本也不要因为解析失败丢掉请求。
+ *
+ * @param argumentsJson - 中断工具调用携带的原始参数文本，可能不是合法 JSON。
+ * @returns 解析成功时为规范化后的 JsonValue，失败时为原样字符串。
+ */
 export function parseInterruptArguments(argumentsJson: string): JsonValue {
   try {
     const value: unknown = JSON.parse(argumentsJson);
@@ -100,6 +112,14 @@ export function parseInterruptArguments(argumentsJson: string): JsonValue {
  * 结果写进预分配的定长数组（按调用下标落位）再过滤空洞，因此并发完成顺序不影响
  * 返回顺序；任何一个 worker 抛出（例如取消）都会让 `Promise.all` 直接拒绝，
  * 整批结果作废。
+ *
+ * @param calls - 本批要派发的调用；返回值与它一一对应。
+ * @param context - 运行上下文，用于发出工具事件等。
+ * @param dispatcher - 真正执行工具的分发器。
+ * @param tools - 本轮可用工具声明，用于判定哪些调用声明了 interrupting。
+ * @param config - 运行配置；`maxConcurrentTools` 决定并发上限，缺省或非法则不限并发。
+ * @param signal - 整次运行的取消信号；取消会让整批结果作废并抛出。
+ * @returns 与入参顺序一致的执行记录；单个工具失败以带 error 的记录返回而非抛出。
  */
 export async function dispatchToolBatch(
   calls: readonly ToolCall[],
@@ -157,6 +177,9 @@ export async function dispatchToolBatch(
  * - `arguments`：总是 push，JSON 参数正是按增量分片拼出来的。
  *
  * 缺失 `index` 时按 0 处理：单工具调用的场景下 provider 可能省略该字段。
+ *
+ * @param buffer - 就地更新的组装缓冲，按 `index` 索引。
+ * @param calls - 本次到达的增量分片，按顺序并入缓冲。
  */
 export function updateToolCallBuffer(
   buffer: Map<number, MutableToolCallEntry>,
@@ -180,6 +203,9 @@ export function updateToolCallBuffer(
  * 把可变缓冲暴露为只读视图。这里只是类型层面的收窄（运行时仍是同一个 Map），
  * 目的是让「组装期可变、消费期只读」这条边界在类型上可见——
  * 交给 `assembleToolCalls` 之后就不该再有人往里写。
+ *
+ * @param buffer - 组装期的可变缓冲；本函数不复制它，只做类型收窄。
+ * @returns 同一份 Map 的只读视图，运行时仍是原对象，写入仍会反映到调用方看到的数据上。
  */
 export function immutableToolCallBuffer(
   buffer: ReadonlyMap<number, MutableToolCallEntry>,

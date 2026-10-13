@@ -125,7 +125,9 @@ const TIME_PARAMETERS: JsonObject = {
 
 /** 使用显式或默认时区返回格式化时间的无副作用内置工具。 */
 export class GetTimeTool implements Tool {
+  /** 本工具在 Tool Registry 中的注册名，Agent 的 sys_tool_ids 用它引用。 */
   public readonly name = "sys_get_time";
+  /** 工具契约：函数名、给模型的说明与 JSON Schema 入参。 */
   public readonly schema: ToolSchema = {
     type: "function",
     function: {
@@ -140,6 +142,15 @@ export class GetTimeTool implements Tool {
     this.#now = now;
   }
 
+  /**
+   * 按显式或默认时区格式化当前时间。失败（时区非法、时钟返回无效日期）以 rejected Promise 返回，
+   * 不抛出同步异常。
+   *
+   * @param params - 工具入参原始值，可选 `timezone` 与 `format` 字段，未校验
+   * @param _context - 未使用；保留以满足 `Tool` 契约
+   * @param signal - 取消信号，已中止时立即以 rejected Promise 返回
+   * @returns JSON 文本，含 Unix 时间戳、格式化时间与所用时区
+   */
   public execute(
     params: JsonValue,
     _context: ToolCallContext,

@@ -13,6 +13,7 @@ export type AgentNodeOptions = ReactAgentExecutionOptions;
  * 高层 AgentRuntime 与低层 Pipeline 因而不会各自维护一套 ReAct 包装逻辑。
  */
 export class AgentNode implements RuntimeNode {
+  /** 节点名，用于 pipeline 错误信息与诊断输出；固定为 "AgentNode"。 */
   public readonly name = "AgentNode";
   readonly #execution: ReactAgentExecution;
 
@@ -20,6 +21,12 @@ export class AgentNode implements RuntimeNode {
     this.#execution = new ReactAgentExecution(options);
   }
 
+  /**
+   * 委托统一 Agent 执行组件跑一次 ReAct；节点自身不追加任何包装逻辑。
+   *
+   * @param context - 本次运行上下文，透传给执行组件。
+   * @param signal - 运行取消信号，透传给执行组件。
+   */
   public async execute(
     context: RuntimeContext,
     signal: AbortSignal,

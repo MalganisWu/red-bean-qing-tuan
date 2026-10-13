@@ -105,6 +105,9 @@ function buildCompactPrompt(customInstructions: string): string {
  * 把模型的原始输出收敛成最终摘要。
  * `<analysis>` 是让模型先想后写的草稿，只用于提升摘要质量，不进上下文——留着纯属浪费 token。
  * 若模型没按约定包 `<summary>`，就退回使用整段输出，而不是判定为失败。
+ *
+ * @param summary - 模型返回的原始文本，可能含 `<analysis>` 草稿与 `<summary>` 包裹。
+ * @returns 去除草稿后的摘要正文；未按约定包裹 `<summary>` 时退化为整段输出。
  */
 export function formatCompactSummary(summary: string): string {
   let formatted = summary.replace(/<analysis>[\s\S]*?<\/analysis>/g, "");
@@ -199,7 +202,14 @@ export class DefaultCompressor implements ContextCompressor {
     this.#modelParams = modelParams;
   }
 
-  /** 纯判定，不做任何副作用：压缩本身由 `compress` 完成，主循环在两次调用之间还有别的取舍。 */
+  /**
+   * 纯判定，不做任何副作用：压缩本身由 `compress` 完成，主循环在两次调用之间还有别的取舍。
+   *
+   * @param _context - 本次运行的上下文；判定只依赖消息，此处未使用。
+   * @param messages - 待评估的消息序列，超过阈值即认为需要压缩。
+   * @param signal - 取消信号，已中止时直接以取消原因拒绝。
+   * @returns 本轮是否需要触发压缩；压缩被禁用或连续失败达上限时为 `false`。
+   */
   public shouldCompact(
     _context: RuntimeContext,
     messages: readonly RawMessage[],
@@ -216,6 +226,18 @@ export class DefaultCompressor implements ContextCompressor {
     );
   }
 
+  /**
+   * 用一次摘要调用替换历史中段，system 前缀与尾部原文原样保留。
+   *
+   * 切割点对齐消息组边界，避免把 `assistant(tool_calls)` 与其 tool 结果拆开——那种形状
+   * provider 会直接拒绝。摘要失败会累计失败次数并向上抛出，由主循环决定降级；内容恢复
+   * （附件）是尽力而为，取不到引用不影响已经有效的摘要。
+   *
+   * @param context - 本次运行的上下文，用于取内容引用并发出压缩事件。
+   * @param messages - 待压缩的完整消息序列。
+   * @param signal - 取消信号，已中止时以取消原因抛出。
+   * @returns 压缩后的消息序列，顺序为 system 前缀 → 分界标记 → 摘要 → 保留尾部。
+   */
   public async compress(
     context: RuntimeContext,
     messages: readonly RawMessage[],
