@@ -389,11 +389,30 @@ function callableOf(initializer) {
 function callableExpressionOf(node) {
   if (node === undefined) return undefined;
   if (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) return node;
-  if (!ts.isCallExpression(node)) return undefined;
-  return node.arguments.find(
-    (argument) =>
-      ts.isArrowFunction(argument) || ts.isFunctionExpression(argument),
-  );
+  return isComponentWrapper(node)
+    ? node.arguments.find(
+        (argument) =>
+          ts.isArrowFunction(argument) || ts.isFunctionExpression(argument),
+      )
+    : undefined;
+}
+
+/**
+ * 是否是组件 HOC 包裹（`React.forwardRef(...)` / `memo(...)`）。
+ *
+ * 刻意**只认这两个名字**：泛化到「任何调用表达式里的函数字面量」会把
+ * `z.object({...}).refine((value) => ...)` 这类链式调用也当成组件，
+ * 于是 zod schema 常量被误判为函数、被要求写 `@param`。
+ */
+function isComponentWrapper(node) {
+  if (!ts.isCallExpression(node)) return false;
+  const callee = node.expression;
+  const name = ts.isPropertyAccessExpression(callee)
+    ? callee.name.text
+    : ts.isIdentifier(callee)
+      ? callee.text
+      : "";
+  return name === "forwardRef" || name === "memo";
 }
 
 function simpleParameterNames(parameters) {
