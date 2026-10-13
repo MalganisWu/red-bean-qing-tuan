@@ -2,7 +2,7 @@
 # 用法：make <目标>，或直接 make / make help 查看所有命令
 
 # 所有目标都是任务名而非真实文件，声明为 .PHONY 避免与同名文件冲突
-.PHONY: help setup doctor check-tools hooks-install hooks-uninstall hooks-status fmt fmt-check diff-check secrets-check docs-check shared-files-check typecheck ts-lint ts-format-check ts-policy-check ts-architecture-check ts-api-check ts-test test ts-build build verify verify-quick
+.PHONY: help setup doctor check-tools hooks-install hooks-uninstall hooks-status fmt fmt-check diff-check secrets-check docs-check shared-files-check typecheck ts-lint ts-format-check ts-policy-check ts-architecture-check ts-export-jsdoc-check ts-decl-baseline-update ts-api-check ts-test test ts-build build verify verify-quick
 
 # ── 默认目标：显示帮助 ────────────────────────────────────────────────────
 help: ## 显示所有可用命令
@@ -74,6 +74,12 @@ ts-policy-check: ## 检查严格 TS 配置、ESLint 政策、工具链声明与�
 ts-architecture-check: ## 检查跨能力依赖、默认实现声明与零生产依赖
 	node ./scripts/check-architecture.mjs
 
+ts-export-jsdoc-check: ## 检查导出符号与公开成员的 JSDoc（棘轮基线，纯语法解析，不依赖构建产物）
+	node ./scripts/check-export-jsdoc.mjs
+
+ts-decl-baseline-update: ts-build ## 重生成声明基线（写文件；JSDoc 会进 .d.ts，改注释后必跑）
+	node ./scripts/update-declaration-baseline.mjs
+
 ts-api-check: ts-build ## 检查 npm 白名单、声明可消费性与公开 API surface 快照
 	pnpm api:check
 
@@ -92,6 +98,6 @@ ts-build: ## 构建 TypeScript ESM 与声明文件
 
 build: ts-build ## 构建 TypeScript Runtime
 
-verify: doctor fmt-check diff-check secrets-check build docs-check shared-files-check ts-policy-check ts-architecture-check ts-api-check typecheck ts-lint test ## 运行提交前完整质量门禁（不改 Git 跟踪文件）
+verify: doctor fmt-check diff-check secrets-check build docs-check shared-files-check ts-policy-check ts-architecture-check ts-export-jsdoc-check ts-api-check typecheck ts-lint test ## 运行提交前完整质量门禁（不改 Git 跟踪文件）
 
-verify-quick: doctor fmt-check diff-check secrets-check docs-check shared-files-check ts-policy-check ts-architecture-check typecheck ts-lint ## commit 前快速非写入门禁
+verify-quick: doctor fmt-check diff-check secrets-check docs-check shared-files-check ts-policy-check ts-architecture-check ts-export-jsdoc-check typecheck ts-lint ## commit 前快速非写入门禁

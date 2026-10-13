@@ -1,39 +1,23 @@
-import { createHash } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  declarationBaselineHash,
+  declarationBaselinePath,
+} from "./declaration-baseline.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const dist = path.join(root, "dist");
-const baselinePath = path.join(root, "testdata/api/public-declarations.sha256");
-
-async function declarationFiles(directory) {
-  const entries = await readdir(directory, { withFileTypes: true });
-  const files = [];
-  for (const entry of entries) {
-    const target = path.join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...(await declarationFiles(target)));
-    else if (entry.isFile() && entry.name.endsWith(".d.ts")) files.push(target);
-  }
-  return files;
-}
-
-const hash = createHash("sha256");
-const files = (await declarationFiles(dist)).sort();
-for (const file of files) {
-  hash.update(path.relative(dist, file));
-  hash.update("\0");
-  hash.update(await readFile(file));
-  hash.update("\0");
-}
-const actual = hash.digest("hex");
-const expected = (await readFile(baselinePath, "utf8")).trim();
+const { hash: actual, fileCount } = await declarationBaselineHash(root);
+const expected = (await readFile(declarationBaselinePath(root), "utf8")).trim();
 
 if (actual !== expected) {
   console.error("✗ TypeScript 声明基线发生变化");
   console.error(`  expected=${expected}`);
   console.error(`  actual=${actual}`);
+  console.error(
+    "  改过 JSDoc 或公开面就要重生成：make ts-decl-baseline-update（顺序必须是先构建再更新）",
+  );
   process.exit(1);
 }
 
-console.log(`✓ ${files.length} 个声明文件与完整 API 基线一致`);
+console.log(`✓ ${fileCount} 个声明文件与完整 API 基线一致`);

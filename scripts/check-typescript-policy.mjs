@@ -83,6 +83,7 @@ for (const target of [
   "ts-lint:",
   "ts-format-check:",
   "ts-policy-check:",
+  "ts-export-jsdoc-check:",
   "ts-api-check:",
   "ts-test:",
   "ts-build:",

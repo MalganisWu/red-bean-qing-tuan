@@ -1,0 +1,2651 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "file": "src/llm/codec/model-params-serializer.ts",
+      "symbolPath": "serializeModelParams",
+      "rule": "missing-param",
+      "param": "params"
+    },
+    {
+      "file": "src/llm/codec/model-params-serializer.ts",
+      "symbolPath": "serializeModelParams",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/llm/error/llm-error.ts",
+      "symbolPath": "classifyLlmError",
+      "rule": "missing-param",
+      "param": "cause"
+    },
+    {
+      "file": "src/llm/error/llm-error.ts",
+      "symbolPath": "classifyLlmError",
+      "rule": "missing-param",
+      "param": "kind"
+    },
+    {
+      "file": "src/llm/error/llm-error.ts",
+      "symbolPath": "classifyLlmError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/llm/error/llm-error.ts",
+      "symbolPath": "isLlmError",
+      "rule": "missing-param",
+      "param": "kind"
+    },
+    {
+      "file": "src/llm/error/llm-error.ts",
+      "symbolPath": "isLlmError",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/llm/error/llm-error.ts",
+      "symbolPath": "isLlmError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/llm/error/llm-error.ts",
+      "symbolPath": "LlmError.kind",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/llm/openai/adapter/openai-compatible-adapter.ts",
+      "symbolPath": "createDefaultLlmAdapterFactory",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/llm/openai/adapter/openai-compatible-adapter.ts",
+      "symbolPath": "OpenAiAdapter.streamCompletion",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/llm/openai/adapter/openai-compatible-adapter.ts",
+      "symbolPath": "OpenAiAdapter.streamCompletion",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/llm/openai/adapter/openai-compatible-adapter.ts",
+      "symbolPath": "OpenAiAdapter.streamCompletion",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/llm/openai/error/openai-error-mapper.ts",
+      "symbolPath": "normalizeError",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/llm/openai/error/openai-error-mapper.ts",
+      "symbolPath": "normalizeError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/llm/openai/error/openai-error-mapper.ts",
+      "symbolPath": "openAiHttpError",
+      "rule": "missing-param",
+      "param": "responseBody"
+    },
+    {
+      "file": "src/llm/openai/error/openai-error-mapper.ts",
+      "symbolPath": "openAiHttpError",
+      "rule": "missing-param",
+      "param": "status"
+    },
+    {
+      "file": "src/llm/openai/error/openai-error-mapper.ts",
+      "symbolPath": "openAiHttpError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/llm/openai/error/openai-error-mapper.ts",
+      "symbolPath": "openAiProtocolError",
+      "rule": "missing-param",
+      "param": "cause"
+    },
+    {
+      "file": "src/llm/openai/error/openai-error-mapper.ts",
+      "symbolPath": "openAiProtocolError",
+      "rule": "missing-param",
+      "param": "message"
+    },
+    {
+      "file": "src/llm/openai/error/openai-error-mapper.ts",
+      "symbolPath": "openAiProtocolError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/llm/openai/request/openai-request-mapper.ts",
+      "symbolPath": "openAiRequestPayload",
+      "rule": "missing-param",
+      "param": "modelName"
+    },
+    {
+      "file": "src/llm/openai/request/openai-request-mapper.ts",
+      "symbolPath": "openAiRequestPayload",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/llm/openai/request/openai-request-mapper.ts",
+      "symbolPath": "openAiRequestPayload",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/llm/openai/stream/openai-stream-parser.ts",
+      "symbolPath": "parseOpenAiEventStream",
+      "rule": "missing-param",
+      "param": "body"
+    },
+    {
+      "file": "src/llm/openai/stream/openai-stream-parser.ts",
+      "symbolPath": "parseOpenAiEventStream",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/llm/openai/stream/openai-stream-parser.ts",
+      "symbolPath": "parseOpenAiEventStream",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/observability/tracer/adapter/noop-tracer.ts",
+      "symbolPath": "NoopSpan.end",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/observability/tracer/adapter/noop-tracer.ts",
+      "symbolPath": "NoopSpan.setAttributes",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/observability/tracer/adapter/noop-tracer.ts",
+      "symbolPath": "NoopSpan.within",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/observability/tracer/adapter/noop-tracer.ts",
+      "symbolPath": "NoopTracer.start",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-context-compressor.ts",
+      "symbolPath": "DefaultCompressor.compress",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-context-compressor.ts",
+      "symbolPath": "DefaultCompressor.shouldCompact",
+      "rule": "missing-param",
+      "param": "_context"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-context-compressor.ts",
+      "symbolPath": "DefaultCompressor.shouldCompact",
+      "rule": "missing-param",
+      "param": "messages"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-context-compressor.ts",
+      "symbolPath": "DefaultCompressor.shouldCompact",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-context-compressor.ts",
+      "symbolPath": "DefaultCompressor.shouldCompact",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-context-compressor.ts",
+      "symbolPath": "formatCompactSummary",
+      "rule": "missing-param",
+      "param": "summary"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-context-compressor.ts",
+      "symbolPath": "formatCompactSummary",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-post-compact-restorer.ts",
+      "symbolPath": "DefaultRestorer.buildAttachments",
+      "rule": "missing-param",
+      "param": "references"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-post-compact-restorer.ts",
+      "symbolPath": "DefaultRestorer.buildAttachments",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-post-compact-restorer.ts",
+      "symbolPath": "DefaultRestorer.buildAttachments",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-post-compact-restorer.ts",
+      "symbolPath": "truncateHeadToTokens",
+      "rule": "missing-param",
+      "param": "data"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-post-compact-restorer.ts",
+      "symbolPath": "truncateHeadToTokens",
+      "rule": "missing-param",
+      "param": "maxTokens"
+    },
+    {
+      "file": "src/pipeline/compression/service/default-post-compact-restorer.ts",
+      "symbolPath": "truncateHeadToTokens",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/compression/token-counter.ts",
+      "symbolPath": "estimateTokens",
+      "rule": "missing-param",
+      "param": "messages"
+    },
+    {
+      "file": "src/pipeline/compression/token-counter.ts",
+      "symbolPath": "estimateTokens",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "emitToolCallEvent",
+      "rule": "missing-param",
+      "param": "context"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "emitToolCallEvent",
+      "rule": "missing-param",
+      "param": "event"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.checkpointId",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.checkpointKey",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.checkpointRevision",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.emit",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.fencingToken",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.llmContext",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.messages",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.metadata",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.pipelineError",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.requestId",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.sessionId",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.traceId",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/context/runtime-context.ts",
+      "symbolPath": "RuntimeContext.userId",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/execution/agent-execution-error.ts",
+      "symbolPath": "ReactAgentExecutionError.result",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/execution/service/react-agent-execution.ts",
+      "symbolPath": "ReactAgentExecution.execute",
+      "rule": "missing-param",
+      "param": "context"
+    },
+    {
+      "file": "src/pipeline/execution/service/react-agent-execution.ts",
+      "symbolPath": "ReactAgentExecution.execute",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/pipeline/execution/service/react-agent-execution.ts",
+      "symbolPath": "ReactAgentExecution.execute",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/hook/hook-error.ts",
+      "symbolPath": "isHookFatalError",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/pipeline/hook/hook-error.ts",
+      "symbolPath": "isHookFatalError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/hook/service/composite-message-hook.ts",
+      "symbolPath": "CompositeMessageHook.onAssistantMessage",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/composite-message-hook.ts",
+      "symbolPath": "CompositeMessageHook.onToolMessage",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/composite-message-hook.ts",
+      "symbolPath": "CompositeMessageHook.onUserMessage",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/composite-message-hook.ts",
+      "symbolPath": "MessageBufferCheckpointer.onAssistantMessage",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/composite-message-hook.ts",
+      "symbolPath": "MessageBufferCheckpointer.onToolMessage",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/composite-message-hook.ts",
+      "symbolPath": "MessageBufferCheckpointer.onUserMessage",
+      "rule": "missing-param",
+      "param": "_context"
+    },
+    {
+      "file": "src/pipeline/hook/service/composite-message-hook.ts",
+      "symbolPath": "MessageBufferCheckpointer.onUserMessage",
+      "rule": "missing-param",
+      "param": "_message"
+    },
+    {
+      "file": "src/pipeline/hook/service/composite-message-hook.ts",
+      "symbolPath": "MessageBufferCheckpointer.onUserMessage",
+      "rule": "missing-param",
+      "param": "_signal"
+    },
+    {
+      "file": "src/pipeline/hook/service/noop-message-hooks.ts",
+      "symbolPath": "NoopMessageHook.onAssistantMessage",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/noop-message-hooks.ts",
+      "symbolPath": "NoopMessageHook.onToolMessage",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/noop-message-hooks.ts",
+      "symbolPath": "NoopMessageHook.onUserMessage",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/noop-message-hooks.ts",
+      "symbolPath": "NoopPipelineHook.afterNode",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/noop-message-hooks.ts",
+      "symbolPath": "NoopPipelineHook.beforeNode",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/noop-message-hooks.ts",
+      "symbolPath": "NoopPipelineHook.onPipelineEnd",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/hook/service/noop-message-hooks.ts",
+      "symbolPath": "NoopPipelineHook.onPipelineStart",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/interrupt/interrupt-factory.ts",
+      "symbolPath": "createInterruptSignal",
+      "rule": "missing-param",
+      "param": "payload"
+    },
+    {
+      "file": "src/pipeline/interrupt/interrupt-factory.ts",
+      "symbolPath": "createInterruptSignal",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/node/service/agent-node.ts",
+      "symbolPath": "AgentNode.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/node/service/agent-node.ts",
+      "symbolPath": "AgentNode.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/pipeline/service/sequential-pipeline.ts",
+      "symbolPath": "PipelineBuilder.addFinally",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/pipeline/service/sequential-pipeline.ts",
+      "symbolPath": "PipelineBuilder.addHook",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/pipeline/service/sequential-pipeline.ts",
+      "symbolPath": "PipelineBuilder.add",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/pipeline/service/sequential-pipeline.ts",
+      "symbolPath": "PipelineBuilder.build",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/pipeline/service/sequential-pipeline.ts",
+      "symbolPath": "PipelineBuilder.withFinallyTimeout",
+      "rule": "missing-param",
+      "param": "timeoutMs"
+    },
+    {
+      "file": "src/pipeline/pipeline/service/sequential-pipeline.ts",
+      "symbolPath": "PipelineBuilder.withFinallyTimeout",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/pipeline/service/sequential-pipeline.ts",
+      "symbolPath": "SequentialPipeline.run",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/react-loop/interrupt-step.ts",
+      "symbolPath": "applyToolExecutionResults",
+      "rule": "missing-param",
+      "param": "context"
+    },
+    {
+      "file": "src/pipeline/react-loop/interrupt-step.ts",
+      "symbolPath": "applyToolExecutionResults",
+      "rule": "missing-param",
+      "param": "executions"
+    },
+    {
+      "file": "src/pipeline/react-loop/interrupt-step.ts",
+      "symbolPath": "applyToolExecutionResults",
+      "rule": "missing-param",
+      "param": "messages"
+    },
+    {
+      "file": "src/pipeline/react-loop/interrupt-step.ts",
+      "symbolPath": "applyToolExecutionResults",
+      "rule": "missing-param",
+      "param": "onMessage"
+    },
+    {
+      "file": "src/pipeline/react-loop/interrupt-step.ts",
+      "symbolPath": "applyToolExecutionResults",
+      "rule": "missing-param",
+      "param": "result"
+    },
+    {
+      "file": "src/pipeline/react-loop/interrupt-step.ts",
+      "symbolPath": "applyToolExecutionResults",
+      "rule": "missing-param",
+      "param": "systemOffset"
+    },
+    {
+      "file": "src/pipeline/react-loop/interrupt-step.ts",
+      "symbolPath": "applyToolExecutionResults",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "llmBackoff",
+      "rule": "missing-param",
+      "param": "attempt"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "llmBackoff",
+      "rule": "missing-param",
+      "param": "baseMs"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "llmBackoff",
+      "rule": "missing-param",
+      "param": "capMs"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "llmBackoff",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "resolveLlmRunParams",
+      "rule": "missing-param",
+      "param": "config"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "resolveLlmRunParams",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "runWithLlmRetry",
+      "rule": "missing-param",
+      "param": "call"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "runWithLlmRetry",
+      "rule": "missing-param",
+      "param": "onRetry"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "runWithLlmRetry",
+      "rule": "missing-param",
+      "param": "params"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "runWithLlmRetry",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "runWithLlmRetry",
+      "rule": "missing-param",
+      "param": "sleep"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "runWithLlmRetry",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "sleepWithSignal",
+      "rule": "missing-param",
+      "param": "delayMs"
+    },
+    {
+      "file": "src/pipeline/react-loop/llm-retry.ts",
+      "symbolPath": "sleepWithSignal",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "abortLoopError",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "abortLoopError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "copyVisibleContext",
+      "rule": "missing-param",
+      "param": "messages"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "copyVisibleContext",
+      "rule": "missing-param",
+      "param": "systemOffset"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "copyVisibleContext",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "failReactLoop",
+      "rule": "missing-param",
+      "param": "cause"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "failReactLoop",
+      "rule": "missing-param",
+      "param": "message"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "failReactLoop",
+      "rule": "missing-param",
+      "param": "result"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "normalizeLoopError",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "normalizeLoopError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "persistLoopMessage",
+      "rule": "missing-param",
+      "param": "message"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "persistLoopMessage",
+      "rule": "missing-param",
+      "param": "messages"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "persistLoopMessage",
+      "rule": "missing-param",
+      "param": "onMessage"
+    },
+    {
+      "file": "src/pipeline/react-loop/loop-state.ts",
+      "symbolPath": "ReactLoopError.result",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/pipeline/react-loop/message-normalizer.ts",
+      "symbolPath": "normalizeChunk",
+      "rule": "missing-param",
+      "param": "chunk"
+    },
+    {
+      "file": "src/pipeline/react-loop/message-normalizer.ts",
+      "symbolPath": "normalizeChunk",
+      "rule": "missing-param",
+      "param": "clock"
+    },
+    {
+      "file": "src/pipeline/react-loop/message-normalizer.ts",
+      "symbolPath": "normalizeChunk",
+      "rule": "missing-param",
+      "param": "step"
+    },
+    {
+      "file": "src/pipeline/react-loop/message-normalizer.ts",
+      "symbolPath": "normalizeChunk",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/model-step.ts",
+      "symbolPath": "closeModelIterator",
+      "rule": "missing-param",
+      "param": "iterator"
+    },
+    {
+      "file": "src/pipeline/react-loop/model-step.ts",
+      "symbolPath": "nextModelChunk",
+      "rule": "missing-param",
+      "param": "iterator"
+    },
+    {
+      "file": "src/pipeline/react-loop/model-step.ts",
+      "symbolPath": "nextModelChunk",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/pipeline/react-loop/model-step.ts",
+      "symbolPath": "nextModelChunk",
+      "rule": "missing-param",
+      "param": "timeoutMs"
+    },
+    {
+      "file": "src/pipeline/react-loop/model-step.ts",
+      "symbolPath": "nextModelChunk",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/model-turn.ts",
+      "symbolPath": "executeModelTurn",
+      "rule": "missing-param",
+      "param": "options"
+    },
+    {
+      "file": "src/pipeline/react-loop/model-turn.ts",
+      "symbolPath": "executeModelTurn",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/react-loop.ts",
+      "symbolPath": "runReactLoop",
+      "rule": "missing-param",
+      "param": "options"
+    },
+    {
+      "file": "src/pipeline/react-loop/react-loop.ts",
+      "symbolPath": "runReactLoop",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-call-buffer.ts",
+      "symbolPath": "assembleToolCalls",
+      "rule": "missing-param",
+      "param": "buffer"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-call-buffer.ts",
+      "symbolPath": "assembleToolCalls",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "appendContentRef",
+      "rule": "missing-param",
+      "param": "context"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "appendContentRef",
+      "rule": "missing-param",
+      "param": "reference"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "dispatchToolBatch",
+      "rule": "missing-param",
+      "param": "calls"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "dispatchToolBatch",
+      "rule": "missing-param",
+      "param": "config"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "dispatchToolBatch",
+      "rule": "missing-param",
+      "param": "context"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "dispatchToolBatch",
+      "rule": "missing-param",
+      "param": "dispatcher"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "dispatchToolBatch",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "dispatchToolBatch",
+      "rule": "missing-param",
+      "param": "tools"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "dispatchToolBatch",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "immutableToolCallBuffer",
+      "rule": "missing-param",
+      "param": "buffer"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "immutableToolCallBuffer",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "isolateInterruptingToolCall",
+      "rule": "missing-param",
+      "param": "calls"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "isolateInterruptingToolCall",
+      "rule": "missing-param",
+      "param": "tools"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "isolateInterruptingToolCall",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "parseInterruptArguments",
+      "rule": "missing-param",
+      "param": "argumentsJson"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "parseInterruptArguments",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "updateToolCallBuffer",
+      "rule": "missing-param",
+      "param": "buffer"
+    },
+    {
+      "file": "src/pipeline/react-loop/tool-step.ts",
+      "symbolPath": "updateToolCallBuffer",
+      "rule": "missing-param",
+      "param": "calls"
+    },
+    {
+      "file": "src/protocol/abort-signal.ts",
+      "symbolPath": "abortError",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/protocol/abort-signal.ts",
+      "symbolPath": "abortError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/protocol/abort-signal.ts",
+      "symbolPath": "raceAbort",
+      "rule": "missing-param",
+      "param": "operation"
+    },
+    {
+      "file": "src/protocol/abort-signal.ts",
+      "symbolPath": "raceAbort",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/protocol/abort-signal.ts",
+      "symbolPath": "raceAbort",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/protocol/content-reference.ts",
+      "symbolPath": "serializeContentRef",
+      "rule": "missing-param",
+      "param": "reference"
+    },
+    {
+      "file": "src/protocol/content-reference.ts",
+      "symbolPath": "serializeContentRef",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/protocol/event.ts",
+      "symbolPath": "serializeRuntimeEvent",
+      "rule": "missing-param",
+      "param": "event"
+    },
+    {
+      "file": "src/protocol/event.ts",
+      "symbolPath": "serializeRuntimeEvent",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/protocol/interrupt.ts",
+      "symbolPath": "serializeInterrupt",
+      "rule": "missing-param",
+      "param": "interrupt"
+    },
+    {
+      "file": "src/protocol/interrupt.ts",
+      "symbolPath": "serializeInterrupt",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/protocol/json.ts",
+      "symbolPath": "toJsonValue",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/protocol/json.ts",
+      "symbolPath": "toJsonValue",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/protocol/message.ts",
+      "symbolPath": "serializeRawMessage",
+      "rule": "missing-param",
+      "param": "message"
+    },
+    {
+      "file": "src/protocol/message.ts",
+      "symbolPath": "serializeRawMessage",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/checkpoint/codec/checkpoint-clone.ts",
+      "symbolPath": "cloneCheckpoint",
+      "rule": "missing-param",
+      "param": "checkpoint"
+    },
+    {
+      "file": "src/runtime/checkpoint/codec/checkpoint-clone.ts",
+      "symbolPath": "cloneCheckpoint",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/checkpoint/codec/checkpoint-clone.ts",
+      "symbolPath": "cloneCheckpointRecord",
+      "rule": "missing-param",
+      "param": "record"
+    },
+    {
+      "file": "src/runtime/checkpoint/codec/checkpoint-clone.ts",
+      "symbolPath": "cloneCheckpointRecord",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/checkpoint/codec/checkpoint-codec.ts",
+      "symbolPath": "parseCheckpoint",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/runtime/checkpoint/codec/checkpoint-codec.ts",
+      "symbolPath": "parseCheckpoint",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/checkpoint/codec/checkpoint-codec.ts",
+      "symbolPath": "serializeCheckpoint",
+      "rule": "missing-param",
+      "param": "checkpoint"
+    },
+    {
+      "file": "src/runtime/checkpoint/codec/checkpoint-codec.ts",
+      "symbolPath": "serializeCheckpoint",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/checkpoint/codec/checkpoint-codec.ts",
+      "symbolPath": "serializeCheckpointRecord",
+      "rule": "missing-param",
+      "param": "record"
+    },
+    {
+      "file": "src/runtime/checkpoint/codec/checkpoint-codec.ts",
+      "symbolPath": "serializeCheckpointRecord",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-receipts.ts",
+      "symbolPath": "MemoryCheckpointReceiptLedger.deleteThread",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-receipts.ts",
+      "symbolPath": "MemoryCheckpointReceiptLedger.find",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-receipts.ts",
+      "symbolPath": "MemoryCheckpointReceiptLedger.saveClaim",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-receipts.ts",
+      "symbolPath": "MemoryCheckpointReceiptLedger.saveCompletion",
+      "rule": "missing-param",
+      "param": "interruptId"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-receipts.ts",
+      "symbolPath": "MemoryCheckpointReceiptLedger.saveCompletion",
+      "rule": "missing-param",
+      "param": "record"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-receipts.ts",
+      "symbolPath": "MemoryCheckpointReceiptLedger.saveCompletion",
+      "rule": "missing-param",
+      "param": "requestId"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-receipts.ts",
+      "symbolPath": "MemoryCheckpointReceiptLedger.saveCompletion",
+      "rule": "missing-param",
+      "param": "response"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-receipts.ts",
+      "symbolPath": "MemoryCheckpointReceiptLedger.saveCompletion",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "advanceFence",
+      "rule": "missing-param",
+      "param": "record"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "advanceFence",
+      "rule": "missing-param",
+      "param": "token"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "checkpointOwnedBy",
+      "rule": "missing-param",
+      "param": "checkpoint"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "checkpointOwnedBy",
+      "rule": "missing-param",
+      "param": "userId"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "checkpointOwnedBy",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "emptyCheckpoint",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "emptyCheckpoint",
+      "rule": "missing-param",
+      "param": "userId"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "emptyCheckpoint",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "emptyMemoryRecord",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "emptyMemoryRecord",
+      "rule": "missing-param",
+      "param": "userId"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "emptyMemoryRecord",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "incrementRevision",
+      "rule": "missing-param",
+      "param": "revision"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-record.ts",
+      "symbolPath": "incrementRevision",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-store.ts",
+      "symbolPath": "MemoryCheckpointStore.consumeInterrupt",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-store.ts",
+      "symbolPath": "MemoryCheckpointStore.delete",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-store.ts",
+      "symbolPath": "MemoryCheckpointStore.load",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/adapter/memory-checkpoint-store.ts",
+      "symbolPath": "MemoryCheckpointStore.save",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/checkpoint/store/checkpoint-store-error.ts",
+      "symbolPath": "CheckpointStoreError.record",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/control-plane-composition.ts",
+      "symbolPath": "createRuntimeControlPlane",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/facade/agent-runtime.ts",
+      "symbolPath": "AgentRuntime.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/facade/agent-runtime.ts",
+      "symbolPath": "AgentRuntime.resume",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/facade/agent-runtime.ts",
+      "symbolPath": "AgentRuntime.run",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/lifecycle/service/default-runtime-lifecycle.ts",
+      "symbolPath": "DefaultRuntimeLifecycle.beginRun",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/lifecycle/service/default-runtime-lifecycle.ts",
+      "symbolPath": "DefaultRuntimeLifecycle.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "RuntimeTracePlugin.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "RuntimeTracePlugin.register",
+      "rule": "missing-param",
+      "param": "registry"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "wrapChildRunner",
+      "rule": "missing-param",
+      "param": "next"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "wrapChildRunner",
+      "rule": "missing-param",
+      "param": "tracer"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "wrapChildRunner",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "wrapLlm",
+      "rule": "missing-param",
+      "param": "next"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "wrapLlm",
+      "rule": "missing-param",
+      "param": "tracer"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "wrapLlm",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "wrapToolDispatcher",
+      "rule": "missing-param",
+      "param": "next"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "wrapToolDispatcher",
+      "rule": "missing-param",
+      "param": "tracer"
+    },
+    {
+      "file": "src/runtime/observability/runtime-trace-plugin.ts",
+      "symbolPath": "wrapToolDispatcher",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "installPlugins",
+      "rule": "missing-param",
+      "param": "plugins"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "installPlugins",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.close",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.onClose",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.runMiddleware",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.seal",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.useLlm",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.useRun",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.useTool",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.wrapLlm",
+      "rule": "missing-param",
+      "param": "adapter"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.wrapLlm",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.wrapToolDispatcher",
+      "rule": "missing-param",
+      "param": "dispatcher"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "PluginRegistry.wrapToolDispatcher",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "runWithMiddleware",
+      "rule": "missing-param",
+      "param": "finalHandler"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "runWithMiddleware",
+      "rule": "missing-param",
+      "param": "info"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "runWithMiddleware",
+      "rule": "missing-param",
+      "param": "middleware"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "runWithMiddleware",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/runtime/plugin/runtime-plugin.ts",
+      "symbolPath": "runWithMiddleware",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/resume-receipt/service/memory-resume-receipt-store.ts",
+      "symbolPath": "MemoryResumeReceiptStore.find",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/runtime/resume-receipt/service/memory-resume-receipt-store.ts",
+      "symbolPath": "MemoryResumeReceiptStore.find",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/runtime/resume-receipt/service/memory-resume-receipt-store.ts",
+      "symbolPath": "MemoryResumeReceiptStore.find",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/resume-receipt/service/memory-resume-receipt-store.ts",
+      "symbolPath": "MemoryResumeReceiptStore.save",
+      "rule": "missing-param",
+      "param": "error"
+    },
+    {
+      "file": "src/runtime/resume-receipt/service/memory-resume-receipt-store.ts",
+      "symbolPath": "MemoryResumeReceiptStore.save",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/runtime/resume-receipt/service/memory-resume-receipt-store.ts",
+      "symbolPath": "MemoryResumeReceiptStore.save",
+      "rule": "missing-param",
+      "param": "result"
+    },
+    {
+      "file": "src/runtime/resume-receipt/service/memory-resume-receipt-store.ts",
+      "symbolPath": "MemoryResumeReceiptStore.save",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-error.ts",
+      "symbolPath": "isRuntimeError",
+      "rule": "missing-param",
+      "param": "code"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-error.ts",
+      "symbolPath": "isRuntimeError",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-error.ts",
+      "symbolPath": "isRuntimeError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-error.ts",
+      "symbolPath": "RuntimeError.code",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "combineRuntimeErrors",
+      "rule": "missing-param",
+      "param": "errors"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "combineRuntimeErrors",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "failedRuntimeResult",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "failedRuntimeResult",
+      "rule": "missing-param",
+      "param": "userId"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "failedRuntimeResult",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "failRuntimeExecution",
+      "rule": "missing-param",
+      "param": "cause"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "failRuntimeExecution",
+      "rule": "missing-param",
+      "param": "message"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "failRuntimeExecution",
+      "rule": "missing-param",
+      "param": "result"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "normalizeRuntimeError",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "normalizeRuntimeError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "runtimeAbortError",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "runtimeAbortError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/error/runtime-execution-error.ts",
+      "symbolPath": "RuntimeExecutionError.result",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/runtime/run/request/runtime-request-validator.ts",
+      "symbolPath": "validateResumeRequest",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/runtime/run/request/runtime-request-validator.ts",
+      "symbolPath": "validateResumeRequest",
+      "rule": "missing-param",
+      "param": "storeConfigured"
+    },
+    {
+      "file": "src/runtime/run/request/runtime-request-validator.ts",
+      "symbolPath": "validateResumeRequest",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/request/runtime-request-validator.ts",
+      "symbolPath": "validateRunRequest",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/runtime/run/request/runtime-request-validator.ts",
+      "symbolPath": "validateRunRequest",
+      "rule": "missing-param",
+      "param": "storeConfigured"
+    },
+    {
+      "file": "src/runtime/run/request/runtime-request-validator.ts",
+      "symbolPath": "validateRunRequest",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "cloneRuntimeContentRef",
+      "rule": "missing-param",
+      "param": "reference"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "cloneRuntimeContentRef",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "cloneRuntimeMessages",
+      "rule": "missing-param",
+      "param": "messages"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "cloneRuntimeMessages",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "cloneRuntimeResult",
+      "rule": "missing-param",
+      "param": "result"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "cloneRuntimeResult",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "emptyRuntimeCheckpoint",
+      "rule": "missing-param",
+      "param": "messages"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "emptyRuntimeCheckpoint",
+      "rule": "missing-param",
+      "param": "status"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "emptyRuntimeCheckpoint",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "emptyRuntimeCheckpoint",
+      "rule": "missing-param",
+      "param": "userId"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "emptyRuntimeCheckpoint",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "runtimeResultFromCheckpoint",
+      "rule": "missing-param",
+      "param": "checkpointInput"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "runtimeResultFromCheckpoint",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "runtimeResultFromRecord",
+      "rule": "missing-param",
+      "param": "record"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "runtimeResultFromRecord",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "serializeRuntimeResult",
+      "rule": "missing-param",
+      "param": "result"
+    },
+    {
+      "file": "src/runtime/run/result/runtime-result-mapper.ts",
+      "symbolPath": "serializeRuntimeResult",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/service/default-runtime-run-service.ts",
+      "symbolPath": "DefaultRuntimeRunService.close",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/runtime/run/service/default-runtime-run-service.ts",
+      "symbolPath": "DefaultRuntimeRunService.resume",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/runtime/run/service/default-runtime-run-service.ts",
+      "symbolPath": "DefaultRuntimeRunService.resume",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/runtime/run/service/default-runtime-run-service.ts",
+      "symbolPath": "DefaultRuntimeRunService.resume",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/service/default-runtime-run-service.ts",
+      "symbolPath": "DefaultRuntimeRunService.run",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/runtime/run/service/default-runtime-run-service.ts",
+      "symbolPath": "DefaultRuntimeRunService.run",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/runtime/run/service/default-runtime-run-service.ts",
+      "symbolPath": "DefaultRuntimeRunService.run",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-agent-execution.ts",
+      "symbolPath": "executeRuntimeAgent",
+      "rule": "missing-param",
+      "param": "dependencies"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-agent-execution.ts",
+      "symbolPath": "executeRuntimeAgent",
+      "rule": "missing-param",
+      "param": "input"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-agent-execution.ts",
+      "symbolPath": "executeRuntimeAgent",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-agent-execution.ts",
+      "symbolPath": "executeRuntimeAgent",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "consumeResumeCheckpoint",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "consumeResumeCheckpoint",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "consumeResumeCheckpoint",
+      "rule": "missing-param",
+      "param": "store"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "consumeResumeCheckpoint",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "consumeResumeCheckpoint",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "loadRunCheckpoint",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "loadRunCheckpoint",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "loadRunCheckpoint",
+      "rule": "missing-param",
+      "param": "store"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "loadRunCheckpoint",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "validateCheckpointIdentity",
+      "rule": "missing-param",
+      "param": "checkpoint"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "validateCheckpointIdentity",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-checkpoint-session.ts",
+      "symbolPath": "validateCheckpointIdentity",
+      "rule": "missing-param",
+      "param": "userId"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-resume-replay.ts",
+      "symbolPath": "replayStatelessResume",
+      "rule": "missing-param",
+      "param": "receipts"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-resume-replay.ts",
+      "symbolPath": "replayStatelessResume",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-resume-replay.ts",
+      "symbolPath": "replayStatelessResume",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-resume-replay.ts",
+      "symbolPath": "replayStatelessResume",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-resume-replay.ts",
+      "symbolPath": "resultForConsumedResume",
+      "rule": "missing-param",
+      "param": "consumed"
+    },
+    {
+      "file": "src/runtime/run/service/runtime-resume-replay.ts",
+      "symbolPath": "resultForConsumedResume",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/runtime-composition.ts",
+      "symbolPath": "createRuntimeRunService",
+      "rule": "missing-param",
+      "param": "options"
+    },
+    {
+      "file": "src/runtime/runtime-composition.ts",
+      "symbolPath": "createRuntimeRunService",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/runtime/thread-execution/service/default-thread-execution-coordinator.ts",
+      "symbolPath": "DefaultThreadExecutionCoordinator.acquire",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/testing/checkpoint-store/base-scenarios.ts",
+      "symbolPath": "baseCheckpointStoreCases",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/basic-scenarios.ts",
+      "symbolPath": "basicCheckpointStoreCases",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-suite.ts",
+      "symbolPath": "runCheckpointStoreContract",
+      "rule": "missing-param",
+      "param": "factory"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-suite.ts",
+      "symbolPath": "runCheckpointStoreContract",
+      "rule": "missing-param",
+      "param": "options"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-suite.ts",
+      "symbolPath": "runCheckpointStoreFencingUnsupportedContract",
+      "rule": "missing-param",
+      "param": "factory"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-suite.ts",
+      "symbolPath": "runCheckpointStoreFencingUnsupportedContract",
+      "rule": "missing-param",
+      "param": "options"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "assertOriginalCopy",
+      "rule": "missing-param",
+      "param": "record"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "checkpointFor",
+      "rule": "missing-param",
+      "param": "content"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "checkpointFor",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "checkpointFor",
+      "rule": "missing-param",
+      "param": "userId"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "checkpointFor",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "expectRuntimeError",
+      "rule": "missing-param",
+      "param": "code"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "expectRuntimeError",
+      "rule": "missing-param",
+      "param": "operation"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "expectStoreError",
+      "rule": "missing-param",
+      "param": "code"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "expectStoreError",
+      "rule": "missing-param",
+      "param": "operation"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "expectStoreError",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "firstMessageContent",
+      "rule": "missing-param",
+      "param": "record"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "firstMessageContent",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "isCheckpointStore",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "isCheckpointStore",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "suspendedCheckpoint",
+      "rule": "missing-param",
+      "param": "interruptId"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "suspendedCheckpoint",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "suspendedCheckpoint",
+      "rule": "missing-param",
+      "param": "userId"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "suspendedCheckpoint",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "withMessage",
+      "rule": "missing-param",
+      "param": "checkpoint"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "withMessage",
+      "rule": "missing-param",
+      "param": "content"
+    },
+    {
+      "file": "src/testing/checkpoint-store/contract-support.ts",
+      "symbolPath": "withMessage",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/fencing-high-water-scenarios.ts",
+      "symbolPath": "fencingHighWaterCases",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/fencing-mutation-scenarios.ts",
+      "symbolPath": "fencingMutationCases",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/fencing-scenarios.ts",
+      "symbolPath": "fencingCheckpointStoreCases",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/lifecycle-scenarios.ts",
+      "symbolPath": "checkpointLifecycleCases",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/testing/checkpoint-store/resume-scenarios.ts",
+      "symbolPath": "resumeCheckpointStoreCases",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/apply-patch/apply-patch-tool.ts",
+      "symbolPath": "ApplyPatchTool.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/apply-patch/apply-patch-tool.ts",
+      "symbolPath": "ApplyPatchTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/apply-patch/apply-patch-tool.ts",
+      "symbolPath": "ApplyPatchTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/apply-patch/apply-patch-tool.ts",
+      "symbolPath": "ApplyPatchTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/catalog.ts",
+      "symbolPath": "lookupBuiltinTool",
+      "rule": "missing-param",
+      "param": "id"
+    },
+    {
+      "file": "src/tool/builtin/catalog.ts",
+      "symbolPath": "lookupBuiltinTool",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/edit-file/edit-file-tool.ts",
+      "symbolPath": "EditFileTool.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/edit-file/edit-file-tool.ts",
+      "symbolPath": "EditFileTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/edit-file/edit-file-tool.ts",
+      "symbolPath": "EditFileTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/edit-file/edit-file-tool.ts",
+      "symbolPath": "EditFileTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/fetch-url/fetch-url-tool.ts",
+      "symbolPath": "FetchUrlTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/fetch-url/fetch-url-tool.ts",
+      "symbolPath": "FetchUrlTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/fetch-url/fetch-url-tool.ts",
+      "symbolPath": "FetchUrlTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/file-access/atomic-write.ts",
+      "symbolPath": "writeFileAtomically",
+      "rule": "missing-param",
+      "param": "content"
+    },
+    {
+      "file": "src/tool/builtin/file-access/atomic-write.ts",
+      "symbolPath": "writeFileAtomically",
+      "rule": "missing-param",
+      "param": "targetPath"
+    },
+    {
+      "file": "src/tool/builtin/file-access/ledger-key.ts",
+      "symbolPath": "ledgerFileKey",
+      "rule": "missing-param",
+      "param": "filePath"
+    },
+    {
+      "file": "src/tool/builtin/file-access/ledger-key.ts",
+      "symbolPath": "ledgerFileKey",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "countOccurrences",
+      "rule": "missing-param",
+      "param": "needle"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "countOccurrences",
+      "rule": "missing-param",
+      "param": "source"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "countOccurrences",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "replaceEvery",
+      "rule": "missing-param",
+      "param": "newString"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "replaceEvery",
+      "rule": "missing-param",
+      "param": "oldString"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "replaceEvery",
+      "rule": "missing-param",
+      "param": "source"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "replaceEvery",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "replaceFirst",
+      "rule": "missing-param",
+      "param": "newString"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "replaceFirst",
+      "rule": "missing-param",
+      "param": "oldString"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "replaceFirst",
+      "rule": "missing-param",
+      "param": "source"
+    },
+    {
+      "file": "src/tool/builtin/file-access/literal-replace.ts",
+      "symbolPath": "replaceFirst",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/file-access/mutation-guard.ts",
+      "symbolPath": "assertFreshRead",
+      "rule": "missing-param",
+      "param": "check"
+    },
+    {
+      "file": "src/tool/builtin/file-access/ordering.ts",
+      "symbolPath": "compareByName",
+      "rule": "missing-param",
+      "param": "left"
+    },
+    {
+      "file": "src/tool/builtin/file-access/ordering.ts",
+      "symbolPath": "compareByName",
+      "rule": "missing-param",
+      "param": "right"
+    },
+    {
+      "file": "src/tool/builtin/file-access/ordering.ts",
+      "symbolPath": "compareByName",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/file-access/path-policy.ts",
+      "symbolPath": "RootedFileAccess.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/file-access/path-policy.ts",
+      "symbolPath": "RootedFileAccess.open",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/file-access/read-ledger.ts",
+      "symbolPath": "MemoryFileReadLedger.forget",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/file-access/read-ledger.ts",
+      "symbolPath": "MemoryFileReadLedger.read",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/file-access/read-ledger.ts",
+      "symbolPath": "MemoryFileReadLedger.record",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/get-time/get-time-tool.ts",
+      "symbolPath": "GetTimeTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/get-time/get-time-tool.ts",
+      "symbolPath": "GetTimeTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/get-time/get-time-tool.ts",
+      "symbolPath": "GetTimeTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/glob/glob-tool.ts",
+      "symbolPath": "GlobTool.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/glob/glob-tool.ts",
+      "symbolPath": "GlobTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/glob/glob-tool.ts",
+      "symbolPath": "GlobTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/glob/glob-tool.ts",
+      "symbolPath": "GlobTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/grep/grep-tool.ts",
+      "symbolPath": "GrepTool.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/grep/grep-tool.ts",
+      "symbolPath": "GrepTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/grep/grep-tool.ts",
+      "symbolPath": "GrepTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/grep/grep-tool.ts",
+      "symbolPath": "GrepTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "addressFamily",
+      "rule": "missing-param",
+      "param": "address"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "addressFamily",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "AllowAllEgressPolicy.authorize",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "defaultAddressLookup",
+      "rule": "missing-param",
+      "param": "hostname"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "defaultAddressLookup",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "defaultAddressLookup",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "IpDenyList.empty#get",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "IpDenyList.includes",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "PublicInternetOnlyPolicy.authorize",
+      "rule": "missing-param",
+      "param": "address"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "PublicInternetOnlyPolicy.authorize",
+      "rule": "missing-param",
+      "param": "hostname"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "PublicInternetOnlyPolicy.authorize",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "throwIfHttpAborted",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "unbracketHostname",
+      "rule": "missing-param",
+      "param": "hostname"
+    },
+    {
+      "file": "src/tool/builtin/http-request/egress-policy.ts",
+      "symbolPath": "unbracketHostname",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/http-request/http-client.ts",
+      "symbolPath": "PolicyHttpClient.request",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/http-request/http-request-tool.ts",
+      "symbolPath": "HttpRequestTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/http-request/http-request-tool.ts",
+      "symbolPath": "HttpRequestTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/http-request/http-request-tool.ts",
+      "symbolPath": "HttpRequestTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/http-request/pinned-request.ts",
+      "symbolPath": "nativePinnedRequest",
+      "rule": "missing-param",
+      "param": "address"
+    },
+    {
+      "file": "src/tool/builtin/http-request/pinned-request.ts",
+      "symbolPath": "nativePinnedRequest",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/tool/builtin/http-request/pinned-request.ts",
+      "symbolPath": "nativePinnedRequest",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/tool/builtin/http-request/pinned-request.ts",
+      "symbolPath": "nativePinnedRequest",
+      "rule": "missing-param",
+      "param": "timeoutMilliseconds"
+    },
+    {
+      "file": "src/tool/builtin/http-request/pinned-request.ts",
+      "symbolPath": "nativePinnedRequest",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/list-directory/list-directory-tool.ts",
+      "symbolPath": "ListDirectoryTool.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/list-directory/list-directory-tool.ts",
+      "symbolPath": "ListDirectoryTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/list-directory/list-directory-tool.ts",
+      "symbolPath": "ListDirectoryTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/list-directory/list-directory-tool.ts",
+      "symbolPath": "ListDirectoryTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/read-file/read-file-tool.ts",
+      "symbolPath": "createRootedReadTool",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/read-file/read-file-tool.ts",
+      "symbolPath": "RootedReadTool.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/read-file/read-file-tool.ts",
+      "symbolPath": "RootedReadTool.openFile",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/read-file/read-file-tool.ts",
+      "symbolPath": "RootedReadTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/read-file/read-file-tool.ts",
+      "symbolPath": "UnrestrictedReadTool.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/read-file/read-file-tool.ts",
+      "symbolPath": "UnrestrictedReadTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/read-file/read-file-tool.ts",
+      "symbolPath": "UnrestrictedReadTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/read-file/read-file-tool.ts",
+      "symbolPath": "UnrestrictedReadTool.openFile",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/read-file/read-file-tool.ts",
+      "symbolPath": "UnrestrictedReadTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/read-file/safe-file-reader.ts",
+      "symbolPath": "parseReadFileParams",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/tool/builtin/read-file/safe-file-reader.ts",
+      "symbolPath": "parseReadFileParams",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/read-file/safe-file-reader.ts",
+      "symbolPath": "readNumberedLines",
+      "rule": "missing-param",
+      "param": "limit"
+    },
+    {
+      "file": "src/tool/builtin/read-file/safe-file-reader.ts",
+      "symbolPath": "readNumberedLines",
+      "rule": "missing-param",
+      "param": "offset"
+    },
+    {
+      "file": "src/tool/builtin/read-file/safe-file-reader.ts",
+      "symbolPath": "readNumberedLines",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/tool/builtin/read-file/safe-file-reader.ts",
+      "symbolPath": "readNumberedLines",
+      "rule": "missing-param",
+      "param": "source"
+    },
+    {
+      "file": "src/tool/builtin/read-file/safe-file-reader.ts",
+      "symbolPath": "readNumberedLines",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/read-file/safe-file-reader.ts",
+      "symbolPath": "roughTokenCount",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/tool/builtin/read-file/safe-file-reader.ts",
+      "symbolPath": "roughTokenCount",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/read-file/safe-file-reader.ts",
+      "symbolPath": "throwIfReadAborted",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/tool/builtin/shell/shell-process.ts",
+      "symbolPath": "runShellCommand",
+      "rule": "missing-param",
+      "param": "request"
+    },
+    {
+      "file": "src/tool/builtin/shell/shell-process.ts",
+      "symbolPath": "runShellCommand",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/tool/builtin/shell/shell-process.ts",
+      "symbolPath": "runShellCommand",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/shell/shell-tool.ts",
+      "symbolPath": "ShellTool.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/shell/shell-tool.ts",
+      "symbolPath": "ShellTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/shell/shell-tool.ts",
+      "symbolPath": "ShellTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/shell/shell-tool.ts",
+      "symbolPath": "ShellTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/todo-write/todo-write-tool.ts",
+      "symbolPath": "TodoWriteTool.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/todo-write/todo-write-tool.ts",
+      "symbolPath": "TodoWriteTool.current",
+      "rule": "missing-param",
+      "param": "threadId"
+    },
+    {
+      "file": "src/tool/builtin/todo-write/todo-write-tool.ts",
+      "symbolPath": "TodoWriteTool.current",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/builtin/todo-write/todo-write-tool.ts",
+      "symbolPath": "TodoWriteTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/todo-write/todo-write-tool.ts",
+      "symbolPath": "TodoWriteTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/todo-write/todo-write-tool.ts",
+      "symbolPath": "TodoWriteTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/write-file/write-file-tool.ts",
+      "symbolPath": "WriteFileTool.close",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/write-file/write-file-tool.ts",
+      "symbolPath": "WriteFileTool.execute",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/write-file/write-file-tool.ts",
+      "symbolPath": "WriteFileTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/builtin/write-file/write-file-tool.ts",
+      "symbolPath": "WriteFileTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/delegation/error/child-run-error.ts",
+      "symbolPath": "ChildRunError.result",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/delegation/service/delegation-tool.ts",
+      "symbolPath": "DelegationTool.execute",
+      "rule": "missing-param",
+      "param": "context"
+    },
+    {
+      "file": "src/tool/delegation/service/delegation-tool.ts",
+      "symbolPath": "DelegationTool.execute",
+      "rule": "missing-param",
+      "param": "signal"
+    },
+    {
+      "file": "src/tool/delegation/service/delegation-tool.ts",
+      "symbolPath": "DelegationTool.execute",
+      "rule": "missing-param",
+      "param": "value"
+    },
+    {
+      "file": "src/tool/delegation/service/delegation-tool.ts",
+      "symbolPath": "DelegationTool.execute",
+      "rule": "missing-returns"
+    },
+    {
+      "file": "src/tool/delegation/service/delegation-tool.ts",
+      "symbolPath": "DelegationTool.name",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/delegation/service/delegation-tool.ts",
+      "symbolPath": "DelegationTool.schema",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/dispatcher/service/map-tool-dispatcher.ts",
+      "symbolPath": "MapToolDispatcher.dispatch",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/dispatcher/service/map-tool-dispatcher.ts",
+      "symbolPath": "NoopToolDispatcher.dispatch",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/dispatcher/service/map-tool-dispatcher.ts",
+      "symbolPath": "ToolDispatchError.code",
+      "rule": "missing-jsdoc"
+    },
+    {
+      "file": "src/tool/tool-schema-presenter.ts",
+      "symbolPath": "toLlmToolSchema",
+      "rule": "missing-param",
+      "param": "schema"
+    },
+    {
+      "file": "src/tool/tool-schema-presenter.ts",
+      "symbolPath": "toLlmToolSchema",
+      "rule": "missing-returns"
+    }
+  ]
+}
