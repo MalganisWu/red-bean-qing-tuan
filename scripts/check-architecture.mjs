@@ -17,10 +17,6 @@ const dtoPurityCasesPath = path.join(
   root,
   "testdata/architecture/dto-purity-cases.json",
 );
-const chineseJsDocCasesPath = path.join(
-  root,
-  "testdata/architecture/chinese-jsdoc-cases.json",
-);
 const testFileSizeCasesPath = path.join(
   root,
   "testdata/architecture/test-file-size-cases.json",
@@ -167,40 +163,6 @@ function dtoRuntimeDeclarationKind(statement) {
     return "module/namespace";
   }
   return undefined;
-}
-
-/** class 显式 implements 某接口，是"Port 实现类"的语法判据。 */
-function isPortImplementationStatement(statement) {
-  return (
-    statement.declarationKind === DECLARATION_KINDS.CLASS &&
-    (statement.implementsNames?.length ?? 0) > 0
-  );
-}
-
-/** 需要中文 JSDoc 的重要契约：导出的 interface/type alias，或 Port 实现类。 */
-function needsChineseJsDoc(statement) {
-  const isExportedContract =
-    (statement.declarationKind === DECLARATION_KINDS.INTERFACE ||
-      statement.declarationKind === DECLARATION_KINDS.TYPE_ALIAS) &&
-    statement.exported === true;
-  return isExportedContract || isPortImplementationStatement(statement);
-}
-
-function hasChineseJsDoc(statement) {
-  return /\/\*\*[\s\S]*?[\u3400-\u9fff][\s\S]*?\*\/\s*$/u.test(
-    statement.leadingTrivia,
-  );
-}
-
-function chineseDocumentationViolations(source, fileName) {
-  const { statements: topLevel } = parseSourceFile(fileName, source);
-  const violations = [];
-  for (const statement of topLevel) {
-    if (!needsChineseJsDoc(statement)) continue;
-    if (hasChineseJsDoc(statement)) continue;
-    violations.push(`${statement.name ?? "anonymous"}@${statement.line}`);
-  }
-  return violations;
 }
 
 function sourceLineCount(source) {
@@ -520,22 +482,6 @@ for (const testCase of dtoPurityCases) {
   }
 }
 
-const chineseJsDocCases = JSON.parse(
-  await readFile(chineseJsDocCasesPath, "utf8"),
-);
-for (const testCase of chineseJsDocCases) {
-  const violations = chineseDocumentationViolations(
-    testCase.source,
-    testCase.name,
-  );
-  const valid = violations.length === 0;
-  if (valid !== testCase.valid) {
-    failures.push(
-      `中文 JSDoc 门禁用例 ${JSON.stringify(testCase.name)} 预期 valid=${String(testCase.valid)}，实际检测到 ${violations.join(", ") || "无缺失"}`,
-    );
-  }
-}
-
 const testFileSizeCases = JSON.parse(
   await readFile(testFileSizeCasesPath, "utf8"),
 );
@@ -625,7 +571,6 @@ for (const file of testFiles) {
   }
 }
 const importGraph = new Map();
-let documentedDeclarationCount = 0;
 for (const file of sourceFiles) {
   const relativePath = path.relative(sourceRoot, file);
   const pathSegments = relativePath.split(path.sep);
@@ -633,17 +578,7 @@ for (const file of sourceFiles) {
     failures.push(`${path.relative(root, file)} 位于已退役的 core/impl 目录`);
   }
   const source = await readFile(file, "utf8");
-  const documentationViolations = chineseDocumentationViolations(
-    source,
-    relativePath,
-  );
-  if (documentationViolations.length > 0) {
-    failures.push(
-      `${path.relative(root, file)} 的重要契约或 Port 实现缺少中文 JSDoc：${documentationViolations.join(", ")}`,
-    );
-  }
   const { statements: topLevel } = parseSourceFile(file, source);
-  documentedDeclarationCount += topLevel.filter(needsChineseJsDoc).length;
   if (
     isPort(file) &&
     topLevel.some(
@@ -757,5 +692,5 @@ if (failures.length > 0) {
 for (const warning of warnings) console.warn(`⚠ ${warning}`);
 
 console.log(
-  `✓ ${sourceFiles.length} 个生产源码文件满足能力 DAG 与无环约束，${contractAudit.count} 个实现通过 Compiler API 精确解析并对应能力接口，${contractAudit.bindingCount} 个 composition/module 生产绑定可追溯，${implementationContractCases.length} 个 implements 正反例通过，${documentedDeclarationCount} 个重要契约/实现具有中文 JSDoc，${chineseJsDocCases.length} 个注释正反例、${dtoPurityCases.length} 个 DTO 纯度正反例与 ${testFileSizeCases.length} 个测试规模正反例通过；扫描 ${testFiles.length} 个测试文件，${warnings.length} 个超过 ${testFileWarningLines} 行；${expectedPublicApiAggregators.length} 个公开入口经 public-api 聚合，且生产依赖为空`,
+  `✓ ${sourceFiles.length} 个生产源码文件满足能力 DAG 与无环约束，${contractAudit.count} 个实现通过 Compiler API 精确解析并对应能力接口，${contractAudit.bindingCount} 个 composition/module 生产绑定可追溯，${implementationContractCases.length} 个 implements 正反例通过，${dtoPurityCases.length} 个 DTO 纯度正反例与 ${testFileSizeCases.length} 个测试规模正反例通过；扫描 ${testFiles.length} 个测试文件，${warnings.length} 个超过 ${testFileWarningLines} 行；${expectedPublicApiAggregators.length} 个公开入口经 public-api 聚合，且生产依赖为空`,
 );

@@ -488,7 +488,7 @@ function classifyStatement(statement, sourceFile, source) {
     line:
       sourceFile.getLineAndCharacterOfPosition(statement.getStart(sourceFile))
         .line + 1,
-    // 前导注释原文：中文 JSDoc 的判据留在规则文件，隔离层只负责切片。
+    // 前导注释原文：JSDoc 的判据留在规则文件，隔离层只负责切片。
     leadingTrivia: source.slice(
       statement.getFullStart(),
       statement.getStart(sourceFile),

@@ -35,8 +35,8 @@
   需要替换它的地方」。
 - 默认实现必须在 `AgentRuntime`、builder 或宿主 composition root 中通过明确的
   `new ConcreteClass(...)` 组装；生产代码不得以匿名对象、模块副作用或运行期扫描隐藏实现选择。
-- 能力之间保持单向依赖；`make ts-architecture-check` 会校验能力 DAG 无环、实现与接口精确对应、
-  中文 JSDoc 覆盖重要契约，以及 DTO 纯度。
+- 能力之间保持单向依赖；`make ts-architecture-check` 会校验能力 DAG 无环、实现与接口精确对应
+  以及 DTO 纯度。注释的完整性与语言由 `make ts-export-jsdoc-check` 统一负责。
 
 ## 门禁
 
