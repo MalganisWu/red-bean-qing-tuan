@@ -3,6 +3,12 @@
  * 这个区分只能由 hook 作者决定——「展示推送失败」可以忽略，「审计写入失败」往往不行，
  * 框架无从推断。因此约定是用这个包装类**显式**标记 fatal。
  */
+/**
+ * fatal hook 错误消息的固定前缀。
+ *
+ * 它只服务日志与告警的粗筛，**不是**机器判据——机器判据是 `HookFatalError` 类型本身，
+ * 所以这里的措辞可以被翻译或改写而不影响判定。
+ */
 const HOOK_FATAL_PREFIX = "hook fatal error, abort pipeline";
 
 /**

@@ -43,6 +43,14 @@ export function openAiRequestPayload(
   return payload;
 }
 
+/**
+ * 将 Runtime 工具声明裁剪为发给模型的 wire 形态。
+ *
+ * 只保留 `type` 与 `function` 三元组，`interrupting` 等 Runtime 内部提示不外泄给厂商。
+ *
+ * @param schema - 中性工具声明，含名字、说明与参数 Schema。
+ * @returns 键序固定为 `type`、`function` 的 JSON 对象；`interrupting` 恒被剔除。
+ */
 function serializeToolSchema(schema: ToolSchema): JsonObject {
   return {
     type: schema.type,

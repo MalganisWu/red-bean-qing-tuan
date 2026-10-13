@@ -14,9 +14,13 @@ export type CheckpointStatus =
  * `response` 原样保存，供重放时逐字节比对——同一个 requestId 不能承载两次不同的回答。
  */
 export interface ResumeClaim {
+  /** 被认领中断的 ID，标明这次恢复对应的是哪一次挂起。 */
   interruptId: string;
+  /** 认领方的幂等凭据；后续写终态时必须原样带回来自证身份。 */
   requestId: string;
+  /** 恢复时传入的原始回答，逐字节保存，供重放时比对同一 requestId 是否承载了不同内容。 */
   response: string;
+  /** 认领发生的时间戳（epoch 毫秒），供宿主实现接管与超时策略。 */
   claimedAt: number;
 }
 
@@ -36,15 +40,26 @@ export interface ResumeClaim {
  * `version` 则是结构代次，用于将来兼容旧格式。
  */
 export interface Checkpoint {
+  /** 结构代次，用于将来兼容旧格式；0 只属于尚未落盘的内存记录，不是合法的持久化状态。 */
   version: number;
+  /** 所属线程 ID，与 `userId` 一起构成所有权键。 */
   threadId: string;
+  /** 所有者 ID；空串表示无主，所有权判定见 `checkpointOwnedBy`。 */
   userId: string;
+  /** 状态机当前态：终态或挂起态。 */
   status: CheckpointStatus;
+  /** 完整消息历史，随 checkpoint 一起被恢复回上下文。 */
   messages: RawMessage[];
+  /** 工具寄存的大块内容引用，与 `messages` 同生命周期一起恢复。 */
   contentRefs: ContentRef[];
+  /** 当前挂起的中断；认领后被清空，与 `resumeClaim` 互斥地表达所处阶段。 */
   interrupt?: Interrupt | undefined;
+  /** 已领取的恢复请求；存在即表示有人正在处理这个 thread，与 `interrupt` 互斥。 */
   resumeClaim?: ResumeClaim | undefined;
+  /** 最近一次已消费的中断 ID，而不是当前挂起点；判断某中断是否已处理过靠它。 */
   lastResumeInterrupt: string;
+  /** 本次运行累计消耗的 token 数；0 表示未统计或未提供。 */
   tokensUsed: number;
+  /** 模型结束原因短语；空串表示未提供。 */
   finishReason: string;
 }

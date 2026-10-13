@@ -28,9 +28,13 @@ export {
   type RuntimeControlPlane,
 } from "./control-plane-composition.js";
 
+/** 组装完成、等待绑定 control plane 的中间结构；只在本文件内流转，不对外暴露。 */
 interface ConfiguredRuntime {
+  /** 组装完成的能力图（模型、分发器、工具、Store、事件出口等）。 */
   readonly configuration: RuntimeConfiguration;
+  /** 已封闭的插件注册表；服务仅用它关闭插件。 */
   readonly plugins: PluginRegistry;
+  /** 从注册表取出的 run 中间件快照。 */
   readonly runMiddleware: readonly RunMiddleware[];
 }
 
@@ -46,6 +50,9 @@ interface ConfiguredRuntime {
  *
  * 工具与 toolDispatcher 是互斥的两条接入方式：前者由 SDK 建默认分发器，
  * 后者由宿主完全接管，同时给会让人无法判断该用哪个。
+ *
+ * @param options - 宿主传入的门面选项；tools 与 toolDispatcher 互斥，toolSchemas 与 toolDispatcher 必须成对出现
+ * @returns 组装完成但尚未绑定 control plane 的中间结构
  */
 function configureRuntime(options: AgentRuntimeOptions): ConfiguredRuntime {
   const tools = [...(options.tools ?? [])];
@@ -120,7 +127,9 @@ function configureRuntime(options: AgentRuntimeOptions): ConfiguredRuntime {
  * 策略抛出的异常会被包装并带上工具名——宿主只知道「策略拒绝了」，排障时需要知道是哪个工具。
  */
 class PolicyDispatcher implements ToolDispatcher {
+  /** 内层真实分发器（已被插件包过）；授权通过后才由它执行工具。 */
   readonly #next: ToolDispatcher;
+  /** 宿主授权策略；抛错即拒绝，本层负责把拒绝翻译成带工具名的错误。 */
   readonly #policy: ToolPolicy;
 
   public constructor(next: ToolDispatcher, policy: ToolPolicy) {
@@ -128,6 +137,17 @@ class PolicyDispatcher implements ToolDispatcher {
     this.#policy = policy;
   }
 
+  /**
+   * 先经宿主授权策略，通过后再委派内层分发器执行工具。
+   *
+   * 未授权时策略抛错，本层把它包装成携带工具名的错误再抛出，且不会调用内层——
+   * 这正是「任何插件都不能短路 ToolPolicy」的落点。
+   *
+   * @param call - 待执行的工具调用
+   * @param context - 工具调用上下文（线程、请求、追踪标识）
+   * @param signal - 调用方取消信号；先传给策略，再透传给内层
+   * @returns 内层返回的工具结果；未授权时抛错而不调用内层
+   */
   public async dispatch(
     call: ToolCall,
     context: ToolCallContext,

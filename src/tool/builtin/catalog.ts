@@ -9,6 +9,12 @@ import {
   HttpRequestTool,
 } from "./http-request/http-request-tool.js";
 
+/**
+ * 内置时间工具在 Tool Registry 中的注册名，`lookupBuiltinTool` 用它把 id 分发到 `GetTimeTool`。
+ *
+ * 该字符串是宿主 `sys_tool_ids` 引用的对外契约，因此抽成常量而不是散落在 case 分支里，
+ * 改名时只需改一处、也让「注册名」这件事在代码里有一个可说清的位置。
+ */
 const GET_TIME_TOOL_NAME = "sys_get_time";
 
 /**

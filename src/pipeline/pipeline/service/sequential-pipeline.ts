@@ -3,18 +3,44 @@ import type { RuntimeNode } from "../../node/port/runtime-node.js";
 import type { RuntimePipeline } from "../port/runtime-pipeline.js";
 import type { PipelineHook } from "../../hook/port/message-hook.js";
 
+/** 清理段与 finally 节点的默认超时毫秒数；有了上限，收尾卡住也不会无限期拖住整次运行。 */
 const DEFAULT_FINALLY_TIMEOUT_MS = 30_000;
 
+/**
+ * 把任意抛出物统一成 Error；非 Error 只做字符串化，不做结构探测。
+ *
+ * @param value - 任意抛出物；是 Error 时原样返回，否则被包成消息为 `String(value)` 的新 Error。
+ * @returns 一定是 Error 实例。
+ */
 function normalizeError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }
 
+/**
+ * 给底层原因补一层可读上下文，同时用 `cause` 保留原始错误链。
+ *
+ * 保留 cause 是为了让上层能沿链继续判断失败性质（例如 hook 是否 fatal），
+ * 而不是只拿到一条被重写的消息文本。
+ *
+ * @param message - 面向人的上下文说明，会被拼在原始消息之前。
+ * @param cause - 底层原因，任意抛出物；统一成 Error 后挂到 cause 上。
+ * @returns 一条带上下文说明且保留了 cause 的新 Error。
+ */
 function wrapError(message: string, cause: unknown): Error {
   return new Error(`${message}: ${normalizeError(cause).message}`, {
     cause: normalizeError(cause),
   });
 }
 
+/**
+ * 把多处失败合并成一个待抛出的错误。
+ *
+ * 只有一处失败时原样返回，避免无谓地多包一层；多处失败用 AggregateError 聚合，
+ * 把每条子错误的消息拼在一起，便于日志一次性看全。
+ *
+ * @param errors - 待合并的错误列表，可为空。
+ * @returns 无错误时返回 undefined；单条时返回该错误本身；多条时返回聚合错误。
+ */
 function joinErrors(errors: readonly Error[]): Error | undefined {
   if (errors.length === 0) return undefined;
   if (errors.length === 1) return errors[0];
@@ -39,9 +65,13 @@ function joinErrors(errors: readonly Error[]): Error | undefined {
  * 让后跑的 finally 节点能看到「目前已知的失败」，而不是等到最后才拿到。
  */
 export class SequentialPipeline implements RuntimePipeline {
+  /** 按注册顺序执行的主流程节点；构造时已复制数组，之后不再受调用方改动影响。 */
   readonly #nodes: readonly RuntimeNode[];
+  /** 主流程结束后执行的 finally 节点；跑在独立清理信号下，无论成败都会执行。 */
   readonly #finalNodes: readonly RuntimeNode[];
+  /** pipeline 生命周期 Hook 列表，按注册顺序回调。 */
   readonly #hooks: readonly PipelineHook[];
+  /** 清理段与 finally 节点的超时毫秒数，用于构造独立的清理信号。 */
   readonly #finallyTimeoutMs: number;
 
   public constructor(
@@ -155,9 +185,13 @@ export class SequentialPipeline implements RuntimePipeline {
  * 因此构建完再往 builder 里加东西，不会影响已经建好的那一个。
  */
 export class PipelineBuilder {
+  /** 构建期间累积的主流程节点，按添加顺序执行。 */
   readonly #nodes: RuntimeNode[] = [];
+  /** 构建期间累积的 finally 节点，按添加顺序执行。 */
   readonly #finalNodes: RuntimeNode[] = [];
+  /** 构建期间累积的 Pipeline Hook，按添加顺序回调。 */
   readonly #hooks: PipelineHook[] = [];
+  /** 清理超时毫秒数，默认值可被 withFinallyTimeout 覆盖；非法值不写入。 */
   #finallyTimeoutMs = DEFAULT_FINALLY_TIMEOUT_MS;
 
   /**

@@ -39,8 +39,11 @@ import { MemoryCheckpointReceiptLedger } from "./memory-checkpoint-receipts.js";
  *   避免调用方靠错误码探测他人 thread 是否存在。
  */
 export class MemoryCheckpointStore implements CheckpointStore {
+  /** threadId 到内存记录的映射；删除后仍保留墓碑记录，不回收以便保住 fence 高水位。 */
   readonly #records = new Map<string, MemoryCheckpointRecord>();
+  /** resume 幂等回执账本；与记录同生命周期，随 thread 删除一并作废。 */
   readonly #receipts = new MemoryCheckpointReceiptLedger();
+  /** 取当前时间的注入点（默认真实时钟）；认领时间戳由它产出，测试可替换以避免依赖挂钟。 */
   readonly #now: () => number;
 
   public constructor(now: () => number = Date.now) {
@@ -101,6 +104,16 @@ export class MemoryCheckpointStore implements CheckpointStore {
     return rejected((): bigint => this.#delete(request, signal));
   }
 
+  /**
+   * 读取记录：先推进 fence 高水位，再依次判所有权、在场性与墓碑。
+   *
+   * fence 先于业务校验推进且无论成败都写回，使失败的读取也消耗水位；越权与不存在
+   * 共用 CHECKPOINT_NOT_FOUND，避免调用方靠错误码探测他人 thread 是否存在。
+   *
+   * @param request - 读取输入；threadId/userId 决定所有权检查，非零 fencingToken 会先推进高水位
+   * @param signal - 调用方取消信号；已中止时在任何校验之前抛出，不产生状态改动
+   * @returns 记录的深拷贝副本；不存在、已删除或越权一律抛 CHECKPOINT_NOT_FOUND
+   */
   #load(request: LoadCheckpointRequest, signal: AbortSignal): CheckpointRecord {
     requireActive(signal);
     requireThreadId(request.threadId);
@@ -136,6 +149,10 @@ export class MemoryCheckpointStore implements CheckpointStore {
    *
    * 越权、revision 冲突与认领冲突分别映射到 NOT_FOUND / REVISION_CONFLICT / THREAD_BUSY，
    * 调用方据此区分「不该我来写」「我来晚了」和「有人正在处理」。
+   *
+   * @param request - 保存输入；claimRequestId 非空表示给已认领的 resume 落终态，空串会被当成越权写拒绝
+   * @param signal - 调用方取消信号；已中止时在推进 fence 之前抛出
+   * @returns 落盘后的记录副本，其 revision 为递增后的新值
    */
   #save(request: SaveCheckpointRequest, signal: AbortSignal): CheckpointRecord {
     requireActive(signal);
@@ -218,6 +235,10 @@ export class MemoryCheckpointStore implements CheckpointStore {
    *    同一个 requestId 不允许承载两次不同的请求。
    * 3. 之后才是「这个 interrupt 是不是已经被消费过」「是不是有人正在处理」，
    *    最后才轮到 CAS 与「当前确实处于挂起态」。
+   *
+   * @param request - 消费输入；requestId 是幂等键，interruptId 须匹配当前挂起点，expectedRevision 参与 CAS
+   * @param signal - 调用方取消信号；已中止时在任何状态校验之前抛出
+   * @returns 认领或重放结果；同一 requestId 重放返回原记录，已被他人认领时抛 THREAD_BUSY
    */
   #consumeInterrupt(
     request: ConsumeInterruptRequest,
@@ -331,6 +352,10 @@ export class MemoryCheckpointStore implements CheckpointStore {
    * 删除写出的是**墓碑**而非移除记录：checkpoint 内容被清空，但 `fencingToken` 与
    * 递增后的 `revision` 保留在原位。若真把记录删掉，fence 高水位会随之下落，
    * 一个早已被 fenced 的旧持有者就能重新拿 token 0 写回来。
+   *
+   * @param request - 删除输入；expectedRevision 参与 CAS，userId 参与所有权检查
+   * @param signal - 调用方取消信号；已中止时在校验参数之前抛出
+   * @returns 墓碑记录的 revision（递增后的值）；fencingToken 保留原位不回落
    */
   #delete(request: DeleteCheckpointRequest, signal: AbortSignal): bigint {
     requireActive(signal);
@@ -378,7 +403,11 @@ export class MemoryCheckpointStore implements CheckpointStore {
   }
 }
 
-/** 已取消的调用不得产生任何副作用，因此在校验参数之前就先退出。 */
+/**
+ * 已取消的调用不得产生任何副作用，因此在校验参数之前就先退出。
+ *
+ * @param signal - 调用方的取消信号；已中止时原因若是 Error 则原样抛出，否则包装成 AbortError
+ */
 function requireActive(signal: AbortSignal): void {
   if (signal.aborted) {
     throw signal.reason instanceof Error
@@ -387,6 +416,11 @@ function requireActive(signal: AbortSignal): void {
   }
 }
 
+/**
+ * 校验 threadId 非空；空串无法构成有效所有权键，属于调用方的用法错误。
+ *
+ * @param threadId - 待校验的会话标识；为空串即抛错
+ */
 function requireThreadId(threadId: string): void {
   if (threadId === "")
     throw new Error("checkpoint thread ID must not be empty");
@@ -396,6 +430,9 @@ function requireThreadId(threadId: string): void {
  * 把同步实现包装成 Promise 形态的 Port 方法。
  * 同步抛出会变成 reject 而不是「同步 throw + 返回 rejected promise」的混合形态，
  * 保证实现方无论同步失败还是异步失败，调用方的 catch 路径完全一致。
+ *
+ * @param operation - 同步执行的实现体；其同步抛出会被捕获并转为 rejected Promise
+ * @returns 以 operation 结果兑现的 Promise，或在同步失败时拒绝的 Promise
  */
 function rejected<TOutput>(operation: () => TOutput): Promise<TOutput> {
   try {

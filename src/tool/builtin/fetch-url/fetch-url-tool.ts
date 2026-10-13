@@ -15,28 +15,42 @@ export const FETCH_URL_TOOL_NAME = "sys_fetch_url";
 export const MAX_FETCH_BODY_BYTES = 2 * 1_048_576;
 /** 抽取后交给模型的文本上限（64KiB）；超出部分截断并置 `truncated`。 */
 export const MAX_FETCH_OUTPUT_BYTES = 64 * 1_024;
+/** 单次抓取允许跟随的最大重定向跳数；超过即报错，避免被不断跳转让请求永远不结束。 */
 const MAX_REDIRECTS = 10;
+/** 请求时统一附带的 User-Agent；标识本工具来源，避免被目标站按匿名客户端拒绝。 */
 const USER_AGENT = "red-bean-qing-tuan/0.1";
+/** 视为重定向的状态码集合；只有这些状态才会去读 Location 并继续跟随。 */
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 /** 安全网页抓取工具的可替换网络依赖与地址拒绝列表。 */
 export interface FetchUrlToolOptions {
+  /** 发起请求的 HTTP 客户端；省略时用受策略约束的默认客户端。 */
   readonly client?: HttpClient | undefined;
+  /** 追加到黑名单的地址条目；与本工具内建的拒绝列表取并集。 */
   readonly denyList?: readonly string[] | undefined;
+  /** 主机名到 IP 的解析函数；省略时用系统 DNS，测试可注入固定结果。 */
   readonly lookup?: AddressLookup | undefined;
 }
 
+/** 按字节截断后的文本，以及它是否真的被截断的标记。 */
 interface TruncatedText {
+  /** 截断后的文本，保证落在合法的 UTF-8 边界上。 */
   readonly value: string;
+  /** 是否发生了截断；为 false 时 `value` 即完整原文。 */
   readonly truncated: boolean;
 }
 
+/** 从 HTML 中抽取出的标题与正文，两者都已归一化并按输出上限截断。 */
 interface ExtractedHtml {
+  /** 页面标题文本；无 title 标签时为空串。 */
   readonly title: string;
+  /** 去除标签后的正文可读文本。 */
   readonly content: string;
+  /** 标题或正文任一被截断即为 true。 */
   readonly truncated: boolean;
 }
 
+/** 暴露给模型的 JSON Schema 入参：仅一个必填的 `url` 字符串。 */
 const PARAMETERS: JsonObject = {
   type: "object",
   properties: {
@@ -48,10 +62,22 @@ const PARAMETERS: JsonObject = {
   required: ["url"],
 };
 
+/**
+ * 判断 JSON 值是否为非数组的普通对象，用于把 unknown 形状的入参收窄。
+ *
+ * @param value - 待判定的 JSON 值，为 null 或数组时返回 false
+ * @returns 是普通对象则为 true，供类型守卫收窄到 `JsonObject`
+ */
 function isObject(value: JsonValue): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * 把入参值解析成 URL 并校验协议；仅放行 http/https，其余一律拒绝。
+ *
+ * @param value - 待解析的原始值，非字符串或空串直接报错
+ * @returns 解析并校验通过的 URL 对象
+ */
 function parseUrl(value: JsonValue): URL {
   if (typeof value !== "string" || value.length === 0) {
     throw new Error("url 不能为空");
@@ -70,6 +96,14 @@ function parseUrl(value: JsonValue): URL {
   return url;
 }
 
+/**
+ * 把单个 HTML 实体还原成对应字符，覆盖命名实体与十/十六进制数字实体。
+ *
+ * 未知实体与超出 Unicode 范围的码点一律原样返回，避免因个别坏实体毁掉整页文本。
+ *
+ * @param entity - 形如 `&amp;` / `&#39;` / `&#x27;` 的完整实体串
+ * @returns 还原后的字符；无法识别时原样返回入参
+ */
 function decodeEntity(entity: string): string {
   const named: Readonly<Record<string, string>> = {
     amp: "&",
@@ -98,10 +132,22 @@ function decodeEntity(entity: string): string {
   }
 }
 
+/**
+ * 把文本里的全部 HTML 实体替换成对应字符，抽取正文时据此还原可读内容。
+ *
+ * @param value - 含实体的原始文本
+ * @returns 实体已还原的文本
+ */
 function decodeEntities(value: string): string {
   return value.replace(/&(?:#\d+|#x[\da-f]+|[a-z]+);/gi, decodeEntity);
 }
 
+/**
+ * 归一化文本：压平每行内的连续空白并丢弃空行，得到适合交给模型的紧凑文本。
+ *
+ * @param value - 待归一化的原始文本
+ * @returns 各行去除首尾空白、空行已删除后的文本
+ */
 function normalizeText(value: string): string {
   const lines: string[] = [];
   for (const line of value.split("\n")) {
@@ -111,6 +157,15 @@ function normalizeText(value: string): string {
   return lines.join("\n");
 }
 
+/**
+ * 按字节上限截断文本，且不会切断多字节字符。
+ *
+ * 逐字节回退到能按 UTF-8 解码为止，因此结果始终是合法字符串；原文不超上限时原样返回。
+ *
+ * @param value - 待截断的原文
+ * @param maximumBytes - 允许保留的最大 UTF-8 字节数
+ * @returns 截断后的文本与是否发生截断的标记
+ */
 function truncateUtf8(value: string, maximumBytes: number): TruncatedText {
   const encoded = new TextEncoder().encode(value);
   if (encoded.byteLength <= maximumBytes) {
@@ -131,6 +186,15 @@ function truncateUtf8(value: string, maximumBytes: number): TruncatedText {
   return { value: "", truncated: true };
 }
 
+/**
+ * 从 HTML 源码中抽取标题与正文可读文本。
+ *
+ * 先剔除 script/style/noscript，再把块级标签换成换行以保留段落，最后去标签、还原实体并归一化；
+ * 标题与正文各自按输出上限截断，任一被截断即标记 `truncated`。
+ *
+ * @param source - 原始 HTML 源码
+ * @returns 抽取出的标题、正文与是否截断
+ */
 function extractHtml(source: string): ExtractedHtml {
   const withoutIgnored = source.replace(
     /<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
@@ -177,8 +241,11 @@ export class FetchUrlTool implements Tool {
       parameters: PARAMETERS,
     },
   };
+  /** 发起 HTTP 请求的客户端；请求前的目标地址已由 `checkDenyList` 校验过。 */
   readonly #client: HttpClient;
+  /** 解析结果命中即拒绝的 IP 黑名单；为空时整段跳过 DNS 解析。 */
   readonly #denyList: IpDenyList;
+  /** 主机名解析函数；逐跳校验时用来取回该主机的全部 IP。 */
   readonly #lookup: AddressLookup;
 
   public constructor(options: FetchUrlToolOptions = {}) {
@@ -270,6 +337,9 @@ export class FetchUrlTool implements Tool {
    * 两处都不可省：只在第一跳查，一次跳转就能绕到黑名单里的地址；
    * 只看第一条解析结果，一个同时解析出白名单与黑名单地址的域名就能蒙混过关。
    * `empty` 时直接返回，省掉一次 DNS。
+   *
+   * @param url - 本跳要访问的目标地址，只用其 hostname 做解析
+   * @param signal - 取消信号，DNS 解析期间可被中止
    */
   private async checkDenyList(url: URL, signal: AbortSignal): Promise<void> {
     if (this.#denyList.empty) return;

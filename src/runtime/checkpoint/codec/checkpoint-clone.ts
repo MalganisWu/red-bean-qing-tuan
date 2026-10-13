@@ -5,6 +5,15 @@ import type { RawMessage } from "../../../protocol/message.js";
 import type { Checkpoint } from "../model/checkpoint.js";
 import type { CheckpointRecord } from "../store/port/checkpoint-store.js";
 
+/**
+ * 逐字段重建一条消息，`toolCalls` 及其内层 `function` 再各复制一层。
+ *
+ * 不用 `structuredClone`：消息里可能挂 `ContentRef.fetch` 一类函数字段，结构化拷贝会失败。
+ * 只复制真正存在的可选字段，保证副本与入参在序列化视角下逐字节一致。
+ *
+ * @param message - 待复制的消息；调用方保留原对象所有权，本函数不改它
+ * @returns 与入参等值但无共享可变嵌套结构的独立消息
+ */
 function cloneMessage(message: RawMessage): RawMessage {
   return {
     role: message.role,
@@ -22,6 +31,14 @@ function cloneMessage(message: RawMessage): RawMessage {
   };
 }
 
+/**
+ * 逐字段重建一个内容引用；`fetch` 是函数，按引用原样带过去而不是深拷贝。
+ *
+ * 引用本身不可变，复制只为切断 `meta` 这类对象字段的共享，防止调用方改一处影响另一处。
+ *
+ * @param reference - 待复制的内容引用；调用方保留其所有权
+ * @returns 与入参等值的独立引用，`fetch` 仍指向同一个函数
+ */
 function cloneContentRef(reference: ContentRef): ContentRef {
   return {
     kind: reference.kind,
@@ -35,6 +52,15 @@ function cloneContentRef(reference: ContentRef): ContentRef {
   };
 }
 
+/**
+ * 逐字段重建一个中断；`arguments` / `payload` 先经 `toJsonValue` 归一到可选 JSON 值。
+ *
+ * 中断会作为 pending 状态随 checkpoint 落盘与回读，归一在这里完成可避免两侧对
+ * 「哪些值算合法 JSON」判断不一致。
+ *
+ * @param interrupt - 待复制的中断；调用方保留其所有权
+ * @returns 与入参等值且值为中性 JSON 的独立中断
+ */
 function cloneInterrupt(interrupt: Interrupt): Interrupt {
   return {
     toolCallId: interrupt.toolCallId,

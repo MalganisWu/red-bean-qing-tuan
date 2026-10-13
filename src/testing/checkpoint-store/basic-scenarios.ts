@@ -10,11 +10,13 @@ import {
   type ContractContext,
 } from "./contract-support.js";
 
-/** CAS 用例：revision 串行推进，用陈旧 revision 保存必须报冲突。 */
-async function savesWithRevisionCas({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+/**
+ * CAS 用例：revision 串行推进，用陈旧 revision 保存必须报冲突。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
+ */
+async function savesWithRevisionCas(props: ContractContext): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const first = checkpointFor("cas", "owner", "first");
   const created = await store.save(
@@ -55,11 +57,13 @@ async function savesWithRevisionCas({
  * 读一个不存在的 thread 不是「什么都没有」：错误必须携带一条合成的空记录，
  * 且 threadId/userId 回填为**调用方请求的身份**、revision 为 0。
  * 调用方据此可以直接发起 expectedRevision=0n 的首次保存，而不必再查一次。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function reportsRequestedIdentityOnMissingRecord({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function reportsRequestedIdentityOnMissingRecord(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const error = await expectStoreError(
     store.load(
@@ -78,11 +82,11 @@ async function reportsRequestedIdentityOnMissingRecord({
  * `denied.record` 为 undefined 正是这条断言。若把 alice 的记录附在 bob 的错误上，
  * 「隐藏所有权」就形同虚设：调用方靠错误对象就能读到别人的内容。
  * 四个方法逐一验证，避免只挡住读、漏掉写。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function rejectsOwnerMismatch({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function rejectsOwnerMismatch(props: ContractContext): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const created = await store.save(
     {

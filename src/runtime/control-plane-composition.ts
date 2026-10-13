@@ -7,8 +7,11 @@ import { DefaultThreadExecutionCoordinator } from "./thread-execution/service/de
 
 /** Runtime 内部三个独立状态所有者的组装结果，不向业务层暴露可变容器。 */
 export interface RuntimeControlPlane {
+  /** 运行计数与关闭时序的状态所有者，默认实现是 DefaultRuntimeLifecycle。 */
   readonly lifecycle: RuntimeLifecycle;
+  /** 逐 thread 串行化的状态所有者，默认实现是 DefaultThreadExecutionCoordinator。 */
   readonly threadExecution: ThreadExecutionCoordinator;
+  /** resume 幂等收据的状态所有者，默认实现是 MemoryResumeReceiptStore。 */
   readonly resumeReceipts: ResumeReceiptStore;
 }
 

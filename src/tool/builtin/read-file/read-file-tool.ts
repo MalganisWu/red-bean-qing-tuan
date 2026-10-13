@@ -32,6 +32,15 @@ export {
 /** 本工具在 Tool Registry 中的注册名；Agent 的 sys_tool_ids 用它引用，改名等于改变对外契约。 */
 export const READ_FILE_TOOL_NAME = "sys_read_file";
 
+/**
+ * 生成暴露给模型的 JSON Schema 入参描述。
+ *
+ * `rooted` 决定 `file_path` 的语义说明：受限工具强调相对路径以沙箱根目录为基准、
+ * 绝对路径必须落在根内，不受限工具则要求绝对路径。两种形态的字段集合一致，仅描述不同。
+ *
+ * @param rooted - 是否为根目录受限形态，取 true 时描述沙箱内的路径规则
+ * @returns 描述读取工具入参的 JSON Schema 对象
+ */
 function parameters(rooted: boolean): JsonObject {
   return {
     type: "object",
@@ -63,6 +72,7 @@ export class UnrestrictedReadTool implements Tool {
       parameters: parameters(false),
     },
   };
+  /** 读取账本，按线程记录最近一次读取的范围与文件版本，供写入类工具做「先读后写」校验。 */
   readonly #ledger: FileReadLedger;
 
   /**
@@ -185,6 +195,18 @@ export class UnrestrictedReadTool implements Tool {
     return { handle: await open(filePath, constants.O_RDONLY), key: filePath };
   }
 
+  /**
+   * 在内容片段未覆盖全文时追加续读提示。
+   *
+   * 提示里直接带出下一次可用的 offset，让模型接着读而不是重新猜范围；
+   * 若本次已读到最后一行，则原样返回内容，不添加任何多余噪音。
+   *
+   * @param result - 本次分片读取的带行号内容与文件真实总行数
+   * @param filePath - 被读取的路径，用于拼出可直接复制执行的续读调用示例
+   * @param offset - 本次起始行号，从 1 开始
+   * @param limit - 本次读取的行数上限
+   * @returns 可能追加了续读提示的内容文本
+   */
   private withContinuation(
     result: ReadLinesResult,
     filePath: string,
@@ -195,6 +217,18 @@ export class UnrestrictedReadTool implements Tool {
     return `${result.content}\n[共 ${result.totalLines} 行，当前读到 ${offset + limit - 1} 行，后续用 Read(file_path=${JSON.stringify(filePath)}, offset=${offset + limit}) 继续]`;
   }
 
+  /**
+   * 直接读取文件全文并切出指定行区间，供 `preserve` 句柄重取被引用行段时使用。
+   *
+   * 与 `execute` 的关键区别：这里不查账本、不做「文件未变」短路、也不记录本次读取，
+   * 因为调用方要的正是当前磁盘上的内容，而非账本里的历史版本。
+   *
+   * @param filePath - 要读取的路径，受限子类会在此施加根目录校验
+   * @param offset - 起始行号，从 1 开始
+   * @param limit - 最多读取的行数
+   * @param signal - 取消信号，读取与分片时传递
+   * @returns 带行号的内容片段与文件真实总行数
+   */
   private async readFileLines(
     filePath: string,
     offset: number,
@@ -224,6 +258,7 @@ export class RootedReadTool extends UnrestrictedReadTool implements Tool {
       parameters: parameters(true),
     },
   };
+  /** 固定根目录的文件访问器；所有路径解析与打开都经它施加根约束。 */
   readonly #access: RootedFileAccess;
 
   public constructor(

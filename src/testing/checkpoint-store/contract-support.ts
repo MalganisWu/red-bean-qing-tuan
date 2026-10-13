@@ -36,13 +36,17 @@ export interface CheckpointStoreContractOptions {
 
 /** 单个 CheckpointStore 契约用例获得的隔离上下文。 */
 export interface ContractContext {
+  /** 套件级取消信号；缺省为永不取消的信号，用例可据它注入取消场景。 */
   readonly signal: AbortSignal;
+  /** 造一个本用例专属的隔离 Store；每次调用新建实例，用例无需自行清理。 */
   readonly freshStore: () => Promise<CheckpointStore>;
 }
 
 /** 可由契约套件统一执行的命名测试用例。 */
 export interface ContractCase {
+  /** 用例名；失败时会被拼进错误消息，便于定位是哪个契约不满足。 */
   readonly name: string;
+  /** 用例主体；抛错即表示契约不满足，套件会先释放 Store 再上抛。 */
   readonly run: (context: ContractContext) => Promise<void>;
 }
 

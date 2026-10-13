@@ -21,11 +21,13 @@ import {
  *
  * 这条对应真实的接管窗口：调用方读到了 token、正要去写，期间 lease 已被别人接管。
  * 若实现只在 load 时校验 fence、写入时不再看，这个窗口就会漏过去。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function rechecksFenceOnConsumeAndDelete({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function rechecksFenceOnConsumeAndDelete(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const consumeStore = await freshStore();
   const created = await consumeStore.save(
     {
@@ -100,11 +102,13 @@ async function rechecksFenceOnConsumeAndDelete({
  * 把「越权不推进水位」在三个改动型方法上再确认一遍（读路径已在高水位那组覆盖）。
  * 每个子场景的结构相同：bob 拿 99n 做改动被判 NOT_FOUND，随后 alice 仍能用原 token 90n
  * 正常完成同一操作——这后半句才是断言的关键，它证明水位没被 bob 的失败调用带上去。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function keepsFenceOnWrongOwnerMutations({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function keepsFenceOnWrongOwnerMutations(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const saveStore = await freshStore();
   const saveCheckpoint = checkpointFor("wrong-save-fence", "alice", "state");
   const saveCreated = await saveStore.save(

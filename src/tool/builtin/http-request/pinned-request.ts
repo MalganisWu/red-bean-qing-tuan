@@ -12,6 +12,15 @@ import type {
 } from "./http-contracts.js";
 import { unbracketHostname } from "./egress-policy.js";
 
+/**
+ * 把 Node 的响应头归一化成「名字 → 字符串」映射。
+ *
+ * Node 对重复的头（如 `Set-Cookie`）会给成数组，这里用逗号连接成单值；
+ * 其余非字符串值直接丢弃，保证下游拿到的类型与契约一致。
+ *
+ * @param headers - Node `IncomingMessage` 上的原始响应头
+ * @returns 归一化后的响应头映射，值均为字符串
+ */
 function normalizeHeaders(
   headers: IncomingHttpHeaders,
 ): Readonly<Record<string, string>> {
@@ -73,6 +82,12 @@ export function nativePinnedRequest(
  * 只结算一次（`settled`）：`end` 与 `error` 可能先后到达，第二次必须被忽略。
  * `maxResponseBytes + 1` 是刻意多读一个字节——正好读到上限时无法区分「刚好读完」
  * 与「被截断」，多收一字节才能确定是否该把 `truncated` 标成 true。
+ *
+ * @param resolve - 收集完成时的兑现回调，回传完整响应
+ * @param reject - 建连或收流报错时的拒绝回调
+ * @param request - 出站请求描述，提供响应体上限与请求体
+ * @param options - 已固定目标 IP 的建连参数
+ * @param makeRequest - 实际发请求的函数（http 或 https），按协议选定
  */
 function sendAndCollect(
   resolve: (response: HttpClientResponse) => void,

@@ -13,9 +13,13 @@ import { raceAbort } from "../../../protocol/abort-signal.js";
  * 而不是各自去关一遍。`#closing` 一旦为真就不会复位——关闭是不可逆的终态。
  */
 export class DefaultRuntimeLifecycle implements RuntimeLifecycle {
+  /** 等运行计数归零的挂起者；用集合容纳多个并发 close，计数归零时全部唤醒。 */
   readonly #idleWaiters = new Set<() => void>();
+  /** 是否已停止接纳新运行；一旦置真不复位，关闭是不可逆的终态。 */
   #closing = false;
+  /** 当前在跑的运行数；`beginRun` 加一、释放函数减一，归零即唤醒等待者。 */
   #activeRuns = 0;
+  /** 首次 close 时创建的资源释放 Promise；后续并发调用复用它，保证资源只关一次。 */
   #closePromise: Promise<void> | undefined;
 
   /**

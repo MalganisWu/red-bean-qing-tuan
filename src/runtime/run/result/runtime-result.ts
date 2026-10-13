@@ -15,12 +15,20 @@ import type {
  *   **无 Store 模式或保存失败时恒为 `0n`**，表示「未知」而非「第 0 版」。
  */
 export interface RuntimeResult {
+  /** 权威终态；与 `checkpoint.status` 始终一致，是同一份数据的两处投影。 */
   status: CheckpointStatus;
+  /** 最后一条有正文的 assistant 消息，不是拼接结果；没有时为空串。 */
   output: string;
+  /** 本次运行的完整消息序列，已深拷贝，与 Runtime 内部状态不共享引用。 */
   messages: RawMessage[];
+  /** 挂起时的中断；仅在 `status === "suspended"` 时存在，此时宿主应走 resume 继续。 */
   interrupt?: Checkpoint["interrupt"];
+  /** 累计消耗的 token 数；0 表示未统计或未提供。 */
   tokensUsed: number;
+  /** 模型结束原因短语；空串表示未提供。 */
   finishReason: string;
+  /** 可继续持久化的 Checkpoint 快照；其 status 与 result.status 保持一致。 */
   checkpoint: Checkpoint;
+  /** 结果在 Store 中的版本，可直接用作下一次调用的 expectedRevision；无 Store 或保存失败时恒为 0n，表示「未知」而非「第 0 版」。 */
   revision: bigint;
 }

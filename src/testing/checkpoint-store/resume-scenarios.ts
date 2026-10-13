@@ -23,11 +23,11 @@ import {
  * 走完一次 resume 的完整状态链，并在每一步插入反例：
  * 认领 → 同 requestId 重放（IN_PROGRESS）→ 同 requestId 改内容（幂等冲突）
  * → 换 requestId 抢认领（进行中）→ 写终态 → 再重放（REPLAYED）→ 已消费的 interrupt 不可再认领。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function runsConsumeLifecycle({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function runsConsumeLifecycle(props: ContractContext): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const created = await store.save(
     {
@@ -117,11 +117,13 @@ async function runsConsumeLifecycle({
  * （数据库行锁、advisory lock 等）。本用例能挡住的是一类具体错误：
  * 把「已认领」判定与写回做成两步、中间让出执行权的实现，会在这里出现多个 CLAIMED。
  * 因此它是有价值的回归网，但它证明不了并发正确性——不要在别处把它当作原子性证明引用。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function assertsConsumeIsAtomicUnderContention({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function assertsConsumeIsAtomicUnderContention(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const created = await store.save(
     {
@@ -178,11 +180,13 @@ async function assertsConsumeIsAtomicUnderContention({
  * 认领之后写终态的门槛矩阵。五个反例各自对应一类「试图绕过认领」的写法，
  * 全部必须失败；只有第六次（requestId 对得上、checkpoint 自洽、revision 正确）才允许通过。
  * 这张矩阵就是「普通 run 不得越过 claim 覆盖结果」的可执行定义。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function checksFinalSaveOwnershipAndCas({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function checksFinalSaveOwnershipAndCas(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const created = await store.save(
     {

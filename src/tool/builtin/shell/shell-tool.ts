@@ -18,18 +18,32 @@ export const SHELL_TOOL_NAME = "sys_shell";
 
 /** 调用方给出的执行条件，已通过运行时校验。 */
 export interface ShellParams {
+  /** 要交给 `bash -c` 执行的命令文本，已去除首尾空白且保证非空。 */
   readonly command: string;
+  /** 5–10 词的动作描述，用于界面展示与事后审计；无法从命令文本推断，故必填。 */
   readonly description: string;
+  /** 调用方指定的超时毫秒数；未提供时为 undefined，由工具默认值兜底。 */
   readonly timeoutMs: number | undefined;
+  /** 命令的工作目录；未提供时为 undefined，回退到宿主进程当前目录。 */
   readonly workdir: string | undefined;
 }
 
 /** 工具实例配置；默认超时与输出上限可注入以便测试覆盖边界。 */
 export interface ShellOptions {
+  /** 未显式指定超时时使用的默认毫秒数；省略则取全局默认值。 */
   readonly defaultTimeoutMs?: number;
+  /** 单个输出流的累积上限（字节）；省略则取全局上限。 */
   readonly maxOutputBytes?: number;
 }
 
+/**
+ * 生成暴露给模型的 JSON Schema 入参描述。
+ *
+ * 说明文案里的超时数值由全局上限常量插值而来，保证模型看到的限制与实际执行时一致；
+ * `command` 与 `description` 列为必填，其余字段可省略并由执行侧补默认值。
+ *
+ * @returns 描述 shell 工具入参的 JSON Schema 对象
+ */
 function parameters(): JsonObject {
   return {
     type: "object",
@@ -56,7 +70,12 @@ function parameters(): JsonObject {
   };
 }
 
-/** 从 unknown 形状的入参校验并归一化；缺 command 或 description 直接失败。 */
+/**
+ * 从 unknown 形状的入参校验并归一化；缺 command 或 description 直接失败。
+ *
+ * @param value - 工具入参原始值，形状未知，需逐字段校验类型与取值范围
+ * @returns 校验并归一化后的执行条件；任一字段非法时抛错
+ */
 function parseShellParams(value: JsonValue): ShellParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("shell parameters must be an object");
@@ -95,7 +114,13 @@ function parseShellParams(value: JsonValue): ShellParams {
   return { command, description, timeoutMs: rawTimeout, workdir };
 }
 
-/** 组装结果文本：输出在前，结束原因在最后一行，便于模型先读内容再看成败。 */
+/**
+ * 组装结果文本：输出在前，结束原因在最后一行，便于模型先读内容再看成败。
+ *
+ * @param result - 命令执行结果，含分离的 stdout/stderr 与各自的截断标记
+ * @param request - 对应的执行条件，用于在截断标记里回填具体的上限字节数
+ * @returns 供模型阅读的合并文本，尾行为结束原因标记
+ */
 function formatShellResult(
   result: ShellRunResult,
   request: ShellRunRequest,
@@ -119,6 +144,10 @@ function formatShellResult(
  * 结束原因标记。
  *
  * 超时与取消不伪装成退出码：模型需要区分「命令失败了」与「命令没跑完」，两者的后续动作不同。
+ *
+ * @param result - 命令执行结果，据其 termination 与 exitCode/signal 决定标记文案
+ * @param request - 对应的执行条件，用于在超时标记里回填实际的超时毫秒数
+ * @returns 单行的结束原因标记文本
  */
 function terminationMarker(
   result: ShellRunResult,
@@ -156,7 +185,9 @@ export class ShellTool implements Tool {
       parameters: parameters(),
     },
   };
+  /** 本实例未显式指定超时时使用的默认毫秒数。 */
   readonly #defaultTimeoutMs: number;
+  /** 本实例中 stdout 与 stderr 各自的累积上限（字节）。 */
   readonly #maxOutputBytes: number;
 
   public constructor(options?: ShellOptions) {

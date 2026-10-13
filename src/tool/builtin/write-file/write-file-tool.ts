@@ -14,15 +14,26 @@ export const WRITE_FILE_TOOL_NAME = "sys_write_file";
 
 /** 调用方给出的写入目标与内容，已通过运行时校验。 */
 export interface WriteFileParams {
+  /** 写入目标路径；父目录不存在时由本工具自动创建。 */
   readonly filePath: string;
+  /** 写入的完整文件内容，会整体覆盖原有内容，允许为空串。 */
   readonly content: string;
 }
 
 /** 工具依赖：账本是必填项，缺失会让「先读后写」闸门失效。 */
 export interface WriteFileOptions {
+  /** 读取账本，用于确认覆盖既有文件前该文件在本 conversation 读过且未被改动。 */
   readonly ledger: FileReadLedger;
 }
 
+/**
+ * 构造暴露给模型的 JSON Schema 入参描述。
+ *
+ * content 允许为空串（用于清空文件），因此不在 Schema 层做最小长度限制；file_path 与 content
+ * 都在 `parseWriteFileParams` 里做类型与必填校验。
+ *
+ * @returns 描述 file_path 与 content 的 JSON Schema 对象
+ */
 function parameters(): JsonObject {
   return {
     type: "object",
@@ -40,7 +51,15 @@ function parameters(): JsonObject {
   };
 }
 
-/** 从 unknown 形状的入参校验并归一化；缺失字段直接失败而不是写入空内容。 */
+/**
+ * 从 unknown 形状的入参校验并归一化；缺失字段直接失败而不是写入空内容。
+ *
+ * content 是唯一允许为空串的字段：空内容是合法的清空操作，而 file_path 缺省或为空只意味着
+ * 模型没给出目标，二者必须区别对待。
+ *
+ * @param value - 工具入参原始值，须是含 file_path 与 content 的对象
+ * @returns 归一化后的目标路径与写入内容，file_path 已去除首尾空白
+ */
 function parseWriteFileParams(value: JsonValue): WriteFileParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("write_file parameters must be an object");
@@ -55,7 +74,15 @@ function parseWriteFileParams(value: JsonValue): WriteFileParams {
   return { filePath, content: rawContent };
 }
 
-/** 行数按换行符计：结尾换行不额外算一行，与编辑器显示一致。 */
+/**
+ * 行数按换行符计：结尾换行不额外算一行，与编辑器显示一致。
+ *
+ * 空内容算 0 行；有内容但无换行算 1 行。这个口径要让工具结果里的行数与模型在编辑器里看到的一致，
+ * 否则模型会按错误的行数去定位后续修改。
+ *
+ * @param content - 已写入或即将写入的完整文件内容
+ * @returns 面向显示的行数，空串返回 0
+ */
 function countLines(content: string): number {
   if (content === "") return 0;
   let breaks = 0;
@@ -84,6 +111,7 @@ export class WriteFileTool implements Tool {
       parameters: parameters(),
     },
   };
+  /** 读取账本，是「覆盖前先读」闸门的事实来源；新建路径时经 allowMissing 放行。 */
   readonly #ledger: FileReadLedger;
 
   public constructor(options: WriteFileOptions) {

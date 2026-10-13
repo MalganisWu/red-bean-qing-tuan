@@ -14,11 +14,13 @@ import {
  * 相等放行、更高的放行、**更低的拒绝**。
  * 最后两个断言是同一条规则的两面：thread 一旦被非零 token 写过，
  * 就再也不能退回 0——「降级」和「用更低的 token」是同一类越权。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function checksZeroEqualHigherLower({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function checksZeroEqualHigherLower(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const zero = checkpointFor("unfenced", "", "zero");
   const createdZero = await store.save(
@@ -85,11 +87,13 @@ async function checksZeroEqualHigherLower({
  * 带高 token 读一个不存在的 thread 会**预定**它：读虽然没有内容，但水位已被记下。
  * 于是后来者只能用不低于它的 token 写入，用的 token 更低就是 STALE_FENCE。
  * 这是 lease 系统的必要能力——新持有者要先占位、再写入，中间不能被旧持有者插队。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function reservesMissingThreadWithHighToken({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function reservesMissingThreadWithHighToken(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const reserved = await expectStoreError(
     store.load(
@@ -142,11 +146,11 @@ async function reservesMissingThreadWithHighToken({
  *
  * 若把 fence 校验放在 CAS 之后，这里第一次写入会直接以 REVISION_CONFLICT 结束且不动水位，
  * 旧持有者就能继续以 30n 写入——接管失效。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function advancesFenceOnFailedCas({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function advancesFenceOnFailedCas(props: ContractContext): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const checkpoint = checkpointFor("takeover", "", "old");
   const created = await store.save(
@@ -183,11 +187,11 @@ async function advancesFenceOnFailedCas({
  * bob 用 99n 去读 alice 的 thread：请求被拒，且**水位没有被推到 99n**——
  * 证据是 alice 随后仍能用原来的 50n 正常写入。
  * 若顺序反了，任何知道 threadId 的人都能靠一次越权读取把合法持有者永久踢出局。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function keepsFenceOnWrongOwner({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function keepsFenceOnWrongOwner(props: ContractContext): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const checkpoint = checkpointFor("owner-fence", "alice", "private");
   const created = await store.save(
@@ -214,11 +218,13 @@ async function keepsFenceOnWrongOwner({
 /**
  * 墓碑保留 fence 高水位：删除后 60n 与 0n 都被拒，只有更高的 61n 能写入。
  * 与「挡住 ABA」是同一条设计的两面——删除若清掉水位，旧持有者即可借删除复位。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function retainsFenceHighWaterAfterDelete({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function retainsFenceHighWaterAfterDelete(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const checkpoint = checkpointFor("fenced-delete", "owner", "before");
   const created = await store.save(

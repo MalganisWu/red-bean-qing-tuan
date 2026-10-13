@@ -19,11 +19,15 @@ import {
   type ContractContext,
 } from "./contract-support.js";
 
-/** 有未完成的 resume 认领时禁止删除，否则终态写入会落在一个已被抹掉的 thread 上。 */
-async function rejectsDeleteWhileClaimIsActive({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+/**
+ * 有未完成的 resume 认领时禁止删除，否则终态写入会落在一个已被抹掉的 thread 上。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
+ */
+async function rejectsDeleteWhileClaimIsActive(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const created = await store.save(
     {
@@ -65,11 +69,13 @@ async function rejectsDeleteWhileClaimIsActive({
  *   新记录会从 revision 0 重新开始，一个陈旧的持有者就能「恰好对上」而写回旧状态。
  * - **允许重建**：拿着删除后的新 revision 必须能正常写入。
  * 删除本身的 revision 递增（`created.revision + 1n`）正是这两件事的交汇点。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function preventsAbaAndSupportsRebuild({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function preventsAbaAndSupportsRebuild(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const checkpoint = checkpointFor("deleted", "owner", "before delete");
   const created = await store.save(
@@ -155,11 +161,13 @@ async function preventsAbaAndSupportsRebuild({
  * 期望结果是 `CLAIMED`（真的重新认领）而不是 `REPLAYED`。
  * 若回执被留存下来，一个已被删除的 thread 会拿旧回执冒充「已经处理过」，
  * 新写入的挂起点就永远等不到应答。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function clearsReceiptsBeforeRebuild({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function clearsReceiptsBeforeRebuild(
+  props: ContractContext,
+): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const created = await store.save(
     {
@@ -231,11 +239,11 @@ async function clearsReceiptsBeforeRebuild({
  * ④ 改写 consumeInterrupt 返回的记录，并用同 requestId 重放核对。
  * 第 ④ 条最关键：回执是长期持有的对象，任何一处浅拷贝都会让它被逐步污染，
  * 而症状要到很久以后的某次重放才显现。
+ *
+ * @param props - 套件提供的隔离上下文，含取消信号与 freshStore 工厂。
  */
-async function deepCopiesRecords({
-  freshStore,
-  signal,
-}: ContractContext): Promise<void> {
+async function deepCopiesRecords(props: ContractContext): Promise<void> {
+  const { freshStore, signal } = props;
   const store = await freshStore();
   const sourceFunction = {
     name: "ask",

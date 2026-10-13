@@ -14,6 +14,7 @@ export type RunKind = (typeof RUN_KINDS)[keyof typeof RUN_KINDS];
 
 /** 传给运行中间件的稳定调用身份与调用种类。 */
 export interface RunInfo extends RunIdentity {
+  /** 本次调用的种类是 run 还是 resume；中间件据此区分两类调用，身份字段由 `RunIdentity` 提供。 */
   readonly kind: RunKind;
 }
 
@@ -29,11 +30,23 @@ export type RunMiddleware = (
 
 /** 在构造期包装 LlmAdapter 的插件扩展点。 */
 export interface LlmMiddleware {
+  /**
+   * 在构造期把模型适配器包一层；包好的适配器在运行期被复用，不再变化。
+   *
+   * @param next - 内层的真实适配器，或已被更内层中间件包过的适配器
+   * @returns 包装后的适配器；返回空值会被注册表判为错误
+   */
   wrapLlm(next: LlmAdapter): LlmAdapter;
 }
 
 /** 在构造期包装 ToolDispatcher 的插件扩展点。 */
 export interface ToolMiddleware {
+  /**
+   * 在构造期把工具分发器包一层；包好的分发器在运行期被复用，不再变化。
+   *
+   * @param next - 内层的真实分发器，或已被更内层中间件包过的分发器
+   * @returns 包装后的分发器；返回空值会被注册表判为错误
+   */
   wrapToolDispatcher(next: ToolDispatcher): ToolDispatcher;
 }
 
@@ -42,10 +55,24 @@ export type CloseHandler = (signal: AbortSignal) => Promise<void>;
 
 /** 静态 Runtime 插件契约；register 完成后注册表立即封闭。 */
 export interface RuntimePlugin {
+  /** 插件名，用于注册期的去重与排障时的来源识别；不得为空串。 */
   readonly name: string;
+  /**
+   * 构造期一次性登记该插件的能力；`register` 返回后注册表立即封闭。
+   *
+   * @param registry - 构造期开放的注册表；实现只能在此登记能力，不得留存它用于运行期
+   */
   register(registry: PluginRegistry): void;
 }
 
+/**
+ * 把任意抛出物归一为 Error，供 close 阶段收集与汇总。
+ *
+ * 非 Error 的抛出没有 message 可供拼接，包一层才能进 `AggregateError`；已是 Error 的原样返回。
+ *
+ * @param value - catch 到的任意抛出物
+ * @returns 原 Error，或包装后的新 Error
+ */
 function normalizeError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }
@@ -58,11 +85,17 @@ function normalizeError(value: unknown): Error {
  * 也不存在「插件在运行中途改变行为」这类难以复现的问题。
  */
 export class PluginRegistry {
+  /** run 中间件登记列表；登记顺序即洋葱嵌套顺序，先登记者位于外层。 */
   readonly #run: RunMiddleware[] = [];
+  /** LLM 中间件登记列表；在构造期包装适配器后即固定，运行期不再变化。 */
   readonly #llm: LlmMiddleware[] = [];
+  /** Tool 中间件登记列表；在构造期包装分发器后即固定，运行期不再变化。 */
   readonly #tool: ToolMiddleware[] = [];
+  /** 关闭回调登记列表；close 时按登记的逆序调用。 */
   readonly #closers: CloseHandler[] = [];
+  /** 注册表是否已封闭；封闭后任何登记都抛错，该状态不可逆。 */
   #sealed = false;
+  /** 是否已执行过 close；保证关闭回调只被释放一次，重复调用直接返回。 */
   #closed = false;
 
   /**
@@ -199,6 +232,12 @@ export class PluginRegistry {
     }
   }
 
+  /**
+   * 校验注册表尚未封闭；封闭后继续登记属于调用方的用法错误。
+   *
+   * 所有 use* 入口在真正写入前都先过这一关，把「封闭」这条约束集中在一处，
+   * 避免某个入口漏判导致运行期还能改写能力图。
+   */
   #requireOpen(): void {
     if (this.#sealed) throw new Error("runtime plugin registry is sealed");
   }

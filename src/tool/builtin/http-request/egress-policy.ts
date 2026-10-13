@@ -49,6 +49,8 @@ export function unbracketHostname(hostname: string): string {
  * - `169.254/16`、`fe80::/10`：链路本地，云元数据服务（169.254.169.254）就在这一段。
  * - `224/4`、`ff00::/8`：组播。
  * - `fc00::/7`：IPv6 唯一本地地址。
+ *
+ * @returns 汇总上述全部受限网段的 `BlockList`，授权时按地址族匹配
  */
 function buildRestrictedAddresses(): BlockList {
   const list = new BlockList();
@@ -79,6 +81,7 @@ function buildRestrictedAddresses(): BlockList {
 
 /** 默认出站策略拒绝回环、内网、链路本地和组播地址。 */
 export class PublicInternetOnlyPolicy implements EgressPolicy {
+  /** 受限网段清单，构造期一次性建好，授权路径上只读不写。 */
   readonly #restricted = buildRestrictedAddresses();
 
   /**
@@ -136,7 +139,9 @@ export class AllowAllEgressPolicy implements EgressPolicy {
  * 一条写错不该让 HTTP 工具整体不可用；但 `empty` 让「全部写错」这种情况能被发现。
  */
 export class IpDenyList {
+  /** 宿主条目解析后的实际匹配表；无效条目不会进入这里。 */
   readonly #entries = new BlockList();
+  /** 是否一条有效条目都没有，构造期算定后只读。 */
   readonly #empty: boolean;
 
   public constructor(entries: readonly string[]) {

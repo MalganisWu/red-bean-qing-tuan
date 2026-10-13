@@ -9,11 +9,17 @@ import type { RuntimeContext } from "../context/runtime-context.js";
 
 /** ReAct 循环终止时返回给上层执行组件的完整状态。 */
 export interface ReactResult {
+  /** 循环内的完整消息数组，含开头的系统提示词；上层写回时会自行剥离。 */
   llmContext: readonly RawMessage[];
+  /** 本次运行累计消耗的 Token 数；失败路径也带上已消耗的部分。 */
   tokensUsed: number;
+  /** 最后一次模型回合的终止原因原文；空串表示模型没有给出明确原因。 */
   finishReason: string;
+  /** 循环是否因取消而终止。 */
   cancelled: boolean;
+  /** 循环的停止原因；非空表示命中轮次上限等受控终止。 */
   stopReason: string;
+  /** 挂起的中断描述；非 undefined 表示运行在等用户对中断作出回应。 */
   interrupt?: Interrupt | undefined;
 }
 
@@ -44,21 +50,33 @@ export type MessageObserver = (message: RawMessage) => void | Promise<void>;
 
 /** 运行 ReAct 主循环所需的依赖与单次调用状态。 */
 export interface RunReactLoopOptions {
+  /** 本次运行的共享状态；循环会就地改写其 llmContext 与 metadata。 */
   readonly context: RuntimeContext;
+  /** LLM 适配器，用于发起模型流。 */
   readonly adapter: LlmAdapter;
+  /** 工具分发器，用于执行模型请求的工具调用。 */
   readonly dispatcher: ToolDispatcher;
+  /** 本轮可用工具声明；同时决定哪些调用具备中断屏障。 */
   readonly tools: readonly ToolSchema[];
+  /** 每条消息提交后的观察回调；省略则只入内存，不对外通知。 */
   readonly onMessage?: MessageObserver | undefined;
+  /** 注入循环开头的系统提示词；结束时会按偏移剥离，不写回可见上下文。 */
   readonly systemPrompt: string;
+  /** 模型参数，透传给每次模型调用。 */
   readonly modelParams: ModelParams;
+  /** 运行预算与重试配置，决定轮次上限、超时与压缩策略。 */
   readonly config: RuntimeConfig;
+  /** 整次运行的取消信号；已中止时循环不再发起新的模型调用。 */
   readonly signal: AbortSignal;
 }
 
 /** 流式接收 Tool Call 增量时使用的内部可变组装状态。 */
 export interface MutableToolCallEntry {
+  /** 工具调用 ID；通常只在第一片增量里出现，后续分片为空则不覆盖。 */
   id: string;
+  /** 工具名的分片；组装时非空即整体替换而非追加，避免名字被重复下发时被拼接。 */
   nameParts: string[];
+  /** 参数 JSON 的增量分片；按到达顺序拼接成完整参数。 */
   argumentParts: string[];
 }
 

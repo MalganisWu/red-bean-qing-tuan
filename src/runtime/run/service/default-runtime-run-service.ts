@@ -57,12 +57,19 @@ import {
  * （它带着可诊断的部分结果），其余情况一律返回 status 为 failed/cancelled 的 `RuntimeResult`。
  */
 export class DefaultRuntimeRunService implements RuntimeRunService {
+  /** 不可变能力图（模型、分发器、Store、事件出口等），构造期一次固定。 */
   readonly #config: RuntimeConfiguration;
+  /** 静态插件注册表；构造期已封闭，运行期只用来在 close 时释放资源。 */
   readonly #plugins: PluginRegistry;
+  /** 已封闭的 run 中间件快照；run 与 resume 共用同一份，运行期不再变化。 */
   readonly #runMiddleware: readonly RunMiddleware[];
+  /** 运行记账与关闭时序的所有者；每次 run/resume 进出一对 beginRun/释放。 */
   readonly #lifecycle: RuntimeLifecycle;
+  /** 逐 thread 串行化协调器；保证同 thread 的并发调用排队而非各自跑完再靠 CAS 互相覆盖。 */
   readonly #threadExecution: ThreadExecutionCoordinator;
+  /** 无 Store 模式的幂等收据存储；保证同一恢复请求回放而不重复执行工具。 */
   readonly #resumeReceipts: ResumeReceiptStore;
+  /** 底层执行器，真正跑 ReAct 循环并生成、保存最终 Checkpoint。 */
   readonly #execution: AgentExecution;
 
   public constructor(dependencies: RuntimeRunDependencies) {
@@ -171,6 +178,16 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
     await this.#lifecycle.close(() => this.#plugins.close(signal), signal);
   }
 
+  /**
+   * run 路径的实际骨架：校验输入、取得 thread 锁、建立执行起点，再交给执行器跑完。
+   *
+   * 分三个阶段，顺序不可颠倒：先在持有锁之前拒绝互斥输入，再逐 thread 串行，
+   * 最后才从 state 或 Store 建立唯一执行起点。线程锁在 finally 中释放。
+   *
+   * @param request - 已通过门面转交的 run 输入；互斥约束由请求校验器判定
+   * @param signal - 调用方取消信号；传播到取锁、读 Store 与执行器
+   * @returns 终态结果；失败以结果形式返回，或抛携带部分结果的 RuntimeExecutionError
+   */
   async #runRequest(
     request: AgentRequest,
     signal: AbortSignal,
@@ -233,6 +250,17 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
     }
   }
 
+  /**
+   * resume 路径的实际骨架：校验身份与 Store 约束、取 thread 锁、原子领取 interrupt，
+   * 补入 tool 响应后走与 run 完全相同的执行与保存路径。
+   *
+   * 与 run 的差别只在「起点怎么来」；领取后复用同一段执行代码，避免恢复路径的保存
+   * 与中断语义与 run 分叉。无 Store 模式在领取前先查 receipt 以幂等回放。
+   *
+   * @param request - 恢复输入；interruptId 必填，无 Store 模式还需 requestId 作幂等键
+   * @param signal - 调用方取消信号；传播到取锁、领取与执行器
+   * @returns 终态结果；命中回执时直接回放，不会二次执行工具
+   */
   async #resumeRequest(
     request: ResumeRequest,
     signal: AbortSignal,
@@ -356,6 +384,13 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
     }
   }
 
+  /**
+   * 造一个 failed 状态的空结果；集中此处以便失败路径只表达一次意图。
+   *
+   * @param threadId - 失败结果的归属线程
+   * @param userId - 失败结果对应的所有权标识；空串表示无主
+   * @returns status 为 failed、不含任何消息与 checkpoint 内容的结果
+   */
   #failedResult(threadId: string, userId: string): RuntimeResult {
     return failedRuntimeResult(threadId, userId);
   }

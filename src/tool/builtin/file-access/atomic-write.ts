@@ -40,7 +40,12 @@ export async function writeFileAtomically(
   }
 }
 
-/** 新建目标没有权限位可继承，返回 undefined 交给系统默认值与 umask 决定。 */
+/**
+ * 新建目标没有权限位可继承，返回 undefined 交给系统默认值与 umask 决定。
+ *
+ * @param targetPath - 目标文件路径，仅用于探测其既有权限位
+ * @returns 既有文件的权限位；文件不存在或无法 stat 时返回 undefined
+ */
 async function existingPermissionBits(
   targetPath: string,
 ): Promise<number | undefined> {
@@ -52,7 +57,11 @@ async function existingPermissionBits(
   }
 }
 
-/** 清理阶段的失败不得覆盖原始错误，因此只吞掉清理异常。 */
+/**
+ * 清理阶段的失败不得覆盖原始错误，因此只吞掉清理异常。
+ *
+ * @param handle - 需要关闭的文件句柄，重复关闭或已失效时不抛出
+ */
 async function closeQuietly(handle: FileHandle): Promise<void> {
   try {
     await handle.close();
@@ -61,6 +70,11 @@ async function closeQuietly(handle: FileHandle): Promise<void> {
   }
 }
 
+/**
+ * 尽力删除临时文件，同样吞掉清理异常，避免掩盖触发回滚的原始错误。
+ *
+ * @param target - 待删除的临时文件路径，不存在时也被视为清理完成
+ */
 async function removeQuietly(target: string): Promise<void> {
   try {
     await rm(target, { force: true });

@@ -12,14 +12,21 @@ export const LIST_DIRECTORY_TOOL_NAME = "sys_list_directory";
 
 /** 调用方给出的目录路径，已通过运行时校验。 */
 export interface ListDirectoryParams {
+  /** 已 trim 的目录路径，非空。 */
   readonly dirPath: string;
 }
 
 /** 工具实例配置；上限可注入以便测试覆盖截断分支。 */
 export interface ListDirectoryOptions {
+  /** 输出条目数上限；省略时用 `MAX_DIRECTORY_ENTRIES`。 */
   readonly maxEntries?: number;
 }
 
+/**
+ * 构造暴露给模型的 JSON Schema 入参：必填的 `path`。
+ *
+ * @returns 工具注册用的 JSON Schema 对象
+ */
 function parameters(): JsonObject {
   return {
     type: "object",
@@ -33,7 +40,12 @@ function parameters(): JsonObject {
   };
 }
 
-/** 从 unknown 形状的入参校验并归一化出目录路径；形状不符时抛错而不是猜测。 */
+/**
+ * 从 unknown 形状的入参校验并归一化出目录路径；形状不符时抛错而不是猜测。
+ *
+ * @param value - 工具入参原始值，含 `path` 字段
+ * @returns 校验通过的目录路径
+ */
 function parseListDirectoryParams(value: JsonValue): ListDirectoryParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("list_directory parameters must be an object");
@@ -45,7 +57,11 @@ function parseListDirectoryParams(value: JsonValue): ListDirectoryParams {
   return { dirPath };
 }
 
-/** 确认目标是目录，把 ENOENT/ENOTDIR 换成调用方能直接理解的中文错误。 */
+/**
+ * 确认目标是目录，把 ENOENT/ENOTDIR 换成调用方能直接理解的中文错误。
+ *
+ * @param dirPath - 待确认的目录路径，不存在或不是目录时抛错
+ */
 async function resolveDirectory(dirPath: string): Promise<void> {
   let information;
   try {
@@ -58,6 +74,14 @@ async function resolveDirectory(dirPath: string): Promise<void> {
   }
 }
 
+/**
+ * 读取目录的直接子项。
+ *
+ * 失败时把底层错误包成带上下文的中文错误，并保留原始 `cause` 便于排查。
+ *
+ * @param dirPath - 目标目录路径
+ * @returns 目录项的 `Dirent` 列表，含文件类型信息
+ */
 async function readEntries(dirPath: string): Promise<Dirent[]> {
   try {
     return await readdir(dirPath, { withFileTypes: true });
@@ -86,6 +110,7 @@ export class ListDirectoryTool implements Tool {
       parameters: parameters(),
     },
   };
+  /** 输出条目数上限；超出部分被截断并附上总条目数。 */
   readonly #maxEntries: number;
 
   public constructor(options?: ListDirectoryOptions) {

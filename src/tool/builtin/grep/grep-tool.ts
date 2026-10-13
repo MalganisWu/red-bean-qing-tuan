@@ -29,16 +29,25 @@ const BINARY_SNIFF_BYTES = 8_192;
 
 /** 调用方给出的检索条件，已通过运行时校验。 */
 export interface GrepParams {
+  /** 已编译的正则，按行匹配。 */
   readonly regex: RegExp;
+  /** 检索的基准目录；入参省略 `path` 时取进程当前工作目录。 */
   readonly basePath: string;
+  /** 限定参与检索的文件 glob 模式；省略时匹配基准目录下的全部文件。 */
   readonly include: string;
 }
 
 /** 工具实例配置；上限可注入以便测试覆盖截断分支。 */
 export interface GrepOptions {
+  /** 输出的命中行数上限；省略时用 `MAX_GREP_MATCHES`。 */
   readonly maxMatches?: number;
 }
 
+/**
+ * 构造暴露给模型的 JSON Schema 入参：必填的 `pattern` 与可选的 `path`/`include`。
+ *
+ * @returns 工具注册用的 JSON Schema 对象
+ */
 function parameters(): JsonObject {
   return {
     type: "object",
@@ -61,7 +70,12 @@ function parameters(): JsonObject {
   };
 }
 
-/** 从 unknown 形状的入参校验并归一化；正则非法与字段缺失都在此阶段失败。 */
+/**
+ * 从 unknown 形状的入参校验并归一化；正则非法与字段缺失都在此阶段失败。
+ *
+ * @param value - 工具入参原始值，含 `pattern` 与可选 `path`/`include`
+ * @returns 编译好的正则、基准目录与文件模式
+ */
 function parseGrepParams(value: JsonValue): GrepParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("grep parameters must be an object");
@@ -95,7 +109,14 @@ function parseGrepParams(value: JsonValue): GrepParams {
   return { regex, basePath, include };
 }
 
-/** 含 NUL 的文件视为二进制：对其按行匹配只会把乱码塞进模型上下文。 */
+/**
+ * 判定文件是否为二进制：含 NUL 的文件视为二进制，对其按行匹配只会把乱码塞进模型上下文。
+ *
+ * 只嗅探文件头固定字节数，避免为判定而把大文件整份读一遍。
+ *
+ * @param buffer - 文件内容缓冲区
+ * @returns 文件头范围内出现 NUL 字节则为 true
+ */
 function looksBinary(buffer: Buffer): boolean {
   const limit = Math.min(buffer.byteLength, BINARY_SNIFF_BYTES);
   for (let index = 0; index < limit; index += 1) {
@@ -106,10 +127,15 @@ function looksBinary(buffer: Buffer): boolean {
 
 /** 单行命中结果，附带被跳过文件的统计，避免静默丢弃。 */
 interface GrepAccumulator {
+  /** 已收集的命中行，格式为 `相对路径:行号: 行内容`，受输出上限约束。 */
   readonly lines: string[];
+  /** 命中的总行数，可能大于 `lines`；达到计数上限时该值是下限。 */
   total: number;
+  /** 因超过单文件大小上限被跳过的文件数。 */
   skippedLarge: number;
+  /** 因判定为二进制被跳过的文件数。 */
   skippedBinary: number;
+  /** 是否因达到计数上限而提前停止扫描，此时 `total` 只是下限。 */
   ceilingReached: boolean;
 }
 
@@ -132,6 +158,7 @@ export class GrepTool implements Tool {
       parameters: parameters(),
     },
   };
+  /** 输出的命中行数上限；达到后仅继续计数，不再收集行。 */
   readonly #maxMatches: number;
 
   public constructor(options?: GrepOptions) {
@@ -182,7 +209,13 @@ export class GrepTool implements Tool {
     return { content: output.join("\n") };
   }
 
-  /** 遍历候选文件并累积命中；达到计数上限即停止，避免把检索退化为全量扫描。 */
+  /**
+   * 遍历候选文件并累积命中；达到计数上限即停止，避免把检索退化为全量扫描。
+   *
+   * @param params - 已校验的检索条件
+   * @param signal - 取消信号，逐文件检查
+   * @returns 命中行与被跳过文件数的累积结果
+   */
   async #scan(
     params: GrepParams,
     signal: AbortSignal,
@@ -227,6 +260,15 @@ export class GrepTool implements Tool {
     return accumulator;
   }
 
+  /**
+   * 按文件模式枚举候选文件，只做枚举、不读内容。
+   *
+   * 中止信号触发时原样抛出，其余失败包成带上下文的中文错误。
+   *
+   * @param params - 已校验的检索条件，只用到其中的 `include` 与 `basePath`
+   * @param signal - 取消信号，枚举每项前后都检查
+   * @returns 候选文件的相对路径列表，尚未排序
+   */
   async #candidateFiles(
     params: GrepParams,
     signal: AbortSignal,
@@ -249,7 +291,16 @@ export class GrepTool implements Tool {
     return candidates;
   }
 
-  /** 在单个文件内累积命中；返回 true 表示已达到计数上限，调用方应停止扫描。 */
+  /**
+   * 在单个文件内累积命中；返回 true 表示已达到计数上限，调用方应停止扫描。
+   *
+   * @param relative - 相对基准目录的路径，用于拼 `路径:行号` 前缀
+   * @param source - 文件全文，按 `\n` 切行后逐行匹配
+   * @param regex - 已编译的正则，按行 test
+   * @param accumulator - 累积命中与跳过统计的可变对象，就地更新
+   * @param ceiling - 计数上限，`total` 达到即返回 true
+   * @returns 达到计数上限则为 true，调用方据此停止扫描
+   */
   #matchFile(
     relative: string,
     source: string,
@@ -275,7 +326,12 @@ export class GrepTool implements Tool {
   }
 }
 
-/** 超长行按上限截断，避免压缩后仍撑爆单条上下文。 */
+/**
+ * 超长行按上限截断，避免压缩后仍撑爆单条上下文。
+ *
+ * @param line - 单行原始内容
+ * @returns 未超限时原样返回，超限时截断并追加省略号
+ */
 function clipLine(line: string): string {
   if (line.length <= MAX_GREP_LINE_CHARS) return line;
   return `${line.slice(0, MAX_GREP_LINE_CHARS)}…`;

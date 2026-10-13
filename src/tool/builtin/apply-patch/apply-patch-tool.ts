@@ -17,21 +17,34 @@ export const APPLY_PATCH_TOOL_NAME = "sys_apply_patch";
 
 /** 单处改动：把 oldString 字面替换为 newString。 */
 export interface PatchEdit {
+  /** 作为匹配依据的原文片段，必须带上足够上下文以保证在文件中唯一。 */
   readonly oldString: string;
+  /** 替换 oldString 的新内容；与 oldString 相同会被解析阶段拒绝。 */
   readonly newString: string;
 }
 
 /** 调用方给出的文件与改动序列，已通过运行时校验。 */
 export interface ApplyPatchParams {
+  /** 目标文件路径；edits 中的每一处改动都作用在这同一个文件上。 */
   readonly filePath: string;
+  /** 按顺序施加的改动序列，至少一项，任一处失败则整体不写入。 */
   readonly edits: readonly PatchEdit[];
 }
 
 /** 工具依赖：账本是必填项，缺失会让「先读后写」闸门失效。 */
 export interface ApplyPatchOptions {
+  /** 读取账本，用于确认目标文件在本 conversation 读过且自读取后未被改动。 */
   readonly ledger: FileReadLedger;
 }
 
+/**
+ * 构造暴露给模型的 JSON Schema 入参描述。
+ *
+ * 这里的结构与 `parseApplyPatchParams` 的运行期校验一一对应：Schema 是给模型的第一层提示，
+ * 真正的拒绝仍由解析函数完成，两者不同步会导致模型看到一个能通过却会被拒的形状。
+ *
+ * @returns 描述 file_path 与 edits 数组的 JSON Schema 对象
+ */
 function parameters(): JsonObject {
   return {
     type: "object",
@@ -65,6 +78,16 @@ function parameters(): JsonObject {
   };
 }
 
+/**
+ * 校验单处改动的形状，并把下划线字段名归一化为驼峰。
+ *
+ * 空 old_string 与 new_string 等于 old_string 都在此拒绝：前者会让替换无限匹配，后者是无意义的
+ * 改动，放行只会让模型误以为修改已生效。
+ *
+ * @param value - 单个改动的原始值，须是含 old_string 与 new_string 的非空对象
+ * @param index - 该改动在 edits 中的下标，仅用于拼出可定位的错误信息
+ * @returns 归一化后的改动，字段为 oldString 与 newString
+ */
 function parseEdit(value: JsonValue, index: number): PatchEdit {
   const position = index + 1;
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -87,7 +110,12 @@ function parseEdit(value: JsonValue, index: number): PatchEdit {
   return { oldString: rawOld, newString: rawNew };
 }
 
-/** 从 unknown 形状的入参校验并归一化改动序列。 */
+/**
+ * 从 unknown 形状的入参校验并归一化改动序列。
+ *
+ * @param value - 工具入参原始值，须是含 file_path 与 edits 的对象，尚未做任何校验
+ * @returns 归一化后的文件路径与非空改动序列；任一项不合法都抛出 Error
+ */
 function parseApplyPatchParams(value: JsonValue): ApplyPatchParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("apply_patch parameters must be an object");
@@ -126,6 +154,7 @@ export class ApplyPatchTool implements Tool {
       parameters: parameters(),
     },
   };
+  /** 读取账本，是「先读后写」闸门的事实来源；缺失会让新鲜度校验失效。 */
   readonly #ledger: FileReadLedger;
 
   public constructor(options: ApplyPatchOptions) {
@@ -179,6 +208,11 @@ export class ApplyPatchTool implements Tool {
  *
  * 在内存中累积而不是边改边写，是为了让「全部成功或全部不写」成为结构上的事实，而不是依赖调用方
  * 记得回滚。
+ *
+ * @param source - 文件的当前内容，作为逐处替换的起点
+ * @param edits - 按顺序施加的改动序列，每处都必须恰好匹配一次
+ * @param filePath - 目标文件路径，仅用于拼出可定位到文件的错误信息
+ * @returns 全部改动施加后的完整文件内容，调用方负责写盘
  */
 function applyEdits(
   source: string,

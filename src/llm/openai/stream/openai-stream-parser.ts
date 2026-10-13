@@ -6,13 +6,19 @@ import {
   openAiProtocolError,
 } from "../error/openai-error-mapper.js";
 
+/** 单条 SSE 事件解析后的中间结果；把「是否终止」与「产出什么」分开表达。 */
 interface ParsedEvent {
+  /** 为真表示流到此为止：遇到 `[DONE]`，或该事件已携带错误。 */
   readonly done: boolean;
+  /** 本次事件产出的 chunk；错误场景下是一个设置了 `error` 的元素。 */
   readonly chunks: readonly LlmChunk[];
 }
 
+/** 一次底层读取的结果，刻意与 Web Streams 的 `ReadableStreamReadResult` 同形但更窄。 */
 interface StreamReadResult {
+  /** 为真表示底层流已结束，不再有数据。 */
   readonly done: boolean;
+  /** 本次读到的字节；`done` 为真时通常为 `undefined`。 */
   readonly value?: Uint8Array | undefined;
 }
 
@@ -83,6 +89,9 @@ export async function* parseOpenAiEventStream(
  * 一律返回 `done: true` 且 chunks 里带一个设置了 `error` 的 chunk，而不是抛出。
  * 这样上层拿到的是「流正常结束，但内容是失败的」——错误和正常的终止走同一条路径，
  * 不必在消费侧再套一层 try；`done: true` 同时告诉生产者不必再读了。
+ *
+ * @param data - 已剥掉 `data:` 前缀的一行载荷；可能是 `[DONE]`、JSON 文本或任意脏数据。
+ * @returns 该事件产出的 chunk 与是否终止；协议错误体现为带 `error` 的 chunk 而非抛出。
  */
 function parseEvent(data: string): ParsedEvent {
   if (data === "[DONE]") return { done: true, chunks: [] };
@@ -139,7 +148,14 @@ function parseEvent(data: string): ParsedEvent {
   return { done: false, chunks };
 }
 
-/** 用 `hasOptionalString` 而非 `optionalString` 校验：字段「存在但类型不对」必须报错，不能当作缺失忽略。 */
+/**
+ * 解析 `choices[0]` 为一个中性 chunk。
+ *
+ * 用 `hasOptionalString` 而非 `optionalString` 校验：字段「存在但类型不对」必须报错，不能当作缺失忽略。
+ *
+ * @param value - `choices` 数组里的首个元素，类型未知。
+ * @returns 正常时为 chunk；字段形态不合协议时返回协议错误对象，由调用方包装成带内 error chunk。
+ */
 function parseChoice(value: unknown): LlmChunk | Error {
   if (!isRecord(value))
     return openAiProtocolError("provider choice is invalid");
@@ -174,6 +190,16 @@ function parseChoice(value: unknown): LlmChunk | Error {
   };
 }
 
+/**
+ * 解析一个工具调用分片，缺失的可选字符串字段补空串而非报错。
+ *
+ * `id` / `type` / `function.name` / `function.arguments` 允许缺席（流式分片只给增量），
+ * 但一旦出现就必须是字符串；`index` 若出现必须是安全非负整数。补齐空串是为了让下游按
+ * 「空即未设置」统一处理，避免在归并阶段再分叉判空。
+ *
+ * @param value - `delta.tool_calls` 数组里的单个元素，类型未知。
+ * @returns 正常时为中性工具调用；字段类型不合协议时返回协议错误对象。
+ */
 function parseToolCall(value: unknown): ToolCall | Error {
   if (!isRecord(value))
     return openAiProtocolError("provider tool call is invalid");
@@ -202,7 +228,14 @@ function parseToolCall(value: unknown): ToolCall | Error {
   };
 }
 
-/** 三个 token 计数要么齐全且为无符号安全整数，要么整块判错——半份用量比没有用量更危险。 */
+/**
+ * 解析 `usage` 字段。
+ *
+ * 三个 token 计数要么齐全且为无符号安全整数，要么整块判错——半份用量比没有用量更危险。
+ *
+ * @param value - `usage` 字段原值；`undefined`/`null` 表示本帧没有用量，返回 `undefined`。
+ * @returns 完整用量、表示 `undefined`（无用量）或协议错误对象三态。
+ */
 function parseUsage(value: unknown): TokenUsage | Error | undefined {
   if (value === undefined || value === null) return undefined;
   if (!isRecord(value))
@@ -227,6 +260,10 @@ function parseUsage(value: unknown): TokenUsage | Error | undefined {
  * `finally` 里必须摘掉监听器——一次运行里会做很多次 read，
  * 若每次都往同一个长生命周期的 signal 上挂监听，监听器会线性累积。
  * 开头的 `signal.aborted` 短路则保证已取消的信号不会先挂上监听再立刻 reject。
+ *
+ * @param reader - 底层流读取器；本函数只读一次，不负责释放锁。
+ * @param signal - 取消信号；已取消时立即抛原始原因，不进入竞速。
+ * @returns 本次读取结果；取消先于读取完成时抛取消原因。
  */
 async function readWithAbort(
   reader: ReadableStreamDefaultReader<Uint8Array>,
@@ -247,6 +284,9 @@ async function readWithAbort(
  * 取出一条 SSE 行的载荷，非 `data:` 行（注释、`event:`、空行）返回 undefined。
  * 先剥掉行尾的 `\r` 以同时兼容 CRLF；`data:` 后的一个空格按 SSE 规范是分隔符而非内容，
  * 只剥一个。
+ *
+ * @param line - 原始的一行，可能仍带行尾 `\r`。
+ * @returns `data:` 行的载荷；非 `data:` 行返回 `undefined`，调用方据此跳过。
  */
 function lineData(line: string): string | undefined {
   const normalized = line.endsWith("\r") ? line.slice(0, -1) : line;
@@ -255,6 +295,16 @@ function lineData(line: string): string | undefined {
   return value.startsWith(" ") ? value.slice(1) : value;
 }
 
+/**
+ * 读取可选字符串字段：缺席与 `null` 原样返回，类型不对则归一为 `undefined`。
+ *
+ * 与 `hasOptionalString` 分工：本函数用于**取值**，类型错误在此被吞成 `undefined`；
+ * 需要区分「字段错」与「字段缺」的路径应先调 `hasOptionalString` 校验。
+ *
+ * @param record - 被读取的对象。
+ * @param key - 字段名。
+ * @returns 字符串值；`null`/`undefined` 原样返回；非字符串类型的值返回 `undefined`。
+ */
 function optionalString(
   record: Record<string, unknown>,
   key: string,
@@ -264,6 +314,16 @@ function optionalString(
   return typeof value === "string" ? value : undefined;
 }
 
+/**
+ * 校验可选字符串字段的类型：缺席、`null` 或字符串都算通过。
+ *
+ * 存在但类型不对（如数字）会返回 `false`，让调用方判成协议错误；这是与 `optionalString`
+ * 「静默归一为 undefined」的关键差别。
+ *
+ * @param record - 被校验的对象。
+ * @param key - 字段名。
+ * @returns 字段缺席、为 `null` 或为字符串时返回 `true`，否则 `false`。
+ */
 function hasOptionalString(
   record: Record<string, unknown>,
   key: string,
@@ -272,6 +332,16 @@ function hasOptionalString(
   return value === undefined || value === null || typeof value === "string";
 }
 
+/**
+ * 读取必须存在的无符号安全整数字段。
+ *
+ * token 计数不接受负数、小数与 `NaN`：这些值一旦流入用量统计会污染阈值判断，
+ * 故一律判成缺失而不是截断。
+ *
+ * @param record - 被读取的对象。
+ * @param key - 字段名。
+ * @returns 合法的非负安全整数；字段缺失、非数字、非整数或为负时返回 `undefined`。
+ */
 function requiredNumber(
   record: Record<string, unknown>,
   key: string,
@@ -282,10 +352,26 @@ function requiredNumber(
     : undefined;
 }
 
+/**
+ * 判断值是否为非数组的普通对象。
+ *
+ * 数组被显式排除：JS 里数组也是 `object`，若混入会让后续按键取值静默拿到 `undefined`。
+ *
+ * @param value - 待判断的未知值。
+ * @returns 是非 `null`、非数组对象时为 `true`，否则 `false`。
+ */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * 把错误包装成终止事件：一个带 `error` 的 chunk，且 `done` 为真。
+ *
+ * 这是带内错误的唯一构造点，保证所有协议错误在行为上一致。
+ *
+ * @param error - 已分类的错误（协议或临时），原样挂到 chunk 上。
+ * @returns 终止事件，chunks 恒为单项。
+ */
 function errorEvent(error: Error): ParsedEvent {
   return { done: true, chunks: [{ content: null, error }] };
 }

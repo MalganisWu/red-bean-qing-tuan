@@ -9,6 +9,16 @@ export interface JsonObject {
   readonly [key: string]: JsonValue;
 }
 
+/**
+ * 归一化普通对象，逐个自有字符串键递归校验并复制。
+ *
+ * 拒绝非普通原型、符号键与访问器属性：这些形态绕过 JSON 语义，放行会在序列化时静默丢字段。
+ *
+ * @param value - 待归一化的对象；本函数不再检查其类型，由调用方保证是 `object`。
+ * @param ancestors - 当前递归路径上的祖先，用于识别环引用；进入时加入、退出时移除。
+ * @returns 与输入等值的新普通对象，不共享引用。
+ * @throws TypeError 输入含环、符号键或访问器属性时抛出。
+ */
 function normalizeObject(value: object, ancestors: Set<object>): JsonObject {
   const prototype: unknown = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null) {
@@ -36,6 +46,17 @@ function normalizeObject(value: object, ancestors: Set<object>): JsonObject {
   }
 }
 
+/**
+ * 归一化任意未知值为 JSON 值，递归处理数组与对象。
+ *
+ * 原子值按值返回（数字要求有限），数组与对象走递归复制；其它类型（函数、bigint、symbol、
+ * undefined）一律拒绝而非丢弃，避免不可信输入被静默裁剪成合法 JSON。
+ *
+ * @param value - 来自外部的未知输入，可能是任意类型。
+ * @param ancestors - 当前递归路径上的祖先，用于识别环引用。
+ * @returns 与输入等值的 JSON 值，不共享引用。
+ * @throws TypeError 输入含非有限数、环引用或不可序列化类型时抛出。
+ */
 function normalizeJsonValue(value: unknown, ancestors: Set<object>): JsonValue {
   if (value === null || typeof value === "string" || typeof value === "boolean")
     return value;

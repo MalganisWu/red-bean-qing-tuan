@@ -34,6 +34,17 @@ export class ToolDispatchError extends Error {
   }
 }
 
+/**
+ * 把模型给出的参数文本解析为 JSON 值。
+ *
+ * 空串与字面量 `"null"` 都归一为 `{}`：模型常以这两种写法表达「无参数」，
+ * 若原样交给 JSON.parse 会得到 `null`，让下游按对象取值时报错。
+ * 解析结果再经 `toJsonValue` 过一遍，确保进入 Runtime 的 JSON 值域。
+ *
+ * @param argumentsJson - 工具调用携带的原始参数字符串。
+ * @returns 已归一化的 JSON 值；空串与 `"null"` 返回空对象。
+ * @throws ToolDispatchError 参数不是合法 JSON 或落在 JSON 值域之外时抛出，错误码为 `INVALID_ARGUMENTS`。
+ */
 function parseArguments(argumentsJson: string): JsonValue {
   if (argumentsJson === "" || argumentsJson === "null") return {};
   let value: unknown;
@@ -52,6 +63,7 @@ function parseArguments(argumentsJson: string): JsonValue {
 
 /** 按稳定工具名查找并执行显式注册 Tool 的默认分发器。 */
 export class MapToolDispatcher implements ToolDispatcher {
+  /** 工具名到 Tool 的注册表；构造时一次性填充，运行期不再变化。 */
   readonly #tools = new Map<string, Tool>();
 
   public constructor(tools: readonly Tool[]) {

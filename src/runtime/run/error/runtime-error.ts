@@ -24,6 +24,12 @@ export const RUNTIME_ERROR_CODES = Object.freeze({
 export type RuntimeErrorCode =
   (typeof RUNTIME_ERROR_CODES)[keyof typeof RUNTIME_ERROR_CODES];
 
+/**
+ * 错误码到稳定文案的映射，供 RuntimeError 构造时套用。
+ *
+ * 文案不参与任何分支判断，但刻意固定不变：日志与告警常按文案做聚合，
+ * 文案随版本漂移会让历史聚合规则失效。因此分支一律看 `code`，文案只看可读性。
+ */
 const RUNTIME_ERROR_MESSAGES: Readonly<Record<RuntimeErrorCode, string>> =
   Object.freeze({
     checkpoint_not_found: "checkpoint not found",

@@ -29,6 +29,10 @@ export type {
  *   只报其中一个会让真正的根因时有时无。
  *
  * `afterCase` 只在用例通过后执行——它是「重置外部状态」的钩子，用例已失败时没有意义。
+ *
+ * @param factory - 生成隔离 Store 的工厂；每个用例调用一次，实现须保证实例间不共享状态。
+ * @param options - 套件生命周期配置，含取消信号、dispose 与 afterCase。
+ * @param cases - 顺序执行的用例列表；任一失败即终止后续用例。
  */
 async function runCases(
   factory: CheckpointStoreContractFactory,

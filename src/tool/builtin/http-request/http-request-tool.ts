@@ -11,16 +11,24 @@ import {
 export const HTTP_REQUEST_TOOL_NAME = "sys_http_request";
 /** 单次响应最多读取的字节数（1MiB）；超出即截断，避免一个大响应把上下文撑爆。 */
 export const MAX_HTTP_RESPONSE_BYTES = 1_048_576;
+/** 跟随跳转的最大次数；超过即报错，防止 A→B→A 的循环把工具挂死。 */
 const MAX_REDIRECTS = 10;
+/** 允许的 HTTP 方法白名单；不在此列的方法在解析阶段就被拒绝。 */
 const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 
+/** 校验通过后的请求描述，字段均已归一化，可直接交给 HttpClient。 */
 interface ParsedRequest {
+  /** 已转大写并命中白名单的方法。 */
   readonly method: string;
+  /** 解析后的目标 URL，协议已限定为 http/https。 */
   readonly url: URL;
+  /** 校验通过的请求头，值保证是字符串。 */
   readonly headers: Readonly<Record<string, string>>;
+  /** 请求体文本；未提供时为空字符串。 */
   readonly body: string;
 }
 
+/** 暴露给模型的 JSON Schema 入参：method/url 必填，headers/body 可选。 */
 const PARAMETERS: JsonObject = {
   type: "object",
   properties: {
@@ -36,10 +44,25 @@ const PARAMETERS: JsonObject = {
   required: ["method", "url"],
 };
 
+/**
+ * 判定 JSON 值是否为普通对象（排除 null 与数组），作为后续字段读取的前置条件。
+ *
+ * @param value - 待判定的 JSON 值
+ * @returns 是对象且非 null、非数组时为 true
+ */
 function isObject(value: JsonValue): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * 把入参里的 headers 归一化成「名字 → 字符串」映射。
+ *
+ * 数字、数组等非字符串值一律报错而不是强转：静默转换会让模型以为设置生效，
+ * 实际发出去的却是别的值。缺省与 null 视为「没有请求头」。
+ *
+ * @param value - 入参中的 headers 原始值，允许 undefined / null
+ * @returns 归一化后的请求头映射；无请求头时为空对象
+ */
 function parseHeaders(
   value: JsonValue | undefined,
 ): Readonly<Record<string, string>> {
@@ -55,6 +78,15 @@ function parseHeaders(
   return headers;
 }
 
+/**
+ * 解析并校验目标 URL，只接受 http/https。
+ *
+ * 协议白名单是为了挡掉 `file:` 之类会让请求打到本地的 scheme；
+ * 空值或非法 URL 直接抛错，避免带着半成品 URL 继续往下走。
+ *
+ * @param value - 入参中的 url 原始值
+ * @returns 校验通过的 URL 对象
+ */
 function parseUrl(value: JsonValue | undefined): URL {
   if (typeof value !== "string" || value.length === 0) {
     throw new Error("url 不能为空");
@@ -73,6 +105,15 @@ function parseUrl(value: JsonValue | undefined): URL {
   return url;
 }
 
+/**
+ * 校验工具入参并产出归一化的请求描述。
+ *
+ * 在这里一次性做完所有字段校验（对象形态、方法白名单、URL 协议、body 类型），
+ * 让后续流程只需处理已验证的数据；任一字段非法即抛错，不做部分降级。
+ *
+ * @param value - 工具入参原始 JSON 值
+ * @returns 归一化后的请求描述，可直接交给 HttpClient
+ */
 function parseRequest(value: JsonValue): ParsedRequest {
   if (!isObject(value)) throw new Error("HTTP parameters must be an object");
   const rawMethod = value["method"];
@@ -97,6 +138,15 @@ function parseRequest(value: JsonValue): ParsedRequest {
   };
 }
 
+/**
+ * 判定状态码是否为需要跟随的跳转。
+ *
+ * 只认 301/302/303/307/308 这五个：300、304、305 语义不同，
+ * 跟随它们会改变请求含义或产生非预期行为。
+ *
+ * @param statusCode - 响应状态码
+ * @returns 需要跟随跳转时为 true
+ */
 function isRedirect(statusCode: number): boolean {
   return [301, 302, 303, 307, 308].includes(statusCode);
 }
@@ -104,6 +154,10 @@ function isRedirect(statusCode: number): boolean {
 /**
  * 重定向后的方法：301/302/303 把非 GET/HEAD 降级为 GET（配合下面清空 body），
  * 307/308 保持原方法。这是 HTTP 规范的既有语义，不是本项目的选择。
+ *
+ * @param statusCode - 重定向响应的状态码，决定是否降级
+ * @param method - 当前这一跳使用的方法
+ * @returns 下一跳应使用的方法
  */
 function redirectedMethod(statusCode: number, method: string): string {
   if (
@@ -125,6 +179,9 @@ function redirectedMethod(statusCode: number, method: string): string {
  * 实现是不分来源地一律剥掉，而不是只在跨域时剥：判断同源要解析两边的 origin 并处理各种边界
  * （端口、大小写、IDN），一处不严谨就等于没防。代价是同源跳转也会丢凭证——
  * 对「工具替模型发一次请求」这个场景可以接受，安全侧的收益远大于便利损失。
+ *
+ * @param headers - 当前这一跳的请求头
+ * @returns 剥掉凭证类头之后的请求头
  */
 function redirectedHeaders(
   headers: Readonly<Record<string, string>>,
@@ -168,6 +225,7 @@ export class HttpRequestTool implements Tool {
       parameters: PARAMETERS,
     },
   };
+  /** 实际发包的 HTTP 客户端，构造时注入，便于测试替换。 */
   readonly #client: HttpClient;
 
   public constructor(client: HttpClient = new PolicyHttpClient()) {

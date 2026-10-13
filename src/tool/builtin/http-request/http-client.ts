@@ -32,8 +32,19 @@ export type {
   ResolvedAddress,
 } from "./http-contracts.js";
 
+/** 未显式配置时的默认单次请求超时（毫秒）；取 30 秒兼顾慢接口与不无限挂起。 */
 const DEFAULT_TIMEOUT_MILLISECONDS = 30_000;
 
+/**
+ * 给一个 Promise 接上取消信号，让取消与结果先到者胜出，且只结算一次。
+ *
+ * 取消先于结果到达时以取消原因结算；未知原因统一包成 `Error` 再拒绝，
+ * 避免把非 Error 抛给调用方。结果早于取消时摘掉取消监听，防止后续 abort 重复结算。
+ *
+ * @param operation - 被包裹的底层操作，其结果最终原样透传
+ * @param signal - 调用方的取消信号，中止时以取消原因拒绝
+ * @returns 与 `operation` 同结果的 Promise，但会被 `signal` 提前中止
+ */
 function abortable<TValue>(
   operation: Promise<TValue>,
   signal: AbortSignal,
@@ -88,9 +99,13 @@ function abortable<TValue>(
  * 所以每次失败后先 `throwIfHttpAborted` 再决定要不要试下一个地址。
  */
 export class PolicyHttpClient implements HttpClient {
+  /** 单次请求超时毫秒数，构造期已归一化为正数。 */
   readonly #timeoutMilliseconds: number;
+  /** 地址授权策略，决定解析出的哪些 IP 允许连接。 */
   readonly #policy: EgressPolicy;
+  /** DNS 解析 Port，返回全部地址交由策略逐个校验。 */
   readonly #lookup: AddressLookup;
+  /** 固定 IP 建连的传输 Port，避免授权后再次解析主机名。 */
   readonly #connect: PinnedRequest;
 
   public constructor(options: PolicyHttpClientOptions = {}) {

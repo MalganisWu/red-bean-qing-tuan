@@ -29,11 +29,17 @@ import {
 
 /** 从显式 state 或 Store 归一化得到的唯一运行起点。 */
 export interface LoadedRunCheckpoint {
+  /** 起点的历史消息；无 Store 且是新 thread 时可能为空。 */
   readonly history: readonly RawMessage[];
+  /** 起点携带的内容引用，随上下文一起被恢复。 */
   readonly contentRefs: readonly ContentRef[];
+  /** 归一化后的所有者标识；请求未声明时回落到 state 或 Store 的值。 */
   readonly userId: string;
+  /** 起点记录中最近一次已消费的中断 ID，用于判定某中断是否已处理过。 */
   readonly lastResumeInterrupt: string;
+  /** 起点在 Store 中的版本；无 Store 或新 thread 时为 0n。 */
   readonly revision: bigint;
+  /** 非空表示本次调用不该继续执行，调用方应直接返回它（起点已处于挂起或已认领状态）。 */
   readonly terminalResult?: ReturnType<typeof runtimeResultFromRecord>;
 }
 
@@ -268,7 +274,12 @@ export function validateCheckpointIdentity(
   }
 }
 
-/** 确认要恢复的正是当前挂起的那个工具调用；「没挂起」与「挂起的是别人」分开报错。 */
+/**
+ * 确认要恢复的正是当前挂起的那个工具调用；「没挂起」与「挂起的是别人」分开报错。
+ *
+ * @param checkpoint - 待校验的 Checkpoint；以其 interrupt 字段为当前挂起点
+ * @param interruptId - 请求要恢复的中断标识；与挂起点 toolCallId 不符即报 INTERRUPT_MISMATCH
+ */
 function validatePendingInterrupt(
   checkpoint: Checkpoint,
   interruptId: string,

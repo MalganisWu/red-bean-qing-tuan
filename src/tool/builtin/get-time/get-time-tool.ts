@@ -5,21 +5,43 @@ import type { Tool, ToolResult, ToolSchema } from "../../definition/tool.js";
 /** 未指定 timezone 时使用的默认时区。 */
 export const DEFAULT_TIMEZONE = "Asia/Shanghai";
 
+/** 某一时区下拆分出的各时间字段，以及与 UTC 的偏移量。 */
 interface ZonedParts {
+  /** 四位年份字符串。 */
   readonly year: string;
+  /** 两位月份字符串（01-12）。 */
   readonly month: string;
+  /** 两位日期字符串（01-31）。 */
   readonly day: string;
+  /** 两位小时字符串，24 小时制（00-23）。 */
   readonly hour: string;
+  /** 两位分钟字符串（00-59）。 */
   readonly minute: string;
+  /** 两位秒字符串（00-59）。 */
   readonly second: string;
+  /** UTC 偏移量，紧凑格式，如 `+0800`。 */
   readonly offset: string;
+  /** UTC 偏移量，带冒号格式，如 `+08:00`。 */
   readonly colonOffset: string;
 }
 
+/**
+ * 判断 JSON 值是否为非数组的普通对象，用于把 unknown 形状的入参收窄。
+ *
+ * @param value - 待判定的 JSON 值，为 null 或数组时返回 false
+ * @returns 是普通对象则为 true，供类型守卫收窄到 `JsonObject`
+ */
 function isObject(value: JsonValue): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * 读取一个可选的字符串字段，缺失或为 null 时回退为空串。
+ *
+ * @param value - 工具入参对象
+ * @param key - 要读取的字段名，也会出现在类型错误消息里便于定位
+ * @returns 字段的字符串值；缺失或为 null 时为空串
+ */
 function optionalString(value: JsonObject, key: string): string {
   const field = value[key];
   if (field === undefined || field === null) return "";
@@ -27,6 +49,13 @@ function optionalString(value: JsonObject, key: string): string {
   return field;
 }
 
+/**
+ * 从 `Intl.DateTimeFormat#formatToParts` 的结果里取出指定类型的分量。
+ *
+ * @param parts - `formatToParts` 返回的分量数组
+ * @param type - 想要的分量类型，如 `year` / `hour`
+ * @returns 对应分量的文本；该时区下不存在该分量时为空串
+ */
 function part(
   parts: readonly Intl.DateTimeFormatPart[],
   type: Intl.DateTimeFormatPartTypes,
@@ -34,6 +63,13 @@ function part(
   return parts.find((candidate) => candidate.type === type)?.value ?? "";
 }
 
+/**
+ * 把分钟数的 UTC 偏移量格式化成 `±HH:MM` 或 `±HHMM`。
+ *
+ * @param offsetMinutes - 相对 UTC 的偏移分钟数，正负号直接决定前缀
+ * @param separator - 时与分之间的分隔符，传空串得到紧凑格式
+ * @returns 形如 `+08:00`（分隔符为 `:`）或 `-0500`（分隔符为空）的偏移量文本
+ */
 function formatOffset(offsetMinutes: number, separator: string): string {
   const sign = offsetMinutes >= 0 ? "+" : "-";
   const absolute = Math.abs(offsetMinutes);
@@ -44,6 +80,16 @@ function formatOffset(offsetMinutes: number, separator: string): string {
   return `${sign}${hours}${separator}${minutes}`;
 }
 
+/**
+ * 用 `Intl` 在指定时区下拆分一个时间点，并算出相对 UTC 的偏移量。
+ *
+ * 偏移量由「本地字段重拼成的 UTC 时间戳」与真实时间戳之差得到，因此无需查时区表；
+ * 时区名非法时抛出带 `cause` 的异常。
+ *
+ * @param value - 要拆分的时间点
+ * @param timeZone - IANA 时区名，非法时抛出异常
+ * @returns 该时区下的各时间字段与偏移量
+ */
 function zonedParts(value: Date, timeZone: string): ZonedParts {
   let formatter: Intl.DateTimeFormat;
   try {
@@ -89,6 +135,13 @@ function zonedParts(value: Date, timeZone: string): ZonedParts {
   };
 }
 
+/**
+ * 按 strftime 子集把时间字段替换进格式串。
+ *
+ * @param format - 格式串，支持 `%Y %m %d %H %M %S %z %:z %%`，其余字符原样保留
+ * @param parts - 已拆分好的时区时间字段
+ * @returns 替换占位符后的格式化时间文本
+ */
 function formatStrftime(format: string, parts: ZonedParts): string {
   const replacements: Readonly<Record<string, string>> = {
     "%%": "%",
@@ -107,6 +160,7 @@ function formatStrftime(format: string, parts: ZonedParts): string {
   );
 }
 
+/** 暴露给模型的 JSON Schema 入参：可选的 `format` 与 `timezone`，无必填字段。 */
 const TIME_PARAMETERS: JsonObject = {
   type: "object",
   properties: {
@@ -136,6 +190,7 @@ export class GetTimeTool implements Tool {
       parameters: TIME_PARAMETERS,
     },
   };
+  /** 取当前时间的函数；默认读系统时钟，注入后便于测试固定时间点。 */
   readonly #now: () => Date;
 
   public constructor(now: () => Date = (): Date => new Date()) {

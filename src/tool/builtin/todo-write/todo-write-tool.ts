@@ -17,12 +17,15 @@ export type TodoStatus = (typeof TODO_STATUSES)[keyof typeof TODO_STATUSES];
 
 /** 单条待办事项。 */
 export interface TodoItem {
+  /** 待办事项描述，用祈使句写明要做什么，渲染时直接呈现给模型。 */
   readonly content: string;
+  /** 该事项当前状态，取值只能是 `TODO_STATUSES` 中的三项之一。 */
   readonly status: TodoStatus;
 }
 
 /** 调用方给出的完整清单，已通过运行时校验。 */
 export interface TodoWriteParams {
+  /** 完整清单，整体替换上一次内容；空数组表示清空。 */
   readonly todos: readonly TodoItem[];
 }
 
@@ -33,6 +36,13 @@ const STATUS_MARKERS = Object.freeze({
   [TODO_STATUSES.COMPLETED]: "[x]",
 } satisfies Readonly<Record<TodoStatus, string>>);
 
+/**
+ * 构造暴露给模型的 JSON Schema 入参描述。
+ *
+ * status 的 enum 直接取 `TODO_STATUSES` 的成员，避免 Schema 与解析函数各写一份字符串而漂移。
+ *
+ * @returns 描述 todos 数组及其元素形状的 JSON Schema 对象
+ */
 function parameters(): JsonObject {
   return {
     type: "object",
@@ -67,6 +77,15 @@ function parameters(): JsonObject {
   };
 }
 
+/**
+ * 校验状态字段并收窄为 `TodoStatus`。
+ *
+ * undefined 与非枚举值一律拒绝：状态缺失时无法推断该事项的进度，静默兜底会让清单与真实进度不符。
+ *
+ * @param value - 状态原始值，可能是 undefined（字段缺失）
+ * @param index - 该事项在 todos 中的下标，仅用于拼出可定位的错误信息
+ * @returns 校验通过的状态字面量；非法值抛出 Error 并列出合法取值
+ */
 function parseStatus(value: JsonValue | undefined, index: number): TodoStatus {
   if (value === TODO_STATUSES.PENDING) return TODO_STATUSES.PENDING;
   if (value === TODO_STATUSES.IN_PROGRESS) return TODO_STATUSES.IN_PROGRESS;
@@ -75,6 +94,15 @@ function parseStatus(value: JsonValue | undefined, index: number): TodoStatus {
   throw new Error(`todos[${index}].status 必须是 ${allowed}`);
 }
 
+/**
+ * 校验单条待办事项并归一化内容。
+ *
+ * content 会先 trim 再判空：只有空白的描述对模型没有信息量，等同于没写，直接拒绝。
+ *
+ * @param value - 单条待办原始值，须是含 content 与 status 的非空对象
+ * @param index - 该事项在 todos 中的下标，仅用于拼出可定位的错误信息
+ * @returns 归一化后的待办事项，content 已去除首尾空白
+ */
 function parseItem(value: JsonValue, index: number): TodoItem {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error(`todos[${index}] 必须是对象`);
@@ -88,7 +116,15 @@ function parseItem(value: JsonValue, index: number): TodoItem {
   return { content, status: parseStatus(value["status"], index) };
 }
 
-/** 从 unknown 形状的入参校验并归一化完整清单。 */
+/**
+ * 从 unknown 形状的入参校验并归一化完整清单。
+ *
+ * todos 允许为空数组（表示清空），但不允许缺失或非数组：区分「清空」与「没传」，是整体替换语义下
+ * 避免误清空的前提。
+ *
+ * @param value - 工具入参原始值，须是含 todos 数组的对象
+ * @returns 归一化后的完整清单，元素均已通过 `parseItem` 校验
+ */
 function parseTodoWriteParams(value: JsonValue): TodoWriteParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("todo_write parameters must be an object");
@@ -98,7 +134,15 @@ function parseTodoWriteParams(value: JsonValue): TodoWriteParams {
   return { todos: rawTodos.map(parseItem) };
 }
 
-/** 渲染清单与进度，供模型在后续轮次继续引用。 */
+/**
+ * 渲染清单与进度，供模型在后续轮次继续引用。
+ *
+ * 空清单返回固定的「已清空」文案而非空串：工具结果为空时模型容易误判调用失败，
+ * 一句明确的文案能消掉这种歧义。
+ *
+ * @param todos - 归一化后的清单，空数组表示已清空
+ * @returns 每行一项的标记清单加末尾的完成进度统计文本
+ */
 function renderTodos(todos: readonly TodoItem[]): string {
   if (todos.length === 0) return "清单已清空（当前没有待办事项）";
   const lines = todos.map(
@@ -138,6 +182,7 @@ export class TodoWriteTool implements Tool {
       parameters: parameters(),
     },
   };
+  /** 按 threadId 隔离的清单存储，只活在进程内，Runtime 本身不做持久化。 */
   readonly #byThread = new Map<string, TodoItem[]>();
 
   /**

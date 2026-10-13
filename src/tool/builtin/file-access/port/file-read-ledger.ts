@@ -7,9 +7,13 @@ import type { FileIdentity } from "../model/file-identity.js";
  * 秒级粒度会让同一秒内的改动被误判为未变更，因此这里必须严于展示层使用的时间精度。
  */
 export interface FileReadRecord {
+  /** 读取那一刻文件修改时间的毫秒值，写入闸门据此判断内容是否仍是读到的版本。 */
   readonly mtimeMs: number;
+  /** 本次读取起始的字节偏移，与 `limit` 一起界定读到的范围。 */
   readonly offset: number;
+  /** 本次读取的最大字节数，用于区分「读全了」与「只读了片段」。 */
   readonly limit: number;
+  /** 读取时记录的文件身份，用于发现同一路径已被替换成另一个文件对象。 */
   readonly identity: FileIdentity;
 }
 
@@ -24,10 +28,27 @@ export interface FileReadRecord {
  * 默认实现为 `MemoryFileReadLedger`（进程内，只用于单进程宿主与契约验证）。
  */
 export interface FileReadLedger {
-  /** 查询某个 conversation 对某个文件的最近一次读取记录。 */
+  /**
+   * 查询某个 conversation 对某个文件的最近一次读取记录。
+   *
+   * @param threadId - conversation 标识，用于隔离不同会话的上下文
+   * @param fileKey - 由 `ledgerFileKey` 统一生成的绝对化文件键
+   * @returns 命中时返回读取记录，未读过时返回 `undefined`
+   */
   read(threadId: string, fileKey: string): FileReadRecord | undefined;
-  /** 记录一次成功读取，覆盖同一 conversation 对该文件的旧记录。 */
+  /**
+   * 记录一次成功读取，覆盖同一 conversation 对该文件的旧记录。
+   *
+   * @param threadId - conversation 标识，用于隔离不同会话的上下文
+   * @param fileKey - 由 `ledgerFileKey` 统一生成的绝对化文件键
+   * @param record - 本次读取的内容版本与范围，供写入闸门比对
+   */
   record(threadId: string, fileKey: string, record: FileReadRecord): void;
-  /** 丢弃记录，用于内容已被重新取回或已确认失效的场景。 */
+  /**
+   * 丢弃记录，用于内容已被重新取回或已确认失效的场景。
+   *
+   * @param threadId - conversation 标识，用于隔离不同会话的上下文
+   * @param fileKey - 由 `ledgerFileKey` 统一生成的绝对化文件键
+   */
   forget(threadId: string, fileKey: string): void;
 }

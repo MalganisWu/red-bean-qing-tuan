@@ -27,13 +27,21 @@ import { abortError } from "../../../protocol/abort-signal.js";
 
 /** 统一 Agent 执行组件的依赖集合；所有依赖均由高层 Runtime 或 AgentNode 显式注入。 */
 export interface ReactAgentExecutionOptions {
+  /** LLM 适配器，主循环用它发起模型流。 */
   readonly adapter: LlmAdapter;
+  /** 工具分发器，主循环用它真正执行工具调用。 */
   readonly dispatcher: ToolDispatcher;
+  /** 本轮可用工具声明；同时决定哪些调用具备中断屏障。 */
   readonly tools: readonly ToolSchema[];
+  /** 消息 Hook，可选；未配置时不组装消息观察回调，消息提交后不对外通知。 */
   readonly hook?: MessageHook | undefined;
+  /** 注入循环开头的系统提示词；执行结束时会被剥离，不写回可见上下文。 */
   readonly systemPrompt: string;
+  /** 模型参数，透传给每次模型调用。 */
   readonly modelParams: ModelParams;
+  /** 运行预算与重试配置，决定轮次上限、超时与压缩策略。 */
   readonly config: RuntimeConfig;
+  /** 中断投影器，可选；未配置时中断只写回元数据、不交给宿主展示。 */
   readonly interruptAssembler?: InterruptAssembler | undefined;
 }
 
@@ -42,6 +50,7 @@ export interface ReactAgentExecutionOptions {
  * 它只协调中性 RuntimeContext、消息 Hook 与 interrupt，不负责 checkpoint 或宿主持久化。
  */
 export class ReactAgentExecution implements AgentExecution {
+  /** 构造时注入的依赖与配置；本类只读取，不做改写。 */
   readonly #options: ReactAgentExecutionOptions;
 
   public constructor(options: ReactAgentExecutionOptions) {
@@ -154,6 +163,17 @@ export class ReactAgentExecution implements AgentExecution {
   }
 }
 
+/**
+ * 把消息 Hook 适配成主循环需要的消息观察回调。
+ *
+ * 按消息角色分派到对应的 Hook 方法；每条消息都经由 `runHook` 统一错误语义——
+ * 只有 fatal hook 错误才中断主流程，普通错误被吞掉放行。
+ *
+ * @param context - 本次运行上下文，原样传给每个 Hook。
+ * @param hook - 要适配的消息 Hook。
+ * @param signal - 运行取消信号，原样传给每个 Hook。
+ * @returns 供主循环逐条调用的观察函数。
+ */
 function messageObserver(
   context: RuntimeContext,
   hook: MessageHook,
@@ -181,6 +201,13 @@ function messageObserver(
   return observeMessage;
 }
 
+/**
+ * 统一消息 Hook 的失败语义：只有 `HookFatalError` 会被重新抛出，其余错误一律吞掉放行。
+ *
+ * 「失败是否致命」由 Hook 作者用 `HookFatalError` 显式标记，框架不代为推断。
+ *
+ * @param operation - 要执行的 Hook 操作；其抛出的非致命错误会被吞掉。
+ */
 async function runHook(operation: () => Promise<void>): Promise<void> {
   try {
     await operation();
@@ -189,6 +216,17 @@ async function runHook(operation: () => Promise<void>): Promise<void> {
   }
 }
 
+/**
+ * 把失败归类成稳定的停止原因。
+ *
+ * 判定顺序是有意为之：取消优先于 fatal hook，最后才退到 LLM 错误。
+ * 信号已中止或结果已在取消态都算取消；只有确认是 fatal hook 链才归为 hook_fatal。
+ *
+ * @param error - 已归一化的失败对象，用于沿 cause 链判断是否为 fatal hook 错误。
+ * @param result - 失败那一刻的循环结果；为 undefined 表示连部分结果都没拿到。
+ * @param signal - 运行取消信号。
+ * @returns 与 `AgentResult.reason` 同域的原因取值。
+ */
 function reasonForError(
   error: Error,
   result: ReactResult | undefined,
@@ -206,6 +244,9 @@ function reasonForError(
  * 必须遍历整条链：真正的 fatal 错误往往被中间层包了一层（例如被包进 ReactAgentExecutionError），
  * 只看最外层会漏判。`visited` 集合防的是 cause 链成环——出错路径上什么都可能发生，
  * 一个自引用会让这里变成死循环。
+ *
+ * @param value - 待判定的抛出物；非 Error 或链上不含 fatal 错误时返回 false。
+ * @returns 该值或其 cause 链上是否存在 `HookFatalError` 实例。
  */
 function isHookFatalErrorChain(value: unknown): boolean {
   let current: unknown = value;
@@ -218,6 +259,12 @@ function isHookFatalErrorChain(value: unknown): boolean {
   }
   return false;
 }
+/**
+ * 把任意抛出物统一成 Error；非 Error 只做字符串化，不做结构探测。
+ *
+ * @param value - 任意抛出物；是 Error 时原样返回，否则被包成消息为 `String(value)` 的新 Error。
+ * @returns 一定是 Error 实例。
+ */
 function normalizeError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }

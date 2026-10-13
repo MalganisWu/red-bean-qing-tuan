@@ -6,9 +6,13 @@ import { CheckpointStoreError } from "../checkpoint-store-error.js";
 
 /** 内存 Adapter 保存的记录、fencing 高水位与墓碑状态。 */
 export interface MemoryCheckpointRecord {
+  /** 记录本体（Checkpoint 与 revision）；墓碑期仍保留它，revision 供 CAS 比较、内容清空但代次不变。 */
   record: CheckpointRecord;
+  /** 已推进到的 fencing 高水位，单调不减；旧持有者携带更小的 token 会在此被拒。 */
   fencingToken: bigint;
+  /** 是否存在有效落盘内容；为 false 表示尚未写过，或已被删除写成墓碑。 */
   present: boolean;
+  /** 墓碑标记：删除是逻辑删除，内容被清空但记录不回收，高水位借此继续阻挡旧 fence。 */
   deleted: boolean;
 }
 

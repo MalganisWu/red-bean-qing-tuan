@@ -18,17 +18,30 @@ export const EDIT_FILE_TOOL_NAME = "sys_edit_file";
 
 /** 调用方给出的替换条件，已通过运行时校验。 */
 export interface EditFileParams {
+  /** 目标文件路径，必须已用 sys_read_file 读过且之后未被改动。 */
   readonly filePath: string;
+  /** 要被替换掉的原文片段，需带上足够上下文以保证在文件中唯一。 */
   readonly oldString: string;
+  /** 替换后的新内容，与 oldString 相同会被解析阶段拒绝。 */
   readonly newString: string;
+  /** 为 true 时替换全部匹配；为 false 时匹配数不为 1 直接失败。 */
   readonly replaceAll: boolean;
 }
 
 /** 工具依赖：账本是必填项，缺失会让「先读后写」闸门失效。 */
 export interface EditFileOptions {
+  /** 读取账本，用于确认目标文件在本 conversation 读过且自读取后未被改动。 */
   readonly ledger: FileReadLedger;
 }
 
+/**
+ * 构造暴露给模型的 JSON Schema 入参描述。
+ *
+ * 结构必须与 `parseEditFileParams` 的运行期校验保持一致：Schema 只是给模型的第一层提示，
+ * 真正决定拒绝与否的是解析函数，两者不同步会让模型按 Schema 构造仍被拒。
+ *
+ * @returns 描述 file_path、old_string、new_string 与 replace_all 的 JSON Schema 对象
+ */
 function parameters(): JsonObject {
   return {
     type: "object",
@@ -55,7 +68,15 @@ function parameters(): JsonObject {
   };
 }
 
-/** 从 unknown 形状的入参校验并归一化替换条件。 */
+/**
+ * 从 unknown 形状的入参校验并归一化替换条件。
+ *
+ * replace_all 缺省视为 false：模型不显式声明要改多处时，宁可按「只想改一处」处理并让其补上下文，
+ * 也不要默认扩大改动范围。
+ *
+ * @param value - 工具入参原始值，须是含 file_path、old_string、new_string 的对象
+ * @returns 归一化后的替换条件，replace_all 已补全为布尔值
+ */
 function parseEditFileParams(value: JsonValue): EditFileParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("edit_file parameters must be an object");
@@ -106,6 +127,7 @@ export class EditFileTool implements Tool {
       parameters: parameters(),
     },
   };
+  /** 读取账本，是「先读后写」闸门的事实来源；缺失会让新鲜度校验失效。 */
   readonly #ledger: FileReadLedger;
 
   public constructor(options: EditFileOptions) {
@@ -167,6 +189,15 @@ export class EditFileTool implements Tool {
   }
 }
 
+/**
+ * 按 replaceAll 选择只替换第一处还是替换全部匹配。
+ *
+ * 纯函数，不改写入参；匹配唯一性已在调用方校验，这里只负责施加替换。
+ *
+ * @param source - 文件当前内容
+ * @param params - 已归一化的替换条件，replaceAll 决定替换范围
+ * @returns 替换后的完整文件内容，调用方负责写盘
+ */
 function applyReplacement(source: string, params: EditFileParams): string {
   return params.replaceAll
     ? replaceEvery(source, params.oldString, params.newString)

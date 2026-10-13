@@ -6,6 +6,9 @@ import type { RawMessage } from "../../protocol/message.js";
  * 之所以不用真分词器：它会引入一个生产依赖与一份词表，而这里要的只是一个触发压缩的量级判断，
  * 差 10% 完全不影响决策。非 ASCII 单独计数是刻意的——中日韩文本在多数分词器里接近 1:1，
  * 若沿用 4 字符 1 Token 的换算，中文会被严重低估，压缩该触发时不触发。
+ *
+ * @param value - 待估算的文本；按字符逐个区分 ASCII 与非 ASCII 后分别累计。
+ * @returns 粗略 Token 数，仅用于压缩触发的量级判断，不是真实分词结果。
  */
 function estimateTextTokens(value: string): number {
   let asciiCharacters = 0;

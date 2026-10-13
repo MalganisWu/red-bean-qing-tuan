@@ -39,6 +39,12 @@ const NO_TOOLS_PREAMBLE = `- Do NOT use any tool (Read, Bash, Grep, Glob, Edit, 
 
 `;
 
+/**
+ * 摘要任务的主体提示词，直接被模型消费。
+ *
+ * 它只负责「摘要什么」：要求先产出 `<analysis>` 草稿再产出 `<summary>`，并逐条列出必须覆盖的
+ * 章节。禁工具与收尾措辞分别由 `NO_TOOLS_PREAMBLE` 和调用处的拼接承担，二者职责不重叠。
+ */
 const BASE_COMPACT_PROMPT = `Your task is to create a detailed summary of the conversation so far, paying close attention to the user's explicit requests and your previous actions.
 This summary should be thorough in capturing technical details, code patterns, and architectural decisions that would be essential for continuing development work without losing context.
 
@@ -58,15 +64,34 @@ Your summary should include the following sections:
 
 Your entire response must be plain text: an <analysis> block followed by a <summary> block containing the sections above. Be precise and thorough.`;
 
+/**
+ * 把任意抛出物统一成 Error；非 Error 只做字符串化，不做结构探测。
+ *
+ * @param value - 任意抛出物；是 Error 时原样返回，否则被包成消息为 `String(value)` 的新 Error。
+ * @returns 一定是 Error 实例。
+ */
 function normalizeError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }
+/**
+ * 取一个正整数配置，非法值退回默认值。
+ *
+ * @param value - 待校验的配置值；只有安全正整数才被接受。
+ * @param fallback - value 缺失或非正数时使用的默认值。
+ * @returns 合法的 value，或 fallback。
+ */
 function positiveInteger(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isSafeInteger(value) && value > 0
     ? value
     : fallback;
 }
 
+/**
+ * 内容引用的结构守卫：只认形状完整的对象，坏数据一律判否。
+ *
+ * @param value - 待校验的候选值，通常来自宿主可写的元数据字典。
+ * @returns 该值是否具备 `kind` 与 `key` 两个字符串字段。
+ */
 function isContentRef(value: unknown): value is ContentRef {
   return (
     typeof value === "object" &&
@@ -82,6 +107,9 @@ function isContentRef(value: unknown): value is ContentRef {
  * 从上下文元数据里取内容引用，并逐条做结构校验。
  * 元数据是宿主可写的开放字典，可能被塞进任意值；这里只接受形状正确的引用，
  * 坏数据跳过而不是让整次压缩失败。
+ *
+ * @param context - 本次运行上下文，从其 metadata 里读取内容引用列表。
+ * @returns 形状合法的内容引用；元数据缺失、非数组或元素非法时退化为空数组。
  */
 function collectContentRefs(context: RuntimeContext): ContentRef[] {
   const value = context.metadata.get(CONTENT_REFS_METADATA_KEY);
@@ -93,6 +121,14 @@ function collectContentRefs(context: RuntimeContext): ContentRef[] {
   return references;
 }
 
+/**
+ * 拼出本次摘要调用用的完整提示词：固定前缀 + 主体提示词 + 可选的自定义指令。
+ *
+ * 自定义指令为空（或只有空白）时不追加段落，避免在提示词里留一个空的附加指令标题。
+ *
+ * @param customInstructions - 宿主提供的附加指令，通常来自压缩配置；空串表示不追加。
+ * @returns 拼接好的完整提示词文本。
+ */
 function buildCompactPrompt(customInstructions: string): string {
   const base = NO_TOOLS_PREAMBLE + BASE_COMPACT_PROMPT;
   const custom = customInstructions.trim();
@@ -117,6 +153,15 @@ export function formatCompactSummary(summary: string): string {
   return formatted.trim();
 }
 
+/**
+ * 构造压缩分界标记：一条 system 消息，告诉模型「下面那段是压缩过的」。
+ *
+ * 用 system 角色而不是 user，是为了避免模型把摘要误当成用户刚说的话。
+ *
+ * @param preTokens - 压缩前的 Token 估算，写入分界标记供排障对照。
+ * @param summarized - 被摘要掉的消息条数，写入分界标记供排障对照。
+ * @returns 一条带压缩元信息的 system 消息。
+ */
 function buildBoundaryMessage(
   preTokens: number,
   summarized: number,
@@ -127,6 +172,15 @@ function buildBoundaryMessage(
   };
 }
 
+/**
+ * 把摘要正文包成一条 user 消息，并附上「继续干活」的收尾指令。
+ *
+ * 收尾措辞是刻意直白的：压缩后模型容易复述摘要或重新打招呼，这里明确禁止这些行为，
+ * 让它像没被打断一样接着上一件事做。
+ *
+ * @param summary - 已去草稿的摘要正文，来自 `formatCompactSummary` 的输出。
+ * @returns 一条含摘要正文与继续指令的 user 消息。
+ */
 function buildSummaryMessage(summary: string): RawMessage {
   return {
     role: "user",
@@ -142,6 +196,9 @@ Continue the conversation from where it left off without asking the user any fur
  * 返回头部连续 system 消息的条数，也就是**永远不参与摘要**的那一段。
  * 它们是系统提示词与宿主注入的前缀，语义上属于「这个 Agent 是谁」而不是「聊过什么」，
  * 被摘要掉等于换了个人格。
+ *
+ * @param messages - 待切割的完整消息序列。
+ * @returns 头部连续 system 消息的条数；首个非 system 消息处即为分界。
  */
 function splitSystemMessages(messages: readonly RawMessage[]): number {
   for (let index = 0; index < messages.length; index += 1) {
@@ -156,6 +213,12 @@ function splitSystemMessages(messages: readonly RawMessage[]): number {
  *
  * 超时通过中止作用域内的 controller 生效，这样底层连接会真正被取消，
  * 而不只是我们这边不再等待。
+ *
+ * @param iterator - 摘要流的迭代器，每次调用只取一帧。
+ * @param signal - 运行取消信号；已中止或等待期间被取消都以取消原因拒绝。
+ * @param timeoutMs - 空闲超时毫秒数，按距上一帧的间隔重新计时。
+ * @param timeoutController - 用于在空闲超时时中止整个摘要流的控制器。
+ * @returns 迭代器的下一帧结果；超时或取消时改用拒绝而非返回。
  */
 async function nextWithTimeout(
   iterator: AsyncIterator<LlmChunk>,
@@ -187,9 +250,13 @@ async function nextWithTimeout(
 
 /** 基于 Token 阈值压缩历史消息的默认实现；摘要失败由 ReAct 主循环按尽力语义降级。 */
 export class DefaultCompressor implements ContextCompressor {
+  /** LLM 适配器；摘要调用走它发起，与主循环共用同一个上游。 */
   readonly #adapter: LlmAdapter;
+  /** 压缩配置；决定是否启用、阈值、保留条数与空闲超时。 */
   readonly #config: CompressionConfig;
+  /** 模型参数；用于在缺省时按上下文窗口推算触发阈值与摘要输出上限。 */
   readonly #modelParams: ModelParams;
+  /** 连续失败计数，达到上限后 shouldCompact 停止触发以避开注定失败的摘要调用。 */
   #consecutiveFailures = 0;
 
   public constructor(
@@ -322,6 +389,8 @@ export class DefaultCompressor implements ContextCompressor {
    * 没显式配置阈值时按模型窗口推算：窗口 − 预留输出 − 缓冲。
    * 模型没有声明 `contextWindow` 时返回 0，表示「不猜」——宁可完全不自动压缩，
    * 也不要凭一个虚构的窗口大小反复触发。
+   *
+   * @returns 本轮触发压缩的 Token 阈值；无显式配置且模型未声明窗口时为 0，表示不自动压缩。
    */
   #autoCompactThreshold(): number {
     if (this.#config.triggerThreshold !== undefined) {
@@ -336,6 +405,17 @@ export class DefaultCompressor implements ContextCompressor {
     return Math.max(0, contextWindow - reserved) - AUTO_COMPACT_BUFFER_TOKENS;
   }
 
+  /**
+   * 发起一次摘要调用，把待摘要的消息交给模型并收敛其输出。
+   *
+   * 本次调用**只允许一轮**：提示词已禁工具，一旦模型仍请求工具就会浪费掉唯一的机会。
+   * 空闲超时按帧计时，超时会通过内部控制器中止底层连接；无论成败都在 finally 里掐掉该控制器。
+   * 摘要是空文本或解析后为空都被视为失败并抛错，由调用方累计失败次数。
+   *
+   * @param messages - 待摘要的消息序列；函数会在其末尾追加一条提示词消息。
+   * @param signal - 运行取消信号，与内部超时信号合成后透传给适配器。
+   * @returns 去除草稿后的摘要正文；空响应或解析为空时抛错。
+   */
   async #summarize(
     messages: readonly RawMessage[],
     signal: AbortSignal,

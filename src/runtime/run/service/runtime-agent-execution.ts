@@ -47,24 +47,39 @@ const CHECKPOINT_SAVE_TIMEOUT_MS = 5_000;
 
 /** 高层编排整理后的单次执行输入；集合由执行函数复制后再写入状态。 */
 export interface RuntimeExecutionInput {
+  /** 本次执行的线程；同时用作会话与 checkpoint 标识。 */
   readonly threadId: string;
+  /** 所有者标识；空串表示无主。 */
   readonly userId: string;
+  /** 请求标识，用于事件与日志关联。 */
   readonly requestId: string;
+  /** 追踪标识，用于串联宿主的分布式追踪。 */
   readonly traceId: string;
+  /** 模型上下文已有的历史消息。 */
   readonly history: readonly RawMessage[];
+  /** 本轮新增的消息；与 history 拼接后构成完整模型上下文。 */
   readonly messages: readonly RawMessage[];
+  /** 起点携带的内容引用；会与新寄存的引用一起保存。 */
   readonly contentRefs: readonly ContentRef[];
+  /** 起点记录中最近一次已消费的中断 ID，写入结果供后续重放判定。 */
   readonly lastResumeInterrupt: string;
+  /** 保存时的 CAS 期望 revision；必须与 Store 当前值一致。 */
   readonly checkpointRevision: bigint;
+  /** 保存时携带的 fencing token；经 Store 校验高水位。 */
   readonly fencingToken: bigint;
+  /** resume 终态写入时的认领 requestId；普通 run 为空串，表示不认领。 */
   readonly claimRequestId: string;
 }
 
 /** 执行、Checkpoint 与事件出口的显式依赖，不持有产品 Repository。 */
 export interface RuntimeAgentExecutionDependencies {
+  /** 底层 ReAct 执行器，负责真正的模型-工具循环。 */
   readonly execution: AgentExecution;
+  /** 持久化 Store；undefined 表示无 Store 模式，状态只留在返回值里。 */
   readonly store: CheckpointStore | undefined;
+  /** 事件出口；undefined 表示不发布本次运行的事件。 */
   readonly eventSink: EventSink | undefined;
+  /** 事件出口抛错时的处置策略（忽略、上抛或中止运行）。 */
   readonly eventPolicy: EventSinkErrorPolicy;
 }
 
@@ -228,6 +243,13 @@ export async function executeRuntimeAgent(
  *   在这里抛会把原始的执行路径打断，反而丢掉更有价值的错误。
  *
  * 只保留**第一个**错误（`??=`）：后续的同类失败是同一个根因的重复，覆盖它只会让根因后移。
+ *
+ * @param sink - 宿主事件出口；undefined 时整体返回 undefined，即本次不发布事件
+ * @param policy - 出口抛错时的处置策略
+ * @param controller - 运行作用域的取消控制器；需中止本次运行时由它触发，不动调用方的 signal
+ * @param currentError - 读取已捕获的首个出口错误；FAIL_FAST 下据它决定是否继续投递
+ * @param captureError - 记录首个出口错误；实现只保留第一次
+ * @returns 事件发布函数；无 sink 时为 undefined
  */
 function eventPublisher(
   sink: EventSink | undefined,
@@ -262,6 +284,11 @@ function eventPublisher(
  * 轮次耗尽（`max_iterations`）排在最后，它是唯一一种「跑完了但没跑完」的终态。
  *
  * `version` 固定为 1：这是 Checkpoint 的结构代次，从本轮开始计入持久化版本（0 只用于内存态）。
+ *
+ * @param input - 执行输入的投影；只取 threadId/userId/lastResumeInterrupt 来构造 Checkpoint
+ * @param react - ReAct 的返回；提供上下文、token 数、结束原因与中断
+ * @param runError - 执行期错误；非空且未被取消时把状态降级为 failed
+ * @returns 由 ReAct 结果翻译出的终态结果
  */
 function resultFromReact(
   input: Pick<
@@ -301,6 +328,11 @@ function resultFromReact(
  *
  * `claimRequestId` 只在非空时下发——传空串会被 Store 当成「试图越过认领直接写」而拒绝。
  * 保存用独立的超时信号，与本次运行的取消无关（见 CHECKPOINT_SAVE_TIMEOUT_MS 的说明）。
+ *
+ * @param store - 持久化 Store；undefined 或 threadId 为空时只返回本地副本，不落盘
+ * @param checkpoint - 待保存的 Checkpoint 内容
+ * @param input - 执行输入的投影；提供 CAS 期望 revision、fencing token 与认领 requestId
+ * @returns 保存后的记录；未落盘时为新副本且 revision 为 0n
  */
 async function saveCheckpoint(
   store: CheckpointStore | undefined,
@@ -326,6 +358,15 @@ async function saveCheckpoint(
   );
 }
 
+/**
+ * 判定一个未知值是否为内容引用。
+ *
+ * 只检查 `kind` 与 `key` 两个字符串字段——上下文元数据里的值来自宿主，属于不可信输入，
+ * 用它做结构收窄后再当 ContentRef 使用，避免脏形状的引用被当成有效引用保存。
+ *
+ * @param value - 来自上下文中元数据的未知值
+ * @returns 具备 kind/key 字符串字段时为 true，收窄为 ContentRef
+ */
 function isContentRef(value: unknown): value is ContentRef {
   return (
     typeof value === "object" &&

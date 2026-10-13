@@ -11,6 +11,7 @@ import type {
  * 内容不可假定，任何「分隔符拼接」都可能被含分隔符的 `threadId` 撞键。嵌套结构不依赖编码假设。
  */
 export class MemoryFileReadLedger implements FileReadLedger {
+  /** 外层键为 conversation、内层键为文件键的两级索引，避免拼接单键时的分隔符撞键。 */
   readonly #byThread = new Map<string, Map<string, FileReadRecord>>();
 
   /**

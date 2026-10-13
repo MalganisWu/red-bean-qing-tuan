@@ -149,6 +149,15 @@ export function cloneRuntimeContentRef(reference: ContentRef): ContentRef {
   };
 }
 
+/**
+ * 逐字段重建一条消息，`toolCalls` 及其内层 `function` 再各复制一层。
+ *
+ * 与 checkpoint 侧的同名函数一致，但结果侧不需要保留 `ContentRef.fetch` 的引用语义，
+ * 因此只需覆盖消息本身的可变嵌套结构。
+ *
+ * @param message - 待复制的消息；调用方保留原对象所有权
+ * @returns 与入参等值但无共享可变嵌套结构的独立消息
+ */
 function cloneMessage(message: RawMessage): RawMessage {
   return {
     role: message.role,
@@ -166,6 +175,15 @@ function cloneMessage(message: RawMessage): RawMessage {
   };
 }
 
+/**
+ * 把 revision 降级为可写入 JSON 的 number；超出安全整数范围即拒绝。
+ *
+ * 结果序列化只在 revision 非 0n 时调用它，0n 表示「未知」会被整体省略。
+ * 静默截断会让宿主读回一个看似合理却错误的版本号，因此宁可抛错。
+ *
+ * @param revision - 待降级的 bigint 版本号；为负或超出安全整数范围即抛 RangeError
+ * @returns 可安全写入 JSON 的 number 形式版本号
+ */
 function revisionToJson(revision: bigint): number {
   const value = Number(revision);
   if (!Number.isSafeInteger(value) || value < 0) {
@@ -182,6 +200,9 @@ function revisionToJson(revision: bigint): number {
  * 倒序扫描而非取末条：末条可能是工具调用轮次的 assistant 消息（`content` 为 null），
  * 也可能是工具结果。跳过 null 正文才能拿到模型真正说过的话。
  * 全都没有时返回空串，由调用方结合 status 判断这是不是一种失败。
+ *
+ * @param messages - 本次运行的消息序列；只读不改
+ * @returns 最后一条有正文的 assistant 消息内容，没有则为空串
  */
 function lastAssistantOutput(messages: readonly RawMessage[]): string {
   for (let index = messages.length - 1; index >= 0; index -= 1) {

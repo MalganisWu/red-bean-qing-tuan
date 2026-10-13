@@ -16,6 +16,7 @@ import type {
  * 因此调用方用哪把钥匙来查都能命中；缺失 requestId 时退化为只用 interruptId。
  */
 export class MemoryResumeReceiptStore implements ResumeReceiptStore {
+  /** threadId → (收据键 → 收据) 的两层 Map；同一条收据会按它的多个键各存一份。 */
   readonly #receipts = new Map<string, Map<string, ResumeReceipt>>();
 
   /**
@@ -72,6 +73,9 @@ export class MemoryResumeReceiptStore implements ResumeReceiptStore {
  * 「requestId 恰好等于某个 interruptId」时不会串号；
  * 选 NUL 而不是普通字符做分隔，是因为它不可能出现在正常 ID 里。
  * 没有 requestId 时退化为只用 interruptId 一个键。
+ *
+ * @param request - 待推导的恢复请求；requestId 缺失时只产出 interruptId 一个键
+ * @returns 该请求对应的全部查找键，按优先级排列
  */
 function receiptKeys(request: ResumeRequest): readonly string[] {
   const interruptKey = `interrupt\u0000${request.interruptId}`;

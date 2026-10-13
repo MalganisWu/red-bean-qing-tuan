@@ -5,8 +5,11 @@ import type { FileReadLedger } from "./port/file-read-ledger.js";
 
 /** 写入类工具的版本闸门参数。 */
 export interface FreshReadCheck {
+  /** 待写入的目标路径，同时也是向账本查询读取记录的键来源。 */
   readonly filePath: string;
+  /** conversation 标识，用于把读取记录隔离到发起写入的会话。 */
   readonly threadId: string;
+  /** 读取工具写入、写入工具查询的同一份账本实例，缺失记录即视为未读过。 */
   readonly ledger: FileReadLedger;
   /** 目标不存在时是否放行。新建为 true；修改既有内容为 false。 */
   readonly allowMissing: boolean;

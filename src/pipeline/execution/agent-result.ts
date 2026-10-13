@@ -23,6 +23,8 @@ export type AgentResultReason =
 
 /** Pipeline Agent 节点写入 RuntimeContext 的最小执行结果。 */
 export interface AgentResult {
+  /** 本次运行是否正常跑完；false 说明中途停住，具体停在哪一步看 reason。 */
   readonly success: boolean;
+  /** 停止原因；`awaiting_user` 是唯一「没跑完但也不是失败」的取值。 */
   readonly reason: AgentResultReason;
 }

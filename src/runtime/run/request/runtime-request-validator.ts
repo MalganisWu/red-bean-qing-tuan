@@ -15,15 +15,21 @@ import {
 
 /** 通过互斥项、身份及 Store 模式校验后的 run 输入。 */
 export interface ValidatedRunRequest {
+  /** 通过校验的运行线程标识；Store 模式下必填。 */
   readonly threadId: string;
+  /** 规范化后的所有权标识；空串表示调用方不声明身份。 */
   readonly userId: string;
+  /** 规范化后的 fencing token；无 Store 时已确认为 0n。 */
   readonly fencingToken: bigint;
+  /** 规范化后的消息数组：要么是 input 包成的一条 user 消息，要么是调用方传入的完整数组。 */
   readonly messages: readonly RawMessage[];
 }
 
 /** 通过身份和 Store 模式校验后的 resume 输入。 */
 export interface ValidatedResumeRequest {
+  /** 通过校验的恢复目标线程；可由 state 补齐，或由调用方直接给出。 */
   readonly threadId: string;
+  /** 规范化后的 fencing token；无 Store 时已确认为 0n。 */
   readonly fencingToken: bigint;
 }
 
@@ -178,6 +184,12 @@ export function validateResumeRequest(
  * 无 Store 却传 `fencingToken` 属于误解协议：没有 Store 就没有高水位可言，
  * 静默忽略会让调用方以为自己拿到了 fencing 保护。传 `expectedRevision` 同理——
  * 没有 Store 就没有 revision 可 CAS。
+ *
+ * @param storeConfigured - 是否配置了 CheckpointStore；为 false 时 fencingToken 必须为 0n、expectedRevision 必须缺席
+ * @param fencingToken - 规范化后的 fencing token；无 Store 且非零即失败
+ * @param expectedRevision - 声明的 CAS 期望 revision；无 Store 时只要出现即失败
+ * @param threadId - 失败结果的归属线程，用于构造携带上下文的错误
+ * @param userId - 失败结果对应的所有权标识
  */
 function validateStoreOnlyFields(
   storeConfigured: boolean,
@@ -206,6 +218,11 @@ function validateStoreOnlyFields(
 /**
  * 参数不合法时的统一出口：构造失败结果再抛出 `RuntimeExecutionError`。
  * 返回类型是 `never`，因此调用点写成 `return invalid(...)`，编译期就能保证后续代码不可达。
+ *
+ * @param threadId - 失败结果的归属线程
+ * @param userId - 失败结果对应的所有权标识
+ * @param message - 面向调用方的失败说明
+ * @returns 永不返回；函数体必然抛出 RuntimeExecutionError
  */
 function invalid(threadId: string, userId: string, message: string): never {
   return failRuntimeExecution(

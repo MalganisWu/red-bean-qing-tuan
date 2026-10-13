@@ -21,6 +21,7 @@ export type ConsumeInterruptDisposition =
 
 /** Checkpoint 与其 CAS revision 的不可分割读取结果。 */
 export interface CheckpointRecord {
+  /** Checkpoint 领域状态本体；与 revision 一并读出，构成一次不可分割的读取结果。 */
   checkpoint: Checkpoint;
   /** 单调递增的写版本；所有写入都必须以它为 CAS 期望值，不能只依赖 checkpoint 内容比较。 */
   revision: bigint;
@@ -28,6 +29,7 @@ export interface CheckpointRecord {
 
 /** 按宿主所有权和 fencing token 读取 Checkpoint 的请求。 */
 export interface LoadCheckpointRequest {
+  /** 目标会话标识；不存在、已删除或越权时，实现须按所有权隐藏返回 CHECKPOINT_NOT_FOUND。 */
   readonly threadId: string;
   /** 所有权标识；空串表示调用方不声明身份，此时不做归属校验（见 CheckpointStore 注释）。 */
   readonly userId: string;
@@ -37,9 +39,11 @@ export interface LoadCheckpointRequest {
 
 /** 以 expectedRevision 执行 CAS 保存的请求；冲突必须显式失败。 */
 export interface SaveCheckpointRequest {
+  /** 待写入的完整 Checkpoint；实现应深拷贝后再落盘，写入后调用方副本不受影响。 */
   readonly checkpoint: Checkpoint;
   /** CAS 期望值。与 Store 当前 revision 不等时必须失败，不得「尽力而为」地覆盖。 */
   readonly expectedRevision: bigint;
+  /** 宿主 lease 系统发放的 fencing token；`0n` 表示该 thread 未启用 fencing，只接受非递减的值。 */
   readonly fencingToken: bigint;
   /**
    * 仅用于 resume 的终态写入：认领时传入的 requestId。
@@ -50,7 +54,9 @@ export interface SaveCheckpointRequest {
 
 /** 原子消费中断响应并推进 Checkpoint 的请求。 */
 export interface ConsumeInterruptRequest {
+  /** 目标会话标识；不存在、已删除或越权时按所有权隐藏处理。 */
   readonly threadId: string;
+  /** 所有权标识；空串表示调用方不声明身份，此时跳过归属校验。 */
   readonly userId: string;
   /** 被响应的中断对应的工具调用 ID；必须与当前挂起点一致。 */
   readonly interruptId: string;
@@ -58,21 +64,29 @@ export interface ConsumeInterruptRequest {
   readonly requestId: string;
   /** 宿主对中断的应答载荷，原样保存以备重放。 */
   readonly response: string;
+  /** CAS 期望的 revision；与当前值不等即抛 REVISION_CONFLICT，阻止基于陈旧视图的认领。 */
   readonly expectedRevision: bigint;
+  /** 宿主 lease 系统发放的 fencing token；`0n` 表示该 thread 未启用 fencing。 */
   readonly fencingToken: bigint;
 }
 
 /** 中断消费后的最新记录及其认领处置结果。 */
 export interface ConsumeInterruptResult {
+  /** 认领或重放后的最新记录；重放时即为首次认领留下的结果。 */
   readonly record: CheckpointRecord;
+  /** 本次调用的处置：首次认领、并发进行中还是幂等重放，调用方据此决定是否继续执行。 */
   readonly disposition: ConsumeInterruptDisposition;
 }
 
 /** 受所有权、revision 与 fencing 共同保护的删除请求。 */
 export interface DeleteCheckpointRequest {
+  /** 目标会话标识；不存在、已删除或越权时按所有权隐藏处理。 */
   readonly threadId: string;
+  /** 所有权标识；空串表示调用方不声明身份，此时跳过归属校验。 */
   readonly userId: string;
+  /** CAS 期望的 revision；不等即失败，避免删掉别人刚写入的状态。 */
   readonly expectedRevision: bigint;
+  /** 宿主 lease 系统发放的 fencing token；`0n` 表示该 thread 未启用 fencing。 */
   readonly fencingToken: bigint;
 }
 
@@ -101,6 +115,10 @@ export interface CheckpointStore {
   /**
    * 读取当前记录。thread 不存在、尚未落盘或被删除时抛 `CHECKPOINT_NOT_FOUND`，
    * 错误中携带当前记录，调用方据此获得 revision。
+   *
+   * @param request - 读取输入；userId 决定所有权校验，非零 fencingToken 会先推进高水位
+   * @param signal - 调用方取消信号；已触发时实现不得产生任何副作用
+   * @returns 记录的深拷贝副本；不存在、已删除或越权时以 CHECKPOINT_NOT_FOUND 拒绝
    */
   load(
     request: LoadCheckpointRequest,
@@ -109,6 +127,10 @@ export interface CheckpointStore {
   /**
    * CAS 保存并返回新记录（revision + 1）。
    * resume 的两次写入共用本方法，靠 `claimRequestId` 区分：认领后的终态写入必须回填它。
+   *
+   * @param request - 保存输入；claimRequestId 仅在 resume 终态写入时回填，普通 run 必须省略
+   * @param signal - 调用方取消信号；已触发时实现不得产生任何副作用
+   * @returns 落盘后的新记录，revision 已递增
    */
   save(
     request: SaveCheckpointRequest,
@@ -117,6 +139,10 @@ export interface CheckpointStore {
   /**
    * 原子地消费中断响应：清空 `interrupt`、写入 `resumeClaim`、推进 revision，并登记幂等回执。
    * 同一 `requestId` 的重放必须返回首次结果而不是重新认领。
+   *
+   * @param request - 认领输入；requestId 是幂等键，expectedRevision 参与 CAS
+   * @param signal - 调用方取消信号；已触发时实现不得产生任何副作用
+   * @returns 最新记录与本次处置（首次认领、进行中或幂等重放）
    */
   consumeInterrupt(
     request: ConsumeInterruptRequest,
@@ -125,6 +151,10 @@ export interface CheckpointStore {
   /**
    * 删除 checkpoint 内容并返回新 revision。
    * 实现必须保留 fencing 高水位与 revision，使其成为墓碑而非真正的移除。
+   *
+   * @param request - 删除输入；expectedRevision 参与 CAS，userId 参与所有权校验
+   * @param signal - 调用方取消信号；已触发时实现不得产生任何副作用
+   * @returns 墓碑记录递增后的 revision；fencing 高水位不得因此回落
    */
   delete(
     request: DeleteCheckpointRequest,

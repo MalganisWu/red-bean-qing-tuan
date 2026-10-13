@@ -12,15 +12,23 @@ export const GLOB_TOOL_NAME = "sys_glob";
 
 /** 调用方给出的匹配模式与基准目录，已通过运行时校验。 */
 export interface GlobParams {
+  /** 已 trim 的 glob 模式，相对基准目录，非空。 */
   readonly pattern: string;
+  /** 匹配的基准目录；入参省略 `path` 时取进程当前工作目录。 */
   readonly basePath: string;
 }
 
 /** 工具实例配置；上限可注入以便测试覆盖截断分支。 */
 export interface GlobOptions {
+  /** 输出结果条数上限；省略时用 `MAX_GLOB_RESULTS`。 */
   readonly maxResults?: number;
 }
 
+/**
+ * 构造暴露给模型的 JSON Schema 入参：必填的 `pattern` 与可选的 `path`。
+ *
+ * @returns 工具注册用的 JSON Schema 对象
+ */
 function parameters(): JsonObject {
   return {
     type: "object",
@@ -39,7 +47,12 @@ function parameters(): JsonObject {
   };
 }
 
-/** 从 unknown 形状的入参校验并归一化出模式与基准目录。 */
+/**
+ * 从 unknown 形状的入参校验并归一化出模式与基准目录。
+ *
+ * @param value - 工具入参原始值，含 `pattern` 与可选 `path`
+ * @returns 校验通过的模式与基准目录
+ */
 function parseGlobParams(value: JsonValue): GlobParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("glob parameters must be an object");
@@ -77,6 +90,7 @@ export class GlobTool implements Tool {
       parameters: parameters(),
     },
   };
+  /** 输出结果条数上限；超出部分被截断并附上真实匹配总数。 */
   readonly #maxResults: number;
 
   public constructor(options?: GlobOptions) {
@@ -122,6 +136,10 @@ export class GlobTool implements Tool {
    *
    * 上限保护的是模型上下文，不是枚举本身：`fs.glob` 本来就要走完整棵树，因此这里保留精确的匹配
    * 总数，让调用方能据此判断是否需要缩小范围。截断只发生在输出阶段。
+   *
+   * @param params - 已校验的模式与基准目录
+   * @param signal - 取消信号，枚举每项前后都检查
+   * @returns 匹配到的相对路径列表，尚未排序
    */
   async #collect(params: GlobParams, signal: AbortSignal): Promise<string[]> {
     const matches: string[] = [];

@@ -18,28 +18,55 @@ export const FILE_UNCHANGED_STUB =
 
 /** 校验并归一化后的文件读取范围。 */
 export interface ReadFileParams {
+  /** 目标文件路径；受限形态下须落在沙箱根目录内，使用前不做隐式补全。 */
   readonly filePath: string;
+  /** 起始行号，从 1 开始；调用方未指定或给非正数时归一为 1。 */
   readonly offset: number;
+  /** 本次最多读取的行数；调用方未指定或给非正数时取默认上限。 */
   readonly limit: number;
+  /** 调用方是否显式指定过 offset/limit，决定读取工具要不要强制重新读取。 */
   readonly ranged: boolean;
 }
 
 /** 带原始总行数的有界文本读取结果。 */
 export interface ReadLinesResult {
+  /** 已加行号的文本片段，行号与内容之间以制表符分隔。 */
   readonly content: string;
+  /** 文件真实总行数；即使本次只读到片段也如实给出，便于提示还有多少行。 */
   readonly totalLines: number;
 }
 
 /** 已打开文件句柄及其稳定去重键；调用方负责关闭句柄。 */
 export interface OpenedFile {
+  /** 已打开的只读句柄；无论读取成功与否，使用完都必须由调用方关闭。 */
   readonly handle: FileHandle;
+  /** 账本使用的稳定去重键，同一文件的不同路径写法应归一到同一键。 */
   readonly key: string;
 }
 
+/**
+ * 判断 JSON 值是否为非数组的普通对象，作为读取入参的形状前置校验。
+ *
+ * 数组在 JS 里 `typeof` 同样是 object，因此必须显式排除，
+ * 否则 `[1,2]` 会被当成合法入参并静默读不到任何字段。
+ *
+ * @param value - 待判定的 JSON 值
+ * @returns 是非 null 且非数组的对象时为 true
+ */
 function isObject(value: JsonValue): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * 读取可选整数字段，字段缺失或为 null 时归一为 0。
+ *
+ * 归一为 0 而不是抛错，是为了区别对待「未指定」与「指定了非法值」：
+ * 前者交给调用方按默认值处理，后者属于入参缺陷，必须立即失败。
+ *
+ * @param value - 已确认是对象的入参
+ * @param key - 要读取的字段名，同时用作报错文案里的字段标识
+ * @returns 字段的整数值；字段缺失或为 null 时为 0
+ */
 function optionalInteger(value: JsonObject, key: string): number {
   const field = value[key];
   if (field === undefined || field === null) return 0;

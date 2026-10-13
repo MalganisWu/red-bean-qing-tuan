@@ -16,16 +16,27 @@ export type EventSink = RuntimeEventSink;
  * 调用方保留输入集合的所有权；RuntimeContext 会复制可变集合，且实例不得跨运行复用。
  */
 export interface RuntimeContextOptions {
+  /** 逻辑会话 ID，跨同一会话的多轮运行保持稳定；恢复时用它定位消息与 checkpoint 命名空间。 */
   readonly sessionId: string;
+  /** 本次运行锚定的 checkpoint ID；宿主据此定位要续跑的持久化状态，本类不负责其存储。 */
   readonly checkpointId: string;
+  /** 触发本次运行的用户身份，供审计与多租户隔离；其真实性由宿主保证，SDK 不校验。 */
   readonly userId: string;
+  /** 单次运行的唯一标识，每轮都不同；用于串联日志与并发去重，会话级稳定标识见 sessionId。 */
   readonly requestId: string;
+  /** 分布式追踪 ID，跨进程透明传递，把一次运行在宿主侧的多段处理串成同一条链路。 */
   readonly traceId: string;
+  /** checkpoint 修订号，用于并发写保护；写入方须携带读到的值做 CAS 比对以避免丢失更新。 */
   readonly checkpointRevision: bigint;
+  /** 恢复认领用的栅栏令牌，单调递增；被抢占的旧执行者令牌更小，其写入会被拒绝。 */
   readonly fencingToken: bigint;
+  /** 本次运行开始前已提交的历史消息快照；构造时会复制一份，后续改动不影响本次运行。 */
   readonly messages: readonly RawMessage[];
+  /** 送给模型的初始上下文消息；运行过程会就地追加，因此本实例不可跨运行复用。 */
   readonly llmContext: readonly RawMessage[];
+  /** 运行事件的同步接收器；省略时事件被静默丢弃，事件的传输与持久化仍归宿主所有。 */
   readonly eventSink?: EventSink | undefined;
+  /** 运行期元数据容器；构造时会复制成可变 Map，执行组件用它回写结果与 token 用量等信息。 */
   readonly metadata?: ReadonlyMap<string, unknown> | undefined;
 }
 
@@ -80,6 +91,7 @@ export class RuntimeContext {
    * 让后跑的 finally 节点能看到「目前已知的失败」。为 undefined 表示尚无可归因的失败。
    */
   public pipelineError: Error | undefined;
+  /** 宿主的事件接收器；只做同步投递，未配置时为 undefined 且事件被丢弃。 */
   readonly #eventSink: EventSink | undefined;
 
   public constructor(options: RuntimeContextOptions) {

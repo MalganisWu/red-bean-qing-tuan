@@ -27,21 +27,35 @@ const MAX_EMPTY_RESPONSE_RETRIES = 2;
 
 /** 单次模型流结束后交给 ReAct 主循环的文本、Tool Call 与终止原因。 */
 export interface ModelTurnResult {
+  /** 本回合累积的正文片段，尚未拼接成完整字符串。 */
   readonly contentParts: readonly string[];
+  /** 本回合累积的 Tool Call 组装缓冲，按 index 索引，供后续拼成完整调用。 */
   readonly toolBuffer: ReadonlyMap<number, MutableToolCallEntry>;
+  /** 本回合的终止原因原文；空串表示模型没有给出明确原因。 */
   readonly finishReason: string;
 }
 
+/** 单次模型回合所需的依赖与共享状态；`messages` 与 `result` 会被就地更新。 */
 interface ModelTurnOptions {
+  /** LLM 适配器，用于发起模型流。 */
   readonly adapter: LlmAdapter;
+  /** 本回合要发送的完整模型请求。 */
   readonly request: LlmRequest;
+  /** 本次运行上下文，用于发出状态与流事件。 */
   readonly context: RuntimeContext;
+  /** 当前轮次序号（从 1 起），用于事件归因。 */
   readonly iteration: number;
+  /** 重试与空闲超时参数，透传给重试封装。 */
   readonly llmParams: LlmRunParams;
+  /** 循环内的消息数组；本回合会就地追加消息。 */
   readonly messages: RawMessage[];
+  /** 开头系统提示词的条数（0 或 1），用于剥离出可见上下文。 */
   readonly systemOffset: number;
+  /** 本次运行的循环结果；本回合会就地更新其 tokensUsed 与 llmContext。 */
   readonly result: ReactResult;
+  /** 消息提交后的观察回调；省略则只入内存，不对外通知。 */
   readonly onMessage: MessageObserver | undefined;
+  /** 整次运行的取消信号；已中止时本回合会以取消错误收场。 */
   readonly signal: AbortSignal;
 }
 

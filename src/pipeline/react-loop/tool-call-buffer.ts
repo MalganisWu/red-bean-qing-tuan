@@ -2,8 +2,11 @@ import type { ToolCall } from "../../tool/definition/tool.js";
 
 /** 单个流式 Tool Call 的分片缓冲快照。 */
 export interface ToolCallEntry {
+  /** 工具调用 ID；通常只在第一片增量里出现。 */
   readonly id: string;
+  /** 工具名的分片；组装时非空即整体替换而非追加，避免名字被重复下发时被拼接。 */
   readonly nameParts: readonly string[];
+  /** 参数 JSON 的增量分片；按到达顺序拼接成完整参数。 */
   readonly argumentParts: readonly string[];
 }
 

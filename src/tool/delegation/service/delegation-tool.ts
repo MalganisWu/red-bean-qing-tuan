@@ -26,25 +26,55 @@ export { ChildRunError } from "../error/child-run-error.js";
 
 /** 委派工具的构造配置；ChildRunner 的执行与持久化能力由宿主注入。 */
 export interface DelegationToolOptions {
+  /** 子 Agent 标识，原样写进每次 ChildRunRequest，决定宿主侧用哪个 Agent。 */
   readonly agentId: string;
+  /** 暴露给模型的工具名；须在宿主注册的工具表内唯一，构造函数会拒绝空串。 */
   readonly name: string;
+  /** 发给模型的工具说明；省略则写空串，构造时会拒绝非法的 runner 但不管说明。 */
   readonly description?: string | undefined;
+  /** 宿主提供的子运行执行器；委派工具自身不持有持久化或权限能力。 */
   readonly runner: ChildRunner;
 }
 
+/** 从模型参数里解析出的委派入参；字段缺省统一归一为可判别值（字符串补空串，response 保留 undefined）。 */
 interface DelegationParams {
+  /** 任务描述；新对话必填，续跑时可省略。 */
   readonly instruction: string;
+  /** 附加上下文文本；缺省为空串。 */
   readonly context: string;
+  /** 期望产出格式；缺省为空串，仅作提示。 */
   readonly expectedFormat: string;
+  /** 续跑目标执行 ID；空串表示新建执行。 */
   readonly executionId: string;
+  /** 恢复挂起所用的中断标识；空串表示本次不是恢复。 */
   readonly interruptId: string;
+  /** 对中断的回答；`undefined` 表示未提供，空串是**有效回答**，故不能与缺省混同。 */
   readonly response: string | undefined;
 }
 
+/**
+ * 判断参数是否为非数组的普通对象。
+ *
+ * 模型可能把参数写成数组或 `null`，这些形态都要先挡掉，才能安全按键取字段。
+ *
+ * @param value - 模型产出的 JSON 值。
+ * @returns 是非 `null`、非数组对象时为 `true`，可直接用于类型收窄。
+ */
 function isRecord(value: JsonValue): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * 读取可选字符串参数，字段存在但类型不对即抛错。
+ *
+ * 不能把类型错误悄悄当作缺失：模型把 `instruction` 写成数字时，静默降级会变成一次
+ * 无任务的委派，而明确报错能让父 Agent 看到「参数拼错了」。
+ *
+ * @param params - 已确认是普通对象的参数表。
+ * @param key - 要读取的字段名。
+ * @returns 字符串值；字段缺失或为 `null` 时返回 `undefined`。
+ * @throws Error 字段存在但不是字符串时抛出。
+ */
 function optionalString(params: JsonObject, key: string): string | undefined {
   const value = params[key];
   if (value === undefined || value === null) return undefined;
@@ -54,6 +84,15 @@ function optionalString(params: JsonObject, key: string): string | undefined {
   return value;
 }
 
+/**
+ * 把模型的原始参数解析为具名的委派入参。
+ *
+ * 缺失字段一律归一：字符串补空串、`response` 保留 `undefined`，让后续判断只需看字段本身。
+ *
+ * @param value - 模型产出的原始参数值。
+ * @returns 归一化后的委派入参。
+ * @throws Error 参数不是普通对象，或某个字段类型不符时抛出。
+ */
 function parseParams(value: JsonValue): DelegationParams {
   if (!isRecord(value))
     throw new Error("delegation parameters must be an object");
@@ -76,6 +115,10 @@ function parseParams(value: JsonValue): DelegationParams {
  * 把续跑误当成新对话会重复执行整个任务。
  *
  * 注意 `response` 判的是 `undefined` 而非空串：**空字符串是有效回答**（例如用户什么都没填就确认）。
+ *
+ * @param params - 已归一化的委派入参。
+ * @returns 恢复所需的 `{ interruptId, response }`；本次不是恢复时返回 `undefined`。
+ * @throws Error 恢复三字段不成组时抛出，避免把续跑误当成新对话而重复执行任务。
  */
 function childResumeFromParams(
   params: DelegationParams,
@@ -96,6 +139,16 @@ function childResumeFromParams(
   return { interruptId, response: params.response };
 }
 
+/**
+ * 构造给模型读的失败结果 JSON 文本。
+ *
+ * 序列化成 `status: "failed"` 而非抛异常，是为了让父 Agent 把子任务失败当作普通工具结果读进去。
+ *
+ * @param reason - 失败原因文本，直接写入 `error` 字段。
+ * @param executionId - 关联的执行标识；空串也照写，便于父 Agent 判断能否续跑。
+ * @param partialOutput - 部分产出；空串时不写出 `partial_output` 字段。
+ * @returns 稳定的 JSON 文本，字段序为 `status`、`error`、`execution_id` 及可选的 `partial_output`。
+ */
 function failure(
   reason: string,
   executionId: string,
@@ -110,6 +163,16 @@ function failure(
   return JSON.stringify(payload);
 }
 
+/**
+ * 构造挂起结果 JSON 文本，供父 Agent 向用户取输入后恢复。
+ *
+ * `interrupt` 复用中性序列化器，保证与协议层字段序一致；`interrupt_id` 冗余自
+ * `toolCallId`，让父 Agent 不必深入嵌套对象就能拿到恢复所需的匹配键。
+ *
+ * @param executionId - 子执行标识，恢复时须原样传回。
+ * @param interrupt - 子运行给出的中性中断描述。
+ * @returns 稳定的 JSON 文本，`status` 固定为 `"awaiting_user"`。
+ */
 function suspended(executionId: string, interrupt: Interrupt): string {
   return JSON.stringify({
     status: "awaiting_user",
@@ -119,6 +182,13 @@ function suspended(executionId: string, interrupt: Interrupt): string {
   });
 }
 
+/**
+ * 委派工具发给模型的 JSON Schema。
+ *
+ * 全部字段都可选（`required` 为空）：恢复场景与新建场景必填项不同，无法用单一 required 表达，
+ * 具体约束由 `parseParams` 与 `childResumeFromParams` 在运行期成组校验。
+ * 字段名用 snake_case，与委派参数的 wire 约定一致，避免模型在两种命名间摇摆。
+ */
 const DELEGATION_PARAMETERS: JsonObject = {
   type: "object",
   properties: {
@@ -153,7 +223,9 @@ export class DelegationTool implements Tool {
   public readonly name: string;
   /** 供 LLM 生成调用参数的 function schema；固定使用委派参数表，与调度方的注册表无关。 */
   public readonly schema: ToolSchema;
+  /** 构造时定格的子 Agent 标识，写入每次请求；运行期不再变化。 */
   readonly #agentId: string;
+  /** 构造时注入的子运行执行器；委派工具不自建也不替换它。 */
   readonly #runner: ChildRunner;
 
   public constructor(options: DelegationToolOptions) {

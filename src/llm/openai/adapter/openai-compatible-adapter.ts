@@ -13,7 +13,9 @@ import {
 import { openAiRequestPayload } from "../request/openai-request-mapper.js";
 import { parseOpenAiEventStream } from "../stream/openai-stream-parser.js";
 
+/** baseUrl 未提供或为空串时使用的官方端点；改这里等于改所有未配置宿主的默认出口。 */
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
+/** modelName 未提供或为空串时使用的回退模型；仅供最小可用，生产应由宿主显式配置。 */
 const DEFAULT_MODEL_NAME = "gpt-4";
 
 /** 可由宿主注入的 fetch 最小契约，便于控制网络实现与测试。 */
@@ -24,17 +26,25 @@ export type FetchLike = (
 
 /** OpenAI-compatible Adapter 的构造配置；凭据和网络客户端均由宿主持有并注入。 */
 export interface OpenAiAdapterOptions {
+  /** API 凭据；由宿主持有，Adapter 只原样放进 Authorization 头。 */
   readonly apiKey: string;
+  /** 兼容端点根地址；未设置或为空串时落到 `DEFAULT_BASE_URL`。 */
   readonly baseUrl?: string | undefined;
+  /** 模型名；未设置或为空串时落到 `DEFAULT_MODEL_NAME`。 */
   readonly modelName?: string | undefined;
+  /** 网络实现；未设置时用全局 `fetch`，注入便于离线测试与替换传输层。 */
   readonly fetch?: FetchLike | undefined;
 }
 
 /** OpenAI-compatible 流式协议 Adapter；请求与响应转换由相邻专责文件完成。 */
 export class OpenAiAdapter implements LlmAdapter {
+  /** 构造时定格的凭据；对外只读，仅在请求头里出现。 */
   readonly #apiKey: string;
+  /** 已归一化的端点根地址（去尾斜杠前的原值），构造后不再变化。 */
   readonly #baseUrl: string;
+  /** 已解析默认值的模型名，构造后不再变化。 */
   readonly #modelName: string;
+  /** 已解析默认值的网络实现，构造后不再变化。 */
   readonly #fetch: FetchLike;
 
   public constructor(options: OpenAiAdapterOptions) {

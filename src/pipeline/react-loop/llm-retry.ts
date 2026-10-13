@@ -7,19 +7,32 @@ import { isLlmError, LLM_ERROR_KINDS } from "../../llm/error/llm-error.js";
  * 够扛过限流和上游抖动，又不至于让一次运行卡到用户以为它死了。
  */
 const DEFAULT_MAX_RETRIES = 10;
+/** 首次重试的退避基数毫秒数，也是逐次翻倍的起点。 */
 const DEFAULT_BACKOFF_BASE_MS = 2_000;
+/** 单次退避的上限毫秒数；达到后不再翻倍，避免重试间隔无限增长。 */
 const DEFAULT_BACKOFF_CAP_MS = 64_000;
 /** 流空闲超时：按「距上一帧的间隔」计，不是整段请求的总时长。 */
 const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 /** 单次 ReAct 运行采用的 LLM 重试与空闲超时参数。 */
 export interface LlmRunParams {
+  /** 最大重试次数；耗尽后仍失败即抛出，0 表示不重试。 */
   readonly maxRetries: number;
+  /** 首次重试的退避毫秒数，也是逐次翻倍的起点。 */
   readonly backoffBaseMs: number;
+  /** 单次退避的上限毫秒数，达到后不再翻倍。 */
   readonly backoffCapMs: number;
+  /** 模型流的空闲超时毫秒数，按「距上一帧的间隔」重新计时。 */
   readonly idleTimeoutMs: number;
 }
 
+/**
+ * 取一个非负整数配置，非法值退回默认值，负数夹到 0。
+ *
+ * @param value - 待校验的配置值；只有安全整数才被接受。
+ * @param fallback - value 缺失或非整数时使用的默认值。
+ * @returns 夹到非负的 value，或 fallback。
+ */
 function nonNegativeInteger(
   value: number | undefined,
   fallback: number,
@@ -29,6 +42,15 @@ function nonNegativeInteger(
     : fallback;
 }
 
+/**
+ * 把「秒」为单位的配置换算成毫秒，非法或非正值退回默认毫秒数。
+ *
+ * 配置对外用秒、内部一律用毫秒，换算集中在此避免各处重复乘 1000 时漏乘。
+ *
+ * @param value - 以秒为单位的配置值；只有正安全整数才被接受。
+ * @param fallbackMs - value 缺失或非正数时使用的默认毫秒数。
+ * @returns 换算后的毫秒数，或 fallbackMs。
+ */
 function positiveSeconds(
   value: number | undefined,
   fallbackMs: number,

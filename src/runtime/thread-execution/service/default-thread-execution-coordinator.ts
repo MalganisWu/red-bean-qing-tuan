@@ -20,6 +20,7 @@ import { raceAbort } from "../../../protocol/abort-signal.js";
  *   再在自己的释放路径上摘除。
  */
 export class DefaultThreadExecutionCoordinator implements ThreadExecutionCoordinator {
+  /** threadId → 链尾 Promise 的映射；指针是否存在是该 thread「是否还有人」的唯一判据，摘除条件必须保守。 */
   readonly #threadTails = new Map<string, Promise<void>>();
 
   /**

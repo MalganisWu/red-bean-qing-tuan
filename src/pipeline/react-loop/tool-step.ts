@@ -14,16 +14,23 @@ import type { ToolDispatcher } from "../../tool/dispatcher/port/tool-dispatcher.
 import type { ToolCallEntry } from "./tool-call-buffer.js";
 import { abortError, raceAbort } from "../../protocol/abort-signal.js";
 
+/** 流式接收 Tool Call 增量时使用的内部可变组装状态，与公开的 ToolCallEntry 同形但可写。 */
 interface MutableToolCallEntry {
+  /** 工具调用 ID；通常只在第一片增量里出现，后续分片为空则不覆盖。 */
   id: string;
+  /** 工具名的分片；组装时非空即整体替换而非追加，避免名字被重复下发时被拼接。 */
   nameParts: string[];
+  /** 参数 JSON 的增量分片；按到达顺序拼接成完整参数。 */
   argumentParts: string[];
 }
 
 /** 单个 Tool Call 的隔离执行结果；失败保留 Error 供主循环统一转换。 */
 export interface ToolExecution {
+  /** 本次调用的原始调用信息。 */
   readonly call: ToolCall;
+  /** 工具返回的结果；失败时为空内容占位，错误详情在 `error` 字段。 */
   readonly result: ToolResult;
+  /** 工具失败时的错误；成功时为 undefined。 */
   readonly error?: Error | undefined;
 }
 
@@ -225,6 +232,14 @@ export function immutableToolCallBuffer(
  * 声明为 interrupting 的工具不发 `TOOL_START`：它这一轮的作用是请求确认而非真的干活，
  * 展示层不该把它显示成一个正在执行、结果待定的工具。
  * 同理，带 `result.signal` 的结果也不发 `TOOL_RESULT`——那里还没有结果可报。
+ *
+ * @param call - 本次要派发的工具调用。
+ * @param context - 运行上下文，用于发出工具事件与构造工具侧窄上下文。
+ * @param dispatcher - 真正执行工具的分发器。
+ * @param tools - 本轮可用工具声明，用于判定本次调用是否声明为 interrupting。
+ * @param config - 运行配置；`toolTimeoutSeconds` 决定本工具的局部超时。
+ * @param parentSignal - 整次运行的取消信号；它一旦触发就上抛取消，而非返回错误记录。
+ * @returns 本次调用的执行记录；工具自身失败以带 error 的记录返回而非抛出。
  */
 async function dispatchOne(
   call: ToolCall,
@@ -289,6 +304,12 @@ async function dispatchOne(
   }
 }
 
+/**
+ * 内容引用的结构守卫：只认形状完整的对象，坏数据一律判否。
+ *
+ * @param value - 待校验的候选值，通常来自宿主可写的元数据字典。
+ * @returns 该值是否具备 `kind` 与 `key` 两个字段。
+ */
 function isContentRef(value: unknown): value is ContentRef {
   return (
     typeof value === "object" &&
@@ -298,6 +319,15 @@ function isContentRef(value: unknown): value is ContentRef {
   );
 }
 
+/**
+ * 从运行上下文抽出一个只读的窄上下文交给工具，避免工具拿到整个 RuntimeContext。
+ *
+ * 事件出口用闭包转发到 `context.emit`，因此工具侧发的仍然是同一条事件通道。
+ *
+ * @param context - 本次运行上下文，提供身份、checkpoint 修订号与事件出口。
+ * @param call - 本次工具调用，其 id 作为窄上下文的 callId。
+ * @returns 供工具使用的窄上下文。
+ */
 function toolCallContext(
   context: RuntimeContext,
   call: ToolCall,

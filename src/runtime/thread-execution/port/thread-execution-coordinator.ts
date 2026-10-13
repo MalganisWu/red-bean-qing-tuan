@@ -10,5 +10,12 @@
  * 也不会让排在后面的请求越过仍在运行的持有者。
  */
 export interface ThreadExecutionCoordinator {
+  /**
+   * 取得该 thread 的串行执行权，返回幂等的释放函数。
+   *
+   * @param threadId - 串行化键；相同值的调用按入队顺序依次取得执行权
+   * @param signal - 排队期间的取消信号；中止会解开自己占的链环，让后面的请求继续前进
+   * @returns 释放执行权的回调；必须在调用方 finally 中执行，且允许重复调用
+   */
   acquire(threadId: string, signal: AbortSignal): Promise<() => void>;
 }

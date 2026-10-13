@@ -15,6 +15,7 @@ export type AgentNodeOptions = ReactAgentExecutionOptions;
 export class AgentNode implements RuntimeNode {
   /** 节点名，用于 pipeline 错误信息与诊断输出；固定为 "AgentNode"。 */
   public readonly name = "AgentNode";
+  /** 被包装的统一 Agent 执行组件；节点只做转发，不追加任何包装逻辑。 */
   readonly #execution: ReactAgentExecution;
 
   public constructor(options: AgentNodeOptions) {

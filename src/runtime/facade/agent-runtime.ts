@@ -31,6 +31,7 @@ export type { RuntimeResult } from "../run/result/runtime-result.js";
  * 本文件同时是这些类型的公开导出点，改导出清单等于改公共 API（由 api surface 快照守住）。
  */
 export class AgentRuntime {
+  /** 构造期一次装配的运行服务；门面只透传调用，运行期不再改写它，因此不构成 Service Locator。 */
   readonly #service: RuntimeRunService;
 
   public constructor(options: AgentRuntimeOptions) {

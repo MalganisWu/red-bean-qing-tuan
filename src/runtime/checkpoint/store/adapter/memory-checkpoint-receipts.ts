@@ -3,9 +3,13 @@ import type { CheckpointRecord } from "../port/checkpoint-store.js";
 
 /** 内存 Store 私有的恢复回执记录，不属于持久化 Checkpoint 契约。 */
 export interface MemoryResumeReceipt {
+  /** 被恢复的中断标识；首次认领时写入后固化，供重放时校验身份。 */
   readonly interruptId: string;
+  /** 恢复时提交的应答原文；同样在首次认领时固化，终态写入不得篡改。 */
   readonly response: string;
+  /** 是否已完成；true 表示终态已落盘，同 requestId 的重放直接返回结果，false 则返回进行中。 */
   readonly completed: boolean;
+  /** 认领或完成时刻的检查点记录；出入账本两侧都深拷贝，与调用方互不共享。 */
   readonly record: CheckpointRecord;
 }
 
@@ -14,6 +18,7 @@ export interface MemoryResumeReceipt {
  * 只管理幂等键与防御性复制，不决定 claim、CAS 或 fencing 语义。
  */
 export class MemoryCheckpointReceiptLedger {
+  /** 按 threadId 分桶的幂等账本，桶内再按 requestId 索引回执；分桶让跨 thread 的同名 requestId 互不可见。 */
   readonly #receipts = new Map<string, Map<string, MemoryResumeReceipt>>();
 
   /**
@@ -94,6 +99,15 @@ export class MemoryCheckpointReceiptLedger {
     this.#receipts.delete(threadId);
   }
 
+  /**
+   * 取某个 thread 的回执桶，不存在则就地建空桶。
+   *
+   * 先建桶再写入，保证后续对同一 thread 的查询拿到的是同一个 Map 实例，
+   * 而不是每次各建一个新桶导致写入丢失。
+   *
+   * @param threadId - 会话标识，决定回执落在哪个桶
+   * @returns 该 thread 对应的回执 Map，新桶为空
+   */
   #threadReceipts(threadId: string): Map<string, MemoryResumeReceipt> {
     const receipts =
       this.#receipts.get(threadId) ?? new Map<string, MemoryResumeReceipt>();
