@@ -318,10 +318,22 @@ function typeTextOf(node, sourceFile) {
   return node === undefined ? undefined : node.getText(sourceFile);
 }
 
-/** 取节点前导注释里紧邻的 JSDoc；没有则返回空串。 */
+/**
+ * 取声明前导注释里**最后一段** JSDoc；没有则返回空串。
+ *
+ * 刻意不要求 JSDoc 是紧邻声明的那一段注释：ESLint 的行内指令
+ * （`// eslint-disable-next-line`）必须紧贴目标行，若同时要求 JSDoc 也紧贴，
+ * 两者在同一个声明上互斥。放宽成「前导里最后一段 JSDoc」后两种写法都能成立：
+ *
+ * ```
+ * /** 文档 *\/
+ * // eslint-disable-next-line some-rule
+ * export function f() {}
+ * ```
+ */
 function leadingJsDoc(source, node, sourceFile) {
   const leading = source.slice(node.getFullStart(), node.getStart(sourceFile));
-  return leading.match(/\/\*\*[\s\S]*?\*\/\s*$/u)?.[0] ?? "";
+  return leading.match(/\/\*\*[\s\S]*?\*\//gu)?.at(-1) ?? "";
 }
 
 function lineOf(node, sourceFile) {
