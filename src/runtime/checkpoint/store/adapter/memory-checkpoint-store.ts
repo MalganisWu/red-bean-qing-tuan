@@ -43,7 +43,11 @@ export class MemoryCheckpointStore implements CheckpointStore {
   readonly #records = new Map<string, MemoryCheckpointRecord>();
   /** resume 幂等回执账本；与记录同生命周期，随 thread 删除一并作废。 */
   readonly #receipts = new MemoryCheckpointReceiptLedger();
-  /** 取当前时间的注入点（默认真实时钟）；认领时间戳由它产出，测试可替换以避免依赖挂钟。 */
+  /**
+   * 取当前时间的注入点（默认真实时钟）；认领时间戳由它产出，测试可替换以避免依赖挂钟。
+   *
+   * @returns 当前时刻的 epoch 毫秒。
+   */
   readonly #now: () => number;
 
   public constructor(now: () => number = Date.now) {

@@ -13,7 +13,12 @@ export interface ContentRef {
   readonly meta?: Readonly<Record<string, string>> | undefined;
   /** 内容产生时间戳（毫秒）；`0` 与未设置等价，序列化时不写出。 */
   readonly timestamp?: number | undefined;
-  /** 进程内读取闭包，按需拉取字节；跨进程无意义，序列化时恒被剥离。 */
+  /**
+   * 进程内读取闭包，按需拉取字节；跨进程无意义，序列化时恒被剥离。
+   *
+   * @param signal - 取消信号；它的取消原因会被原样上抛，不换成通用文案。
+   * @returns 该引用的完整字节；失败时以 `Error` 上抛，不做兜底。
+   */
   readonly fetch?: ((signal: AbortSignal) => Promise<Uint8Array>) | undefined;
 }
 

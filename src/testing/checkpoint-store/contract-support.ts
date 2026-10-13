@@ -27,10 +27,18 @@ export interface CheckpointStoreContractOptions {
   readonly supportsFencing?: boolean | undefined;
   /** 覆盖所有用例共用的取消信号；缺省为永不取消的信号。 */
   readonly signal?: AbortSignal | undefined;
-  /** 每个用例结束后释放其创建的 Store；失败会被聚合进该用例的失败原因，而不是被吞掉。 */
+  /**
+   * 每个用例结束后释放其创建的 Store；失败会被聚合进该用例的失败原因，而不是被吞掉。
+   *
+   * @param store - 该用例自己造出的 Store；套件不代管生命周期，由本钩子负责关闭。
+   */
   readonly dispose?:
     ((store: CheckpointStore) => void | Promise<void>) | undefined;
-  /** 用例通过后的钩子，用于重置外部状态；用例本身失败时不会执行。 */
+  /**
+   * 用例通过后的钩子，用于重置外部状态；用例本身失败时不会执行。
+   *
+   * @param name - 刚通过的用例名；据此判断要重置哪一份外部状态。
+   */
   readonly afterCase?: ((name: string) => void | Promise<void>) | undefined;
 }
 
@@ -38,7 +46,11 @@ export interface CheckpointStoreContractOptions {
 export interface ContractContext {
   /** 套件级取消信号；缺省为永不取消的信号，用例可据它注入取消场景。 */
   readonly signal: AbortSignal;
-  /** 造一个本用例专属的隔离 Store；每次调用新建实例，用例无需自行清理。 */
+  /**
+   * 造一个本用例专属的隔离 Store；每次调用新建实例，用例无需自行清理。
+   *
+   * @returns 全新且互相隔离的 Store；释放责任在该用例（或 `dispose` 钩子）。
+   */
   readonly freshStore: () => Promise<CheckpointStore>;
 }
 
@@ -46,7 +58,11 @@ export interface ContractContext {
 export interface ContractCase {
   /** 用例名；失败时会被拼进错误消息，便于定位是哪个契约不满足。 */
   readonly name: string;
-  /** 用例主体；抛错即表示契约不满足，套件会先释放 Store 再上抛。 */
+  /**
+   * 用例主体；抛错即表示契约不满足，套件会先释放 Store 再上抛。
+   *
+   * @param context - 本用例专属的隔离上下文；`freshStore` 造出的实例由用例自己负责释放。
+   */
   readonly run: (context: ContractContext) => Promise<void>;
 }
 

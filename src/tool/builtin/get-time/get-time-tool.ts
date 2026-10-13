@@ -190,7 +190,11 @@ export class GetTimeTool implements Tool {
       parameters: TIME_PARAMETERS,
     },
   };
-  /** 取当前时间的函数；默认读系统时钟，注入后便于测试固定时间点。 */
+  /**
+   * 取当前时间的函数；默认读系统时钟，注入后便于测试固定时间点。
+   *
+   * @returns 当前时刻的 `Date`。
+   */
   readonly #now: () => Date;
 
   public constructor(now: () => Date = (): Date => new Date()) {
