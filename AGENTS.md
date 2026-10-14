@@ -102,13 +102,16 @@ make test                   # 测试
 ## Skill
 
 规则本体住在 Skill 里，上面「[编码规范](#编码规范)」与「[开发与测试流程](#开发与测试流程)」两节
-分别指向适用的那一份。`skills/` 是**唯一源**，仓库不向任何客户端目录复制规则正文，**也不绑定任何
-AI 工具**——`.claude/`、`.agents/`、`.cursor/`、`.codex/` 等一律在 `.gitignore` 里，各 harness
-怎么发现 Skill 由开发者本地决定。两个 Skill 都**自包含**：规则正文在自己的目录里，不依赖本文件
-才能读懂。
+分别指向适用的那一份。`skills/` 是**唯一源**，任何地方都不复制规则正文。
+
+**`.agents/skills/` 随仓走**——它是 [Agent Skills](https://agentskills.io) 的开放标准路径，多个
+工具（Codex、OpenCode 等）从这里发现 Skill，仓库因此不偏向任何一家。其余是各家工具的私有目录
+（`.claude/`、`.cursor/`、`.codex/` …），**一律不进库**；用哪个，自己在本地建符号链接指向
+`skills/<name>` 即可。两个 Skill 都**自包含**：规则正文在自己的目录里，不依赖本文件才能读懂。
 
 Skill 按任务自动触发，本文件的路由是另一条到达路径。`make docs-check` 校验 Skill 的 frontmatter
-格式与「`name` 必须等于目录名」这两条机械事实。
+格式、「`name` 必须等于目录名」，以及 `.agents/skills/` 下每个 Skill 都是指向 `skills/<name>`
+的符号链接。
 
 ## 决策权限
 
