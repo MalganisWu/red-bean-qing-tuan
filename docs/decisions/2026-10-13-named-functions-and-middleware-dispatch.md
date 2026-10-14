@@ -39,7 +39,7 @@
 
 - 存量回填：本仓 43 处；产品仓 backend 76 / frontend 121 / design-system 47。
 - 通用规范抽出为跨仓共享件 `docs/standards/typescript-common-conventions.md`，与产品仓逐字相同，由
-  `scripts/check-common-conventions.sh` 校验。改规则走「本仓提交 → 产品仓 bump `runtime.lock` 时
+  `scripts/check-shared-files.mjs` 校验。改规则走「本仓提交 → 产品仓 bump `runtime.lock` 时
   因逐字比对失败而强制同步」，不再靠人记得改两边。
 - 本仓加正反例夹具（`testdata/architecture/`），把「循环内把局部函数变量重新赋值为闭包」纳入机械门禁。
 - **编译目标由 ES2023 提到 ES2024**：Promise executor 要消除，只能用 `Promise.withResolvers()`（ES2024）。
