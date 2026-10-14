@@ -189,9 +189,7 @@ outbox 或补偿，不得宣称 exactly-once。
 
 ## 依赖方向
 
-逐入口的源码审查地图见 [`../../src/README.md`](../../src/README.md)。纯数据 DTO 按模块放置且不包含
-函数或运行时常量；`protocol/`、parser、codec、Port 和业务规则各自留在专责模块。
-Runtime 不建立跨模块 DTO 大文件，产品 HTTP DTO 始终属于宿主。
+逐入口的源码审查地图见 [`../../src/README.md`](../../src/README.md)。
 
 ```text
 protocol
@@ -211,30 +209,22 @@ public entrypoints / testing
 硬边界：
 
 - `protocol` 和各能力 `port/` 只保存中性类型、接口和小型纯 helper，不依赖宿主或具体基础设施。
-- 架构门禁校验上述顶层 DAG、源码循环依赖、Port 不得导入实现目录，`model/request/result` 中 DTO 的
-  纯数据约束，以及 service、adapter、builtin 和 Runtime 观测实现的显式 `implements`；公开聚合文件
-  只维护兼容导出，不作为内部依赖捷径。`checkpoint.ts`、Runtime 配置转发和 Testing 旧入口只能由
-  `public-api.ts` 引用，生产内部代码必须直接依赖各能力的单一来源。
-- 架构门禁的 TypeScript 编译器 API 接触点全部收敛在 `scripts/architecture-syntax.mjs` 隔离层：它把
-  源码解析为与编译器版本无关的中性语句事实，只对外暴露"`implements` 类型名解析到具名 interface"与
-  "`new X()` 解析到类声明"两个语义查询，规则文件 `scripts/check-architecture.mjs` 不再导入
-  `typescript`。TypeScript 7.0 编译器是无公开 API 的 Go 原生程序（7.1 才引入与 6.x 不同的新 API），
-  隔离层是升级主版本时的唯一替换点；夹具自测的内存源码由隔离层的 source provider 承载，门禁的检查
-  范围、只读性质与输出保持不变。import 依赖图仍由规则文件的正则预解析 specifier 加磁盘 `.js → .ts`
-  解析构建，不经过编译器。
-- 架构检查同时扫描 `test/**/*.test.ts`：单文件超过 400 行只产生 review warning，不令门禁失败。
-  当前 ReAct、CheckpointStore、AgentRuntime facade 与 Runtime revision 测试已按行为场景拆分，复用夹具
-  放在相邻的非 `*.test.ts` 文件中，避免测试编排重新膨胀成单体文件。
-- 默认实现通过构造函数或显式 factory 注入依赖，不连接产品数据库或 Redis。
-- 默认实现类显式 `implements` 对应接口；TypeScript 的结构化兼容只负责类型检查，不能代替源码中可搜索的
-  实现声明。接口已有清晰职责后缀时不追加 `Port`，避免无意义地破坏公共 API。
-- 实际实现选择必须能从 `runtime-composition.ts`、`control-plane-composition.ts`、`PipelineBuilder` 或宿主 composition root 追到明确的
-  `new ConcreteClass(...)`；禁止用匿名生产对象或运行期扫描隐藏默认接线。
 - 一个模块的实现不直接耦合另一个模块的内部实现；跨模块通过公开入口和最小接口组合。
-- SDK 主包依赖闭包不得出现产品仓、Fastify、数据库、Redis、产品 Session 或展示类型。
-- `make ts-api-check` 检查 TypeScript 声明可消费性、六个入口和公开 API surface。完整架构边界仍需
-  结合 diff 人工审查。
-- 当前 TypeScript package 保持零生产依赖；第三方协议通过宿主或边缘 Adapter 接入。
+- SDK 主包依赖闭包不出现产品仓、Fastify、数据库、Redis、产品 Session 或展示类型；package 保持零生产
+  依赖，第三方协议通过宿主或边缘 Adapter 接入。
+- `make ts-api-check` 检查 TypeScript 声明可消费性、六个入口和公开 API surface；完整边界仍需结合
+  diff 人工审查。
+
+**「代码怎么写才满足这些边界」——DTO 纯度、`implements` 义务、默认实现的注入与 `new` 接线、接口
+后缀、架构门禁检什么——见编码规范 Skill 的「架构与依赖」与「架构门禁」两节。**
+
+架构门禁的 TypeScript 编译器 API 接触点全部收敛在 `scripts/architecture-syntax.mjs` 隔离层：它把
+源码解析为与编译器版本无关的中性语句事实，只对外暴露"`implements` 类型名解析到具名 interface"与
+"`new X()` 解析到类声明"两个语义查询，规则文件 `scripts/check-architecture.mjs` 不再导入
+`typescript`。TypeScript 7.0 编译器是无公开 API 的 Go 原生程序（7.1 才引入与 6.x 不同的新 API），
+隔离层是升级主版本时的唯一替换点；夹具自测的内存源码由隔离层的 source provider 承载，门禁的检查
+范围、只读性质与输出保持不变。import 依赖图仍由规则文件的正则预解析 specifier 加磁盘 `.js → .ts`
+解析构建，不经过编译器。
 
 ## 扩展方式
 
@@ -257,11 +247,3 @@ public entrypoints / testing
 - 默认开启文件、网络或其他高权限工具。
 - 动态代码安装、运行期热更新、进程内蓝绿切换或核心二进制自更新。
 - 为外部工具副作用提供 exactly-once 保证。
-
-## 变更检查
-
-架构或公共边界变化时，同时检查：
-
-- [`../contracts/typescript-runtime-api.md`](../contracts/typescript-runtime-api.md)
-- 根 [`README.md`](../../README.md)、`AGENTS.md` 与 `CHANGELOG.md`
-- package exports、API surface、契约测试和产品消费方

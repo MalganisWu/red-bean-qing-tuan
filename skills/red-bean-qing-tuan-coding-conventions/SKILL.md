@@ -98,26 +98,18 @@ public entrypoints / testing
 - 修改公开面时必须先跑 `make ts-api-check`：`check-api-surface.mjs` 通过只说明导出形状没变，
   与声明基线是两道独立检查，不能互相替代。
 
+## 架构门禁（`make ts-architecture-check`）
+
+- 校验顶层能力 **DAG 无环**、源码无循环依赖、`port/` 不得导入实现目录、`model/request/result` 中 DTO
+  的纯数据约束，以及 service、adapter、builtin 与 Runtime 观测实现的显式 `implements`。
+- 公开聚合文件只维护兼容导出，不作为内部依赖捷径。`checkpoint.ts`、Runtime 配置转发和 Testing 旧入口
+  只能由 `public-api.ts` 引用；生产内部代码必须直接依赖各能力的单一来源。
+- 同时扫描 `test/**/*.test.ts`：单文件超过 400 行只产生 review warning，不令门禁失败。
+
+编译器 API 接触点的隔离层（`scripts/architecture-syntax.mjs`）与主版本升级的替换点见
+[`../../docs/design/architecture.md`](../../docs/design/architecture.md)「依赖方向」。
+
 ## 门禁
 
-配置位于仓库根 `tsconfig.json`、`eslint.config.js` 与 `tooling/typescript/`。**本仓门禁命令的唯一
-清单**就在这里；其他文档只引用，不重列。`make verify` 依次执行：
-
-```bash
-make doctor                 # 工具链版本与 package 声明
-make fmt-check              # 格式检查（只读）
-make diff-check             # git diff 空白检查
-make secrets-check          # 环境文件与高置信度密钥扫描
-make build                  # 构建 ESM、声明与 source map
-make docs-check             # 文档索引与链接
-make shared-files-check     # 跨仓共享件逐字一致
-make ts-policy-check        # TypeScript 政策
-make ts-architecture-check  # 架构门禁（能力 DAG、DTO 纯度）
-make ts-export-jsdoc-check  # 注释门禁
-make ts-api-check           # 公开入口与声明基线
-make typecheck              # 严格类型检查
-make ts-lint                # 类型感知 ESLint
-make test                   # 测试
-```
-
-这些命令是只读检查；失败后修复真实类型或控制流，不使用断言、disable 注释或降低规则掩盖问题。
+**本仓门禁命令的唯一清单在根 [`AGENTS.md`](../../AGENTS.md)「门禁」**，本节不重列。
+配置位于仓库根 `tsconfig.json`、`eslint.config.js` 与 `tooling/typescript/`。
