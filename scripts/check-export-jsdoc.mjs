@@ -10,10 +10,9 @@ import { documentableViolations } from "../tooling/typescript/export-jsdoc-rules
  * 判据是纯规则模块 `tooling/typescript/export-jsdoc-rules.mjs`（与产品仓逐字节相同）；
  * 本文件只负责选文件、跑规则、报错。
  *
- * **零容忍**：2026-10-13 的档 C 清理把存量 481 条补齐后，棘轮基线已删除。原基线机制是
- * 「不在基线失败 + 基线里有而现场没有也失败 + 更新只允许裁剪」，维持它需要一份长期豁免
- * 清单；既然已归零，直接用零容忍更简单也更难绕过。确实需要引入新的存量豁免时，
- * 从 `docs/decisions/2026-10-13-export-jsdoc-gate.md` 恢复那套语义，不要放宽本文件。
+ * **零容忍**：棘轮基线已删除（存量补齐后不再需要长期豁免清单）。规则、豁免条件与「要放宽先改
+ * 规范」的要求写在 `docs/standards/typescript-common-conventions.md`「注释 › 机械门禁」，
+ * 本文件只实现它，不自行放宽。
  */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
