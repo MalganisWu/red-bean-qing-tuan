@@ -8,7 +8,7 @@
 ## 活文档
 
 > 一次开发的产出只有 `plans/` / `decisions/` / `design/` 三样，触发判据与红线见
-> [`standards/development-workflow.md`](standards/development-workflow.md)「一次开发的产出」。
+> [`../skills/red-bean-qing-tuan-development-workflow/references/common.md`](../skills/red-bean-qing-tuan-development-workflow/references/common.md)。
 > 本节索引**活文档**（描述当前事实）；`design/` 不写进度与排期。
 
 - [`../src/README.md`](../src/README.md)：从六个公开入口到 core contract、实现与宿主 adapter 的人工审查导航。

@@ -288,7 +288,7 @@ export function installPlugins(
  * （`runNext` → `dispatch(index + 1)`）、哪一行开始执行
  * （`current(info, runNext, nextSignal)`）都能顺着读出来。
  * 反过来，在循环里把 handler 变量反复赋值为匿名闭包，会让洋葱结构藏在赋值里，读代码时看不出
- * 层与层的关系（规则见 `docs/standards/typescript-common-conventions.md`「函数与流程可读性」）。
+ * 层与层的关系（规则见 `docs/standards/typescript-common-conventions.md`）。
  *
  * 注意 `nextSignal`：每个中间件收到的是**上游传给它的**信号，而不是最初那个。
  * 中间件因此可以在自己的作用域内收窄或替换取消信号，而不影响外层。

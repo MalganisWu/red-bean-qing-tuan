@@ -10,8 +10,8 @@ import { documentableViolations } from "../tooling/typescript/export-jsdoc-rules
  * 判据是纯规则模块 `tooling/typescript/export-jsdoc-rules.mjs`（与产品仓逐字节相同）；
  * 本文件只负责选文件、跑规则、报错。
  *
- * **零容忍**：棘轮基线已删除（存量补齐后不再需要长期豁免清单）。规则、豁免条件与「要放宽先改
- * 规范」的要求写在 `docs/standards/typescript-common-conventions.md`「注释 › 机械门禁」，
+ * **零容忍**：棘轮基线已删除（存量补齐后不再需要长期豁免清单）。规则与豁免条件由通用 TypeScript
+ * 规范规定，见 `docs/standards/typescript-common-conventions.md`（它指向跨仓共享的那份实体）；
  * 本文件只实现它，不自行放宽。
  */
 
