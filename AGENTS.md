@@ -48,14 +48,17 @@ red-bean-qing-tuan/
 | 分类 | 目录 | 生命周期 |
 | --- | --- | --- |
 | 契约 | `docs/contracts/` | 活文档；描述当前 TypeScript API |
-| 设计 | `docs/design/` | 活文档；描述架构、数据流与 SDK/宿主边界 |
+| 设计 | `docs/design/` | 活文档；描述**当前**架构、数据流与 SDK/宿主边界；不写进度与排期 |
 | 指南 | `docs/guides/` | 活文档；描述接入、迁移与操作方式 |
 | 标准 | `docs/standards/` | 活文档；描述编码、测试与交付流程 |
-| 需求 | `docs/specs/` | 任务文档；交付后冻结 |
-| 计划 | `docs/plans/` | 任务文档；交付后冻结 |
+| 计划 | `docs/plans/` | 任务文档；执行期可改，交付后冻结 |
+| 决策记录 | `docs/decisions/` | 冻结；只追加不修改 |
 
-进行中的 spec/plan 可以修订；交付后只更新 contract、design、guide、standard、README、CHANGELOG 或源码，
-不得回写历史计划替代当前事实。
+一次开发的产出只有这三样（plan / decision / design）；触发判据、红线、骨架与验收条件去向见
+[`docs/standards/development-workflow.md`](docs/standards/development-workflow.md)「一次开发的产出」。
+
+进行中的 plan 可以修订；交付后只更新 contract、design、guide、standard、README、CHANGELOG 或源码，
+不得回写历史 plan 替代当前事实。
 
 ## 架构规则
 
@@ -111,15 +114,22 @@ Runtime 特有约束见 [`docs/standards/typescript-coding-conventions.md`](docs
 
 ## 开发与测试流程
 
-所有变更按“需求 → 计划 → 编码 → 验证 → 文档影响审查 → 交付”执行，详见
-[`docs/standards/development-workflow.md`](docs/standards/development-workflow.md)。
+所有变更按“需求 → 计划 → 编码 → 验证 → 文档影响审查 → 交付”执行；三样产出、触发判据与验收条件
+去向见 [`docs/standards/development-workflow.md`](docs/standards/development-workflow.md)。
 
+- **第 1 步先判断能力归属**：高层 `agent` 门面、低层 Pipeline，还是宿主应用；服务端职责不得进入 SDK。
 - 可观察行为严格 Red → Green → Refactor；bug 可复现时先添加失败回归测试。
+- 只实现让测试通过的最小变化，再在绿色测试下重构；保持 `protocol / port → service / adapter →
+  composition` 单向依赖。
 - 公开契约、并发、取消、checkpoint、interrupt、工具、流式 LLM 和观测必须覆盖 happy path、主要失败与取消。
 - TypeScript 测试位于 `test/`；稳定序列化 fixture 位于 `testdata/conformance`。
 - 单个 `*.test.ts` 超过 400 行会触发架构检查 warning；这不是失败红线，但评审前应优先按能力或场景拆分，
   公共测试夹具放在相邻的非测试文件中，不能靠压缩排版规避提示。
 - 自定义 CheckpointStore 行为通过 `red-bean-qing-tuan/testing` 的契约套件验证。
+- 公开 API 同步契约与迁移说明；默认行为变化同步 README/CHANGELOG。
+- 不在实现过程中顺带扩大未批准的公共接口或安全权限。
+- 定向验证先跑最接近改动的检查（如 `pnpm test -- --test-name-pattern='CheckpointStore'`）；
+  测试名称与包以当前代码为准，不要把示例命令当作固定清单。
 - 纯文档、配置、生成文件或机械接线可豁免先写测试，但必须说明原因并执行最近风险的静态或契约检查。
 
 ## 兼容性与决策权限
