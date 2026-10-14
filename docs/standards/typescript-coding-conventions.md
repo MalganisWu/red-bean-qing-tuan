@@ -7,10 +7,9 @@
 
 ## Runtime 特有要求
 
-- `AbortSignal` 作为取消边界显式传递，不保存在全局状态。
-- Promise、stream、iterator 和资源所有权必须明确；创建方负责关闭或取消。
+- Promise、stream、iterator 的所有权与关闭责任必须明确：创建方负责关闭或取消。
 - 事件联合必须可穷尽；新增事件不能依赖字符串拼接或宽泛索引签名绕过调用方检查。
-- checkpoint revision、Tool 参数和 LLM 响应必须在不可信边界进行运行时 Schema 校验。
+- checkpoint revision 从持久化层读回后必须运行时校验，不能只靠静态类型。
 - **SDK 主包零生产依赖**：不依赖 HTTP 服务、数据库、Redis 或产品展示类型。宿主能力一律通过
   显式接口注入，由产品仓在组装期提供实现。
 - `*-dto.ts` 或 `*/core/dto.ts` 只允许类型和 interface；校验、序列化、映射和业务函数必须放在
@@ -31,25 +30,31 @@
 
 ## 组装与架构门禁
 
-- 无 Port 实现类必须登记在 `scripts/check-architecture.mjs` 的白名单并附理由，判据是「宿主或测试
-  需要替换它的地方」。
-- 默认实现必须在 `AgentRuntime`、builder 或宿主 composition root 中通过明确的
-  `new ConcreteClass(...)` 组装；生产代码不得以匿名对象、模块副作用或运行期扫描隐藏实现选择。
+- 无对应接口的默认实现类登记在 `scripts/check-architecture.mjs` 的白名单并附理由。
+- 本仓的默认组装入口是 `AgentRuntime`、builder 或宿主 composition root。
 - 能力之间保持单向依赖；`make ts-architecture-check` 会校验能力 DAG 无环、实现与接口精确对应
   以及 DTO 纯度。注释的完整性与语言由 `make ts-export-jsdoc-check` 统一负责。
 
 ## 门禁
 
-配置位于仓库根 `tsconfig.json`、`eslint.config.js` 与 `tooling/typescript/`。提交前至少执行：
+配置位于仓库根 `tsconfig.json`、`eslint.config.js` 与 `tooling/typescript/`。**本仓门禁命令的唯一清单**
+就在这里；其他文档只引用，不重列。`make verify` 依次执行：
 
 ```bash
-make typecheck
-make ts-lint
-make ts-format-check
-make ts-policy-check
-make ts-api-check
-make verify
+make doctor                 # 工具链版本与 package 声明
+make fmt-check              # 格式检查（只读）
+make diff-check             # git diff 空白检查
+make secrets-check          # 环境文件与高置信度密钥扫描
+make build                  # 构建 ESM、声明与 source map
+make docs-check             # 文档索引与链接
+make shared-files-check     # 跨仓共享件逐字一致
+make ts-policy-check        # TypeScript 政策
+make ts-architecture-check  # 架构门禁（能力 DAG、DTO 纯度）
+make ts-export-jsdoc-check  # 注释门禁
+make ts-api-check           # 公开入口与声明基线
+make typecheck              # 严格类型检查
+make ts-lint                # 类型感知 ESLint
+make test                   # 测试
 ```
 
-`make verify` 已包含上述全部步骤。这些命令是只读检查；失败后修复真实类型或控制流，不使用断言、
-disable 注释或降低规则掩盖问题。
+这些命令是只读检查；失败后修复真实类型或控制流，不使用断言、disable 注释或降低规则掩盖问题。

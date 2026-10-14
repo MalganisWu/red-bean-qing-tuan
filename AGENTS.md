@@ -65,11 +65,10 @@ red-bean-qing-tuan/
 - 纯数据 DTO 按所属能力放在 `model/` 或 `request/`，只允许类型和 interface，不允许函数、Schema 或运行时常量；
   parser、serializer 和业务规则必须放在相邻专责文件。Port 与领域状态不是 DTO，不为形式统一混入 DTO。
   Runtime 不建立全局 DTO 大文件，也不接收产品 HTTP DTO。
-- 实现通过构造函数或显式 factory 注入依赖；禁止 Decorator DI、Service Locator 和全局可变注册表。
 - `LlmAdapter`、`ToolDispatcher`、`CheckpointStore`、`Tracer`、`RuntimeNode` 等既有职责名已表达 Port 语义，
   不为形式统一追加 `Port` 并破坏公共 API；新接口同样必须使用可辨识的职责后缀。
-- Runtime 自带的生产/默认实现类必须显式 `implements` 对应接口，不能只依赖 TypeScript 结构化类型；
-  默认组装必须能从公开 facade、builder 或宿主 composition root 找到明确的 `new ConcreteClass(...)`。
+- Runtime 自带的生产/默认实现类，其默认组装必须能从公开 facade、builder 或宿主 composition root
+  找到明确的 `new ConcreteClass(...)`。
 - 一个模块的实现不直接耦合另一个模块的内部实现；跨模块通过公开入口和最小接口组合。
 - 顶层能力依赖固定为 `protocol ← llm/tool/observability ← pipeline ← runtime`；同时依赖 Runtime、LLM、
   Tool 的观测插件实现归 `runtime/`，既有子路径只能兼容导出，不得成为内部依赖捷径。
@@ -82,9 +81,8 @@ red-bean-qing-tuan/
   exactly-once 外部副作用；这些属于宿主。
 - 静态插件仅在构造期注册并封闭。禁止恢复动态热更新、Generation、Supervisor 或运行期插件市场。
 - 文件和网络工具默认 fail-closed，必须由宿主显式选择并授权。
-- 接口只服务于真实的多实现、宿主替换或公开契约边界：公开 API 的接口是消费方契约必须保留；SDK 内部
-  1:1 且无多实现/宿主替换需求的能力接口应删除，调用方直接依赖实现类（无 Port 实现类登记在
-  `scripts/check-architecture.mjs` 白名单并附理由）。判据同产品侧：接口保留在"宿主或测试需要替换它的地方"。
+- 公开 API 的接口是消费方契约，必须保留；SDK 内部 1:1 且无多实现/宿主替换需求的能力接口应删除。
+  无对应接口的默认实现类登记在 `scripts/check-architecture.mjs` 白名单并附理由。
 
 新增 TypeScript 能力必须同时审查公开 exports 和宿主影响。
 
@@ -92,18 +90,14 @@ red-bean-qing-tuan/
 
 所有 `.ts` 遵循跨仓共享的通用规范
 [`docs/standards/typescript-common-conventions.md`](docs/standards/typescript-common-conventions.md)，
-Runtime 特有约束见 [`docs/standards/typescript-coding-conventions.md`](docs/standards/typescript-coding-conventions.md)。硬性红线：
+Runtime 特有约束见 [`docs/standards/typescript-coding-conventions.md`](docs/standards/typescript-coding-conventions.md)。
+**本节不重复通用规则**（禁止 `any`、显式标注边界、`unknown` 起步、禁用 Decorator/enum、cause 链、
+不得绕过门禁等都在通用件里），只列 Runtime 仓的额外强调：
 
-- 禁止显式 `any`、非空断言、无校验类型断言、浮空 Promise、隐式强制转换。
-- 导出 API 以及 LLM、Tool、Event、Checkpoint、Interrupt、Hook 和 Tracer 边界必须显式标注。
-- 外部输入从 `unknown` 开始，经过显式运行时校验后才能进入可信领域。
-- 禁止 `enum`、Decorator、Reflect Metadata、自动依赖注入、Monkey Patch、`eval` 和复杂递归类型体操。
-- `AbortSignal` 显式传递；Promise、stream、iterator 和资源的所有权与关闭路径必须明确。
 - revision/fencing 使用 `bigint`，不得经不安全的 `number` 转换。
-- 错误包装必须保留 cause 链：catch 后重新抛出必须携带原始错误（`new Error(message, { cause })` 或同等
-  机制），不得只取 `message` 重抛使宿主日志断链。错误"类型不重要、可定位性优先"——SDK 的 adapter/plugin
-  包装宿主错误时尤其遵守。
-- 不得通过 disable 注释、断言或放宽 tsconfig 绕过检查。
+- Promise、stream、iterator 和资源的所有权与关闭路径必须明确。
+- 错误"类型不重要、可定位性优先"——SDK 的 adapter/plugin 包装宿主错误时尤其遵守，不得只取
+  `message` 重抛使宿主日志断链。
 
 ## 注释规范
 
@@ -114,12 +108,6 @@ Runtime 特有约束见 [`docs/standards/typescript-coding-conventions.md`](docs
 
 - 与 Port 一起演进的请求/结果类型应说明所有权和失败语义；宿主实现要求写在接口附近。
 - Port JSDoc 应说明 Runtime 默认实现和默认组装入口；若实现只能由宿主提供，则明确标注宿主责任。
-- Runtime 默认实现类的公开用例方法要说明做什么、边界在哪、何时抛错，不能只有方法名。
-- 跨任务决策（为什么选这条路、代价是什么）记入 `docs/decisions/`（ADR 式，只追加不修改）；
-  代码注释只承载局部「为什么」。
-- 流程超过三个阶段的业务方法推荐使用 `// ── 阶段名 ──` 分段标题，让执行顺序成为视觉事实。
-- 错误码、状态码、事件类型、命令 kind 等字面量联合的比较与 case 标签必须引用 const 成员
-  （`CODE.X`），禁止字符串字面量；无 const 源时先建立 const 映射。
 
 ## 开发与测试流程
 
@@ -159,6 +147,10 @@ Runtime 特有约束见 [`docs/standards/typescript-coding-conventions.md`](docs
 
 ## 常用命令
 
+日常几条；**完整门禁清单见
+[`docs/standards/typescript-coding-conventions.md`](docs/standards/typescript-coding-conventions.md)「门禁」**，
+本节不重列。
+
 ```bash
 make setup            # 安装锁定的 TypeScript 工具链
 make ts-build         # 构建 TypeScript ESM、声明与 source map
@@ -166,7 +158,6 @@ make ts-test          # 运行 TypeScript Runtime 测试
 make ts-api-check     # 校验 6 个公开入口与 API surface
 make typecheck        # TypeScript 严格类型检查
 make ts-lint          # TypeScript 类型感知 ESLint
-make ts-format-check  # TypeScript/tooling 格式检查
 make verify           # TypeScript Runtime 完整本地门禁
 ```
 

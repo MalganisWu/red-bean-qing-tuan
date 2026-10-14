@@ -50,33 +50,15 @@ pnpm test -- --test-name-pattern='CheckpointStore'
 
 ### 5. 文档影响审查
 
-查看完整 diff，从 [`../README.md`](../README.md) 的活文档索引开始，沿相关链接逐份判断：
-
-| 改动 | 必查文档 |
-| --- | --- |
-| 高层入口、配置或快速开始 | 根 README、TypeScript API contract |
-| 导出 API、错误、事件或扩展点 | `contracts/typescript-runtime-api.md`、API snapshot、契约测试 |
-| 模块边界或数据流 | `design/architecture.md` |
-| 压缩与内容恢复 | `design/compression.md` |
-| 迁移或删除项 | CHANGELOG、当前 plan |
-| 开发规范、命令或目录 | AGENTS、standards、Makefile |
+查看完整 diff，从 [`../README.md`](../README.md) 的活文档索引开始，沿相关链接逐份判断。
+**必查文档的判定表在 [`../../AGENTS.md`](../../AGENTS.md)「文档影响门禁」，本节不重复。**
 
 可以得出“无需更新”，但必须说明具体理由。新增、移动、重命名或删除活文档时同步索引与引用方。
 
 ### 6. 统一门禁与交付
 
-```bash
-make doctor
-make docs-check
-make secrets-check
-make typecheck
-make ts-lint
-make ts-format-check
-make ts-policy-check
-make verify
-```
-
-所有 TypeScript 源码都必须通过上述专项门禁。
+逐项命令清单见 [`typescript-coding-conventions.md`](typescript-coding-conventions.md)「门禁」。
+一条 `make verify` 即包含全部；所有 TypeScript 源码都必须通过。
 
 交付前还要确认 `git diff --check`、最终文件清单和文档影响结论。提交、推送、合并和发布只有在用户
 明确授权时执行；不要因为进入“交付阶段”自动取得外部写入权限。
