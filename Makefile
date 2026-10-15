@@ -74,7 +74,7 @@ ts-policy-check: ## 检查严格 TS 配置、ESLint 政策、工具链声明与�
 ts-architecture-check: ## 检查跨能力依赖、默认实现声明与零生产依赖
 	node ./scripts/check-architecture.mjs
 
-ts-export-jsdoc-check: ## 检查导出符号与公开成员的 JSDoc（棘轮基线，纯语法解析，不依赖构建产物）
+ts-export-jsdoc-check: ## 检查导出符号与公开成员的 JSDoc（零容忍，纯语法解析，不依赖构建产物）
 	node ./scripts/check-export-jsdoc.mjs
 
 ts-decl-baseline-update: ts-build ## 重生成声明基线（写文件；JSDoc 会进 .d.ts，改注释后必跑）
