@@ -48,7 +48,7 @@ function parameters(): JsonObject {
  */
 function parseListDirectoryParams(value: JsonValue): ListDirectoryParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("list_directory parameters must be an object");
+    throw new Error("list_directory 的参数必须是对象");
   }
   const raw = value["path"];
   if (typeof raw !== "string") throw new Error("path 必须是字符串");

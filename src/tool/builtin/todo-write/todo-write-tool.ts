@@ -127,7 +127,7 @@ function parseItem(value: JsonValue, index: number): TodoItem {
  */
 function parseTodoWriteParams(value: JsonValue): TodoWriteParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("todo_write parameters must be an object");
+    throw new Error("todo_write 的参数必须是对象");
   }
   const rawTodos = value["todos"];
   if (!Array.isArray(rawTodos)) throw new Error("todos 必须是数组");

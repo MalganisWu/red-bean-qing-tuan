@@ -268,7 +268,7 @@ void describe("Runtime TypeScript static plugins", () => {
     assert.ok(captured);
     assert.throws(
       (): void => captured?.useRun((_info, next, signal) => next(signal)),
-      /sealed/i,
+      /已封存/,
     );
     assert.throws(
       (): AgentRuntime =>
@@ -276,7 +276,7 @@ void describe("Runtime TypeScript static plugins", () => {
           model: new SequenceAdapter(),
           plugins: [plugin, plugin],
         }),
-      /duplicate plugin/i,
+      /插件重复/,
     );
     assert.throws(
       (): AgentRuntime =>
@@ -289,7 +289,7 @@ void describe("Runtime TypeScript static plugins", () => {
             },
           ],
         }),
-      /name must not be empty/i,
+      /插件的名字不能为空/,
     );
     assert.throws(
       (): AgentRuntime =>

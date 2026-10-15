@@ -225,7 +225,7 @@ export async function consumeResumeCheckpoint(
       disposition: CONSUME_DISPOSITIONS.CLAIMED,
     };
   }
-  if (!store) throw new Error("resume requires state or checkpoint store");
+  if (!store) throw new Error("resume 需要 state 或 checkpoint store");
   const userId = request.userId ?? "";
   const fencingToken = request.fencingToken ?? 0n;
   const loaded = await store.load({ threadId, userId, fencingToken }, signal);
@@ -263,7 +263,7 @@ export function validateCheckpointIdentity(
   userId: string,
 ): void {
   if (checkpoint.threadId !== "" && checkpoint.threadId !== threadId) {
-    throw new Error("checkpoint thread ID does not match request");
+    throw new Error("checkpoint 的 thread ID 与请求不符");
   }
   if (
     userId !== "" &&

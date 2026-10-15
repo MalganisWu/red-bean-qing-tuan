@@ -83,7 +83,7 @@ void describe("Runtime TypeScript read-file tool", () => {
     await assert.rejects(execute(tool, { file_path: "" }), /file_path/);
     await assert.rejects(
       tool.execute("bad", context, AbortSignal.timeout(1_000)),
-      /object/i,
+      /必须是对象/,
     );
     await assert.rejects(
       execute(tool, { file_path: path.join(directory, "missing.txt") }),

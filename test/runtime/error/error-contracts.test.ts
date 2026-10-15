@@ -24,7 +24,7 @@ void describe("Runtime TypeScript error contracts", () => {
     });
 
     assert.equal(error.code, "checkpoint_revision_conflict");
-    assert.equal(error.message, "checkpoint revision conflict");
+    assert.equal(error.message, "checkpoint revision 冲突");
     assert.equal(error.cause, cause);
     assert.equal(isRuntimeError(error), true);
     assert.equal(
@@ -55,7 +55,7 @@ void describe("Runtime TypeScript error contracts", () => {
 
     assert.equal(
       error.message,
-      `hook fatal error, abort pipeline: ${cause.message}`,
+      `hook fatal error, abort pipeline：${cause.message}`,
     );
     assert.equal(error.cause, cause);
     assert.equal(isHookFatalError(error), true);

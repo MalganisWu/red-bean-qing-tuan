@@ -27,7 +27,7 @@ function normalizeError(value: unknown): Error {
  * @returns 一条带上下文说明且保留了 cause 的新 Error。
  */
 function wrapError(message: string, cause: unknown): Error {
-  return new Error(`${message}: ${normalizeError(cause).message}`, {
+  return new Error(`${message}：${normalizeError(cause).message}`, {
     cause: normalizeError(cause),
   });
 }

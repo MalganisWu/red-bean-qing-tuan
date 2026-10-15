@@ -78,7 +78,7 @@ function parameters(): JsonObject {
  */
 function parseGrepParams(value: JsonValue): GrepParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("grep parameters must be an object");
+    throw new Error("grep 的参数必须是对象");
   }
   const rawPattern = value["pattern"];
   if (typeof rawPattern !== "string") throw new Error("pattern 必须是字符串");

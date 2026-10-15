@@ -37,8 +37,7 @@ export async function nextModelChunk(
   const { promise: timeout, reject: rejectTimeout } =
     Promise.withResolvers<never>();
   const timer = setTimeout(
-    (): void =>
-      rejectTimeout(new Error(`LLM stream timed out after ${timeoutMs}ms`)),
+    (): void => rejectTimeout(new Error(`LLM 流在 ${timeoutMs}ms 后超时`)),
     timeoutMs,
   );
   timer.unref();

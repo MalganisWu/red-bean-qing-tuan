@@ -87,7 +87,7 @@ void describe("Runtime TypeScript get-time tool", () => {
         context,
         AbortSignal.timeout(1_000),
       ),
-      /time zone/i,
+      /时区非法/,
     );
     await assert.rejects(
       tool.execute({ timezone: 42 }, context, AbortSignal.timeout(1_000)),

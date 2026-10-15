@@ -55,7 +55,7 @@ function parameters(): JsonObject {
  */
 function parseGlobParams(value: JsonValue): GlobParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("glob parameters must be an object");
+    throw new Error("glob 的参数必须是对象");
   }
   const rawPattern = value["pattern"];
   if (typeof rawPattern !== "string") throw new Error("pattern 必须是字符串");

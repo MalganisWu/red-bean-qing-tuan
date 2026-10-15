@@ -105,7 +105,7 @@ export class PluginRegistry {
   public useRun(middleware: RunMiddleware): void {
     this.#requireOpen();
     if (typeof middleware !== "function") {
-      throw new TypeError("run middleware must be a function");
+      throw new TypeError("run 中间件必须是函数");
     }
     this.#run.push(middleware);
   }
@@ -117,7 +117,7 @@ export class PluginRegistry {
   public useLlm(middleware: LlmMiddleware): void {
     this.#requireOpen();
     if (typeof middleware.wrapLlm !== "function") {
-      throw new TypeError("LLM middleware must define wrapLlm");
+      throw new TypeError("LLM 中间件必须实现 wrapLlm");
     }
     this.#llm.push(middleware);
   }
@@ -129,7 +129,7 @@ export class PluginRegistry {
   public useTool(middleware: ToolMiddleware): void {
     this.#requireOpen();
     if (typeof middleware.wrapToolDispatcher !== "function") {
-      throw new TypeError("tool middleware must define wrapToolDispatcher");
+      throw new TypeError("工具中间件必须实现 wrapToolDispatcher");
     }
     this.#tool.push(middleware);
   }
@@ -141,7 +141,7 @@ export class PluginRegistry {
   public onClose(handler: CloseHandler): void {
     this.#requireOpen();
     if (typeof handler !== "function") {
-      throw new TypeError("plugin close handler must be a function");
+      throw new TypeError("插件的 close 处理器必须是函数");
     }
     this.#closers.push(handler);
   }
@@ -178,7 +178,7 @@ export class PluginRegistry {
       if (!middleware) continue;
       wrapped = middleware.wrapLlm(wrapped);
       if (!wrapped) {
-        throw new Error(`LLM middleware at index ${index} returned no adapter`);
+        throw new Error(`第 ${index} 个 LLM 中间件没有返回 adapter`);
       }
     }
     return wrapped;
@@ -196,9 +196,7 @@ export class PluginRegistry {
       if (!middleware) continue;
       wrapped = middleware.wrapToolDispatcher(wrapped);
       if (!wrapped) {
-        throw new Error(
-          `tool middleware at index ${index} returned no dispatcher`,
-        );
+        throw new Error(`第 ${index} 个工具中间件没有返回 dispatcher`);
       }
     }
     return wrapped;
@@ -239,7 +237,7 @@ export class PluginRegistry {
    * 避免某个入口漏判导致运行期还能改写能力图。
    */
   #requireOpen(): void {
-    if (this.#sealed) throw new Error("runtime plugin registry is sealed");
+    if (this.#sealed) throw new Error("runtime 插件注册表已封存");
   }
 }
 
@@ -261,16 +259,14 @@ export function installPlugins(
   try {
     for (const [index, plugin] of plugins.entries()) {
       if (!plugin || typeof plugin.register !== "function") {
-        throw new TypeError(`runtime plugin at index ${index} is invalid`);
+        throw new TypeError(`第 ${index} 个 runtime 插件非法`);
       }
       const name = plugin.name.trim();
       if (name === "") {
-        throw new Error(
-          `runtime plugin at index ${index} name must not be empty`,
-        );
+        throw new Error(`第 ${index} 个 runtime 插件的名字不能为空`);
       }
       if (names.has(name)) {
-        throw new Error(`duplicate plugin ${JSON.stringify(name)}`);
+        throw new Error(`插件重复：${JSON.stringify(name)}`);
       }
       names.add(name);
       plugin.register(registry);

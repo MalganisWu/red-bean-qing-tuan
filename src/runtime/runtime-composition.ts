@@ -61,11 +61,11 @@ function configureRuntime(options: AgentRuntimeOptions): ConfiguredRuntime {
   for (const tool of tools) {
     if (tool.name === "" || tool.schema.function.name !== tool.name) {
       throw new Error(
-        `tool name ${JSON.stringify(tool.name)} does not match schema name ${JSON.stringify(tool.schema.function.name)}`,
+        `工具名 ${JSON.stringify(tool.name)} 与 schema 名 ${JSON.stringify(tool.schema.function.name)} 不一致`,
       );
     }
     if (names.has(tool.name)) {
-      throw new Error(`duplicate tool ${JSON.stringify(tool.name)}`);
+      throw new Error(`工具重复：${JSON.stringify(tool.name)}`);
     }
     names.add(tool.name);
     schemas.push(tool.schema);
@@ -74,12 +74,10 @@ function configureRuntime(options: AgentRuntimeOptions): ConfiguredRuntime {
     (options.toolSchemas === undefined) !==
     (options.toolDispatcher === undefined)
   ) {
-    throw new Error(
-      "toolSchemas and toolDispatcher must be configured together",
-    );
+    throw new Error("toolSchemas 与 toolDispatcher 必须同时配置");
   }
   if (tools.length > 0 && options.toolDispatcher) {
-    throw new Error("tools and toolDispatcher are mutually exclusive");
+    throw new Error("tools 与 toolDispatcher 互斥");
   }
 
   // 没有显式 dispatcher 时：有工具就用 Map 分发器，一个工具都没有则用 Noop
@@ -99,9 +97,7 @@ function configureRuntime(options: AgentRuntimeOptions): ConfiguredRuntime {
   const eventPolicy =
     options.eventSinkErrorPolicy ?? EVENT_SINK_ERROR_POLICIES.FAIL_FAST;
   if (!Object.values(EVENT_SINK_ERROR_POLICIES).includes(eventPolicy)) {
-    throw new Error(
-      `unknown event sink error policy ${JSON.stringify(eventPolicy)}`,
-    );
+    throw new Error(`未知的事件出口错误策略：${JSON.stringify(eventPolicy)}`);
   }
   return {
     configuration: {
@@ -158,7 +154,7 @@ class PolicyDispatcher implements ToolDispatcher {
     } catch (cause: unknown) {
       const error = cause instanceof Error ? cause : new Error(String(cause));
       throw new Error(
-        `tool ${JSON.stringify(call.function.name)} denied by policy: ${error.message}`,
+        `工具 ${JSON.stringify(call.function.name)} 被策略拒绝：${error.message}`,
         { cause },
       );
     }

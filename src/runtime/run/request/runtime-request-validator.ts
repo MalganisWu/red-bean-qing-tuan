@@ -228,6 +228,6 @@ function invalid(threadId: string, userId: string, message: string): never {
   return failRuntimeExecution(
     failedRuntimeResult(threadId, userId),
     message,
-    new Error("invalid request"),
+    new Error("请求非法"),
   );
 }

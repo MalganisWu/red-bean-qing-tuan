@@ -242,7 +242,7 @@ void describe("Runtime TypeScript ReAct loop", () => {
         config,
         signal: AbortSignal.timeout(3_000),
       }),
-      /timed out/i,
+      /超时/,
     );
   });
 });

@@ -225,7 +225,7 @@ void describe("Runtime TypeScript high-level facade", () => {
           model: new SequenceAdapter([]),
           tools: [mismatched],
         }),
-      /does not match schema/i,
+      /与 schema 名 .* 不一致/,
     );
   });
 

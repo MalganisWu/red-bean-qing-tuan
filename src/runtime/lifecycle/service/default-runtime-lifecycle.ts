@@ -28,7 +28,7 @@ export class DefaultRuntimeLifecycle implements RuntimeLifecycle {
    * @returns 结束本次运行记账的回调；重复调用无副作用，但必须被调用，否则 close 会一直等待。
    */
   public beginRun(): () => void {
-    if (this.#closing) throw new Error("runtime is closed");
+    if (this.#closing) throw new Error("runtime 已关闭");
     this.#activeRuns += 1;
     let released = false;
     // 结束本次运行记账：幂等；最后一个运行结束时唤醒所有等待空转的调用方。

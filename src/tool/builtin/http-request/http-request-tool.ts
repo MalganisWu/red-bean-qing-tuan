@@ -67,11 +67,11 @@ function parseHeaders(
   value: JsonValue | undefined,
 ): Readonly<Record<string, string>> {
   if (value === undefined || value === null) return {};
-  if (!isObject(value)) throw new Error("headers must be an object");
+  if (!isObject(value)) throw new Error("headers 必须是对象");
   const headers: Record<string, string> = {};
   for (const [name, headerValue] of Object.entries(value)) {
     if (typeof headerValue !== "string") {
-      throw new Error(`header ${JSON.stringify(name)} must be a string`);
+      throw new Error(`请求头 ${JSON.stringify(name)} 必须是字符串`);
     }
     headers[name] = headerValue;
   }
@@ -115,7 +115,7 @@ function parseUrl(value: JsonValue | undefined): URL {
  * @returns 归一化后的请求描述，可直接交给 HttpClient
  */
 function parseRequest(value: JsonValue): ParsedRequest {
-  if (!isObject(value)) throw new Error("HTTP parameters must be an object");
+  if (!isObject(value)) throw new Error("HTTP 的参数必须是对象");
   const rawMethod = value["method"];
   if (typeof rawMethod !== "string") throw new Error("method 不能为空");
   const method = rawMethod.toUpperCase();
@@ -128,7 +128,7 @@ function parseRequest(value: JsonValue): ParsedRequest {
     rawBody !== null &&
     typeof rawBody !== "string"
   ) {
-    throw new Error("body must be a string");
+    throw new Error("body 必须是字符串");
   }
   return {
     method,

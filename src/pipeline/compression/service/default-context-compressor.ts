@@ -230,7 +230,7 @@ async function nextWithTimeout(
   const { promise: interrupted, reject } = Promise.withResolvers<never>();
   // 闲置超时：中止本次流并以上限错误拒绝，让底层连接真正被取消。
   function rejectOnIdleTimeout(): void {
-    const error = new Error(`summary stream idle for ${timeoutMs}ms`);
+    const error = new Error(`摘要流空闲超过 ${timeoutMs}ms`);
     timeoutController.abort(error);
     reject(error);
   }
@@ -347,7 +347,7 @@ export class DefaultCompressor implements ContextCompressor {
       summary = await this.#summarize(messages.slice(0, summarizeEnd), signal);
     } catch (cause: unknown) {
       this.#consecutiveFailures += 1;
-      throw new Error(`compress summary: ${normalizeError(cause).message}`, {
+      throw new Error(`压缩摘要失败：${normalizeError(cause).message}`, {
         cause,
       });
     }
@@ -456,13 +456,13 @@ export class DefaultCompressor implements ContextCompressor {
       // 两层空判定：模型什么都没回，和回了但解析后什么都不剩，是两种不同的故障，
       // 分开报错才能在排障时看出是该调提示词还是该查解析。
       const raw = content.join("").trim();
-      if (raw === "") throw new Error("summary response is empty");
+      if (raw === "") throw new Error("摘要响应为空");
       const formatted = formatCompactSummary(raw);
-      if (formatted === "") throw new Error("parsed summary is empty");
+      if (formatted === "") throw new Error("解析后的摘要为空");
       return formatted;
     } finally {
       // 无论成败都掐掉超时控制器，避免它带着计时器活过这次调用。
-      timeoutController.abort(new Error("summary complete"));
+      timeoutController.abort(new Error("摘要已完成"));
     }
   }
 }

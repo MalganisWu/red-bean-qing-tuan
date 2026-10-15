@@ -118,7 +118,7 @@ function parseEdit(value: JsonValue, index: number): PatchEdit {
  */
 function parseApplyPatchParams(value: JsonValue): ApplyPatchParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("apply_patch parameters must be an object");
+    throw new Error("apply_patch 的参数必须是对象");
   }
   const rawPath = value["file_path"];
   if (typeof rawPath !== "string") throw new Error("file_path 必须是字符串");

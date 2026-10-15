@@ -187,9 +187,7 @@ function cloneMessage(message: RawMessage): RawMessage {
 function revisionToJson(revision: bigint): number {
   const value = Number(revision);
   if (!Number.isSafeInteger(value) || value < 0) {
-    throw new RangeError(
-      "runtime result revision exceeds JSON safe integer range",
-    );
+    throw new RangeError("runtime 结果的 revision 超出 JSON 安全整数范围");
   }
   return value;
 }

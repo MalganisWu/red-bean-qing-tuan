@@ -329,7 +329,7 @@ export class DefaultRuntimeRunService implements RuntimeRunService {
         return executionFailure(
           this.#failedResult(threadId, request.userId ?? ""),
           "checkpoint store returned an invalid resume claim",
-          new Error("invalid checkpoint store response"),
+          new Error("checkpoint store 返回了非法响应"),
         );
       }
 

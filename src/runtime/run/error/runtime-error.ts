@@ -3,8 +3,8 @@
  *
  * 这些字符串是**宿主分支判断的唯一依据**，属于公共 API：新增码是兼容的，
  * 改名或删除则是破坏性变更（由 api surface 快照与声明基线守住）。
- * 配套的 `RUNTIME_ERROR_MESSAGES` 也刻意固定——文案不作为判断依据，
- * 但保持稳定才能让日志与告警的聚合规则不因版本升级而失效。
+ * 配套的 `RUNTIME_ERROR_MESSAGES` 只求可读，**不承担判断职责**：分支、告警分类与聚合一律看
+ * `code` 这个稳定字段，不要依赖 `message` 的全文或子串。
  */
 export const RUNTIME_ERROR_CODES = Object.freeze({
   CHECKPOINT_NOT_FOUND: "checkpoint_not_found",
@@ -25,24 +25,25 @@ export type RuntimeErrorCode =
   (typeof RUNTIME_ERROR_CODES)[keyof typeof RUNTIME_ERROR_CODES];
 
 /**
- * 错误码到稳定文案的映射，供 RuntimeError 构造时套用。
+ * 错误码到说明文案的映射，供 RuntimeError 构造时套用。
  *
- * 文案不参与任何分支判断，但刻意固定不变：日志与告警常按文案做聚合，
- * 文案随版本漂移会让历史聚合规则失效。因此分支一律看 `code`，文案只看可读性。
+ * 文案只供人阅读：它会随版本改进，也可能本地化。**机器判断一律看 `code`** ——
+ * 把整句文本当成聚合依据，会让文案再也无法改动或本地化。技术标识（`sessionId` 一类字段名、
+ * 协议名、具体 ID）保留原文。
  */
 const RUNTIME_ERROR_MESSAGES: Readonly<Record<RuntimeErrorCode, string>> =
   Object.freeze({
-    checkpoint_not_found: "checkpoint not found",
-    checkpoint_not_suspended: "checkpoint is not suspended",
-    interrupt_mismatch: "interrupt ID does not match suspended checkpoint",
-    interrupt_already_consumed: "interrupt has already been consumed",
-    resume_in_progress: "resume is already in progress",
-    thread_busy: "thread has an in-progress resume",
-    checkpoint_revision_conflict: "checkpoint revision conflict",
-    stale_fencing_token: "stale fencing token",
-    checkpoint_fencing_unsupported: "checkpoint fencing is unsupported",
-    idempotency_conflict: "idempotency key conflicts with an existing request",
-    replayed_resume_failure: "replayed resume completed with an error status",
+    checkpoint_not_found: "找不到 checkpoint",
+    checkpoint_not_suspended: "checkpoint 不处于挂起状态",
+    interrupt_mismatch: "interrupt ID 与挂起的 checkpoint 不符",
+    interrupt_already_consumed: "interrupt 已经被消费",
+    resume_in_progress: "该 resume 已经在进行中",
+    thread_busy: "该 thread 有正在进行的 resume",
+    checkpoint_revision_conflict: "checkpoint revision 冲突",
+    stale_fencing_token: "fencing token 已过期",
+    checkpoint_fencing_unsupported: "该 checkpoint 不支持 fencing",
+    idempotency_conflict: "幂等键与已存在的请求冲突",
+    replayed_resume_failure: "重放 resume 以错误状态结束",
   });
 
 /** 可稳定编程识别的 Runtime 错误，替代早期实现中的 sentinel error。 */

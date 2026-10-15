@@ -46,9 +46,7 @@ async function runCases(
     async function freshStore(): Promise<CheckpointStore> {
       const candidate: unknown = await factory();
       if (!isCheckpointStore(candidate)) {
-        throw new TypeError(
-          "CheckpointStore factory returned an invalid store",
-        );
+        throw new TypeError("CheckpointStore 工厂返回了非法 store");
       }
       stores.push(candidate);
       return candidate;
@@ -81,16 +79,15 @@ async function runCases(
       }
     }
     if (failed) {
-      throw new Error(
-        `CheckpointStore contract failed [${contractCase.name}]`,
-        { cause: failure },
-      );
+      throw new Error(`CheckpointStore 契约用例失败 [${contractCase.name}]`, {
+        cause: failure,
+      });
     }
     try {
       await options.afterCase?.(contractCase.name);
     } catch (error: unknown) {
       throw new Error(
-        `CheckpointStore contract afterCase failed [${contractCase.name}]`,
+        `CheckpointStore 契约用例收尾失败 [${contractCase.name}]`,
         { cause: error },
       );
     }

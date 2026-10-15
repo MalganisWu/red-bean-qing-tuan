@@ -22,20 +22,19 @@ export interface JsonObject {
 function normalizeObject(value: object, ancestors: Set<object>): JsonObject {
   const prototype: unknown = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null) {
-    throw new TypeError("value is not a plain JSON object");
+    throw new TypeError("值不是普通 JSON 对象");
   }
-  if (ancestors.has(value))
-    throw new TypeError("value contains a circular JSON reference");
+  if (ancestors.has(value)) throw new TypeError("值中存在循环引用");
 
   ancestors.add(value);
   try {
     const result: Record<string, JsonValue> = {};
     for (const key of Reflect.ownKeys(value)) {
       if (typeof key !== "string")
-        throw new TypeError("JSON object contains a symbol key");
+        throw new TypeError("JSON 对象含有 symbol 键");
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
       if (!descriptor || !("value" in descriptor)) {
-        throw new TypeError("JSON object contains an accessor property");
+        throw new TypeError("JSON 对象含有访问器属性");
       }
       const nestedValue: unknown = descriptor.value;
       result[key] = normalizeJsonValue(nestedValue, ancestors);
@@ -61,13 +60,11 @@ function normalizeJsonValue(value: unknown, ancestors: Set<object>): JsonValue {
   if (value === null || typeof value === "string" || typeof value === "boolean")
     return value;
   if (typeof value === "number") {
-    if (!Number.isFinite(value))
-      throw new TypeError("JSON number must be finite");
+    if (!Number.isFinite(value)) throw new TypeError("JSON 数字必须是有限值");
     return value;
   }
   if (Array.isArray(value)) {
-    if (ancestors.has(value))
-      throw new TypeError("value contains a circular JSON reference");
+    if (ancestors.has(value)) throw new TypeError("值中存在循环引用");
     ancestors.add(value);
     try {
       return value.map((item) => normalizeJsonValue(item, ancestors));
@@ -76,7 +73,7 @@ function normalizeJsonValue(value: unknown, ancestors: Set<object>): JsonValue {
     }
   }
   if (typeof value === "object") return normalizeObject(value, ancestors);
-  throw new TypeError(`value of type ${typeof value} is not valid JSON`);
+  throw new TypeError(`${typeof value} 类型的值不是合法 JSON`);
 }
 
 /**

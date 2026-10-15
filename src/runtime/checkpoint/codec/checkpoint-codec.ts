@@ -28,7 +28,7 @@ import type { CheckpointRecord } from "../store/port/checkpoint-store.js";
 function revisionToJson(revision: bigint): number {
   const value = Number(revision);
   if (!Number.isSafeInteger(value) || value < 0) {
-    throw new RangeError("checkpoint revision exceeds JSON safe integer range");
+    throw new RangeError("checkpoint revision 超出 JSON 安全整数范围");
   }
   return value;
 }
@@ -114,7 +114,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  */
 function record(value: unknown, label: string): Record<string, unknown> {
   if (!isRecord(value)) {
-    throw new TypeError(`${label} must be an object`);
+    throw new TypeError(`${label} 必须是对象`);
   }
   return value;
 }
@@ -137,7 +137,7 @@ function stringField(
 ): string {
   const field = value[key];
   if (field === undefined) return fallback;
-  if (typeof field !== "string") throw new TypeError(`${key} must be a string`);
+  if (typeof field !== "string") throw new TypeError(`${key} 必须是字符串`);
   return field;
 }
 
@@ -159,7 +159,7 @@ function numberField(
   const field = value[key];
   if (field === undefined) return fallback;
   if (typeof field !== "number" || !Number.isFinite(field))
-    throw new TypeError(`${key} must be a finite number`);
+    throw new TypeError(`${key} 必须是有限数字`);
   return field;
 }
 
@@ -177,7 +177,7 @@ function parseToolCall(item: unknown) {
     index !== undefined &&
     (typeof index !== "number" || !Number.isSafeInteger(index))
   ) {
-    throw new TypeError("tool call index must be an integer");
+    throw new TypeError("工具调用下标必须是整数");
   }
   return {
     id: stringField(call, "id"),
@@ -201,7 +201,7 @@ function parseRawMessage(value: unknown): RawMessage {
   const source = record(value, "message");
   const content = source["content"];
   if (content !== null && typeof content !== "string")
-    throw new TypeError("message content must be a string or null");
+    throw new TypeError("消息内容必须是字符串或 null");
   const calls = source["tool_calls"];
   return {
     role: stringField(source, "role"),
@@ -212,7 +212,7 @@ function parseRawMessage(value: unknown): RawMessage {
           toolCalls: Array.isArray(calls)
             ? calls.map(parseToolCall)
             : (() => {
-                throw new TypeError("tool_calls must be an array");
+                throw new TypeError("tool_calls 必须是数组");
               })(),
         }),
     ...(source["tool_call_id"] === undefined
@@ -238,13 +238,12 @@ export function parseCheckpoint(value: unknown): Checkpoint {
   const source = record(value, "checkpoint");
   const version = numberField(source, "version");
   if (!Number.isSafeInteger(version) || version <= 0)
-    throw new TypeError("checkpoint version must be a positive integer");
+    throw new TypeError("checkpoint version 必须是正整数");
   const status = stringField(source, "status");
   if (!isCheckpointStatus(status))
-    throw new TypeError("checkpoint status is invalid");
+    throw new TypeError("checkpoint status 取值非法");
   const messages = source["messages"];
-  if (!Array.isArray(messages))
-    throw new TypeError("messages must be an array");
+  if (!Array.isArray(messages)) throw new TypeError("messages 必须是数组");
   const interruptValue = source["interrupt"];
   const interrupt =
     interruptValue === undefined
@@ -298,8 +297,7 @@ function isCheckpointStatus(value: string): value is CheckpointStatus {
  */
 function parseContentRefs(value: unknown): ContentRef[] {
   if (value === undefined) return [];
-  if (!Array.isArray(value))
-    throw new TypeError("content_refs must be an array");
+  if (!Array.isArray(value)) throw new TypeError("content_refs 必须是数组");
   return value.map(parseContentRef);
 }
 
@@ -318,13 +316,13 @@ function parseContentRef(item: unknown): ContentRef {
     meta = {};
     for (const [key, entry] of Object.entries(rawMeta)) {
       if (typeof entry !== "string")
-        throw new TypeError("content reference meta values must be strings");
+        throw new TypeError("内容引用的 meta 值必须是字符串");
       meta[key] = entry;
     }
   }
   const timestamp = source["timestamp"];
   if (timestamp !== undefined && typeof timestamp !== "number")
-    throw new TypeError("content reference timestamp must be a number");
+    throw new TypeError("内容引用的 timestamp 必须是数字");
   return {
     kind: stringField(source, "kind"),
     key: stringField(source, "key"),

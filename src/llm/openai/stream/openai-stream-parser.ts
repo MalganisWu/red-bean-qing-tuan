@@ -113,7 +113,7 @@ function parseEvent(data: string): ParsedEvent {
     return errorEvent(
       new LlmError(
         LLM_ERROR_KINDS.TEMPORARY,
-        new Error(`provider stream error: ${message ?? "unknown error"}`),
+        new Error(`provider 流中断：${message ?? "未知错误"}`),
       ),
     );
   }

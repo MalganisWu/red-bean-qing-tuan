@@ -79,7 +79,7 @@ function optionalString(params: JsonObject, key: string): string | undefined {
   const value = params[key];
   if (value === undefined || value === null) return undefined;
   if (typeof value !== "string") {
-    throw new Error(`delegation parameter ${key} must be a string`);
+    throw new Error(`委派参数 ${key} 必须是字符串`);
   }
   return value;
 }
@@ -94,8 +94,7 @@ function optionalString(params: JsonObject, key: string): string | undefined {
  * @throws Error 参数不是普通对象，或某个字段类型不符时抛出。
  */
 function parseParams(value: JsonValue): DelegationParams {
-  if (!isRecord(value))
-    throw new Error("delegation parameters must be an object");
+  if (!isRecord(value)) throw new Error("委派的参数必须是对象");
   return {
     instruction: optionalString(value, "instruction") ?? "",
     context: optionalString(value, "context") ?? "",
@@ -230,13 +229,13 @@ export class DelegationTool implements Tool {
 
   public constructor(options: DelegationToolOptions) {
     if (options.agentId.trim() === "") {
-      throw new Error("delegation agent ID must not be empty");
+      throw new Error("委派的 agent ID 不能为空");
     }
     if (options.name.trim() === "") {
-      throw new Error("delegation tool name must not be empty");
+      throw new Error("委派的工具名不能为空");
     }
     if (!options.runner || typeof options.runner.runChild !== "function") {
-      throw new Error("delegation child runner must be configured");
+      throw new Error("必须配置委派的 child runner");
     }
     this.#agentId = options.agentId;
     this.name = options.name;

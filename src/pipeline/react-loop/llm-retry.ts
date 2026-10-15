@@ -185,7 +185,7 @@ export async function runWithLlmRetry<TOutput>(
         attempt >= params.maxRetries ||
         !isLlmError(error, LLM_ERROR_KINDS.TEMPORARY)
       ) {
-        throw new Error(`LLM request failed: ${error.message}`, {
+        throw new Error(`LLM 请求失败：${error.message}`, {
           cause: value,
         });
       }

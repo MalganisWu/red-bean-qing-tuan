@@ -51,6 +51,6 @@ export function openAiHttpError(
       : LLM_ERROR_KINDS.PERMANENT;
   return new LlmError(
     kind,
-    new Error(`OpenAI-compatible API error ${status}: ${responseBody}`),
+    new Error(`OpenAI 兼容接口返回错误 ${status}：${responseBody}`),
   );
 }

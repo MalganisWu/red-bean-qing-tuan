@@ -60,7 +60,7 @@ export class MessageBufferCheckpointer implements MessageHook {
     timeoutMs: number = DEFAULT_BUFFER_TIMEOUT_MS,
   ) {
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
-      throw new RangeError("timeoutMs must be a positive safe integer");
+      throw new RangeError("timeoutMs 必须是正安全整数");
     }
     this.#appender = appender;
     this.#timeoutMs = timeoutMs;

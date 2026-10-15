@@ -250,8 +250,7 @@ export class MemoryCheckpointStore implements CheckpointStore {
   ): ConsumeInterruptResult {
     requireActive(signal);
     requireThreadId(request.threadId);
-    if (request.requestId === "")
-      throw new Error("resume request ID must not be empty");
+    if (request.requestId === "") throw new Error("resume 请求 ID 不能为空");
 
     const existing = this.#records.get(request.threadId);
     if (
@@ -426,8 +425,7 @@ function requireActive(signal: AbortSignal): void {
  * @param threadId - 待校验的会话标识；为空串即抛错
  */
 function requireThreadId(threadId: string): void {
-  if (threadId === "")
-    throw new Error("checkpoint thread ID must not be empty");
+  if (threadId === "") throw new Error("checkpoint 的 thread ID 不能为空");
 }
 
 /**

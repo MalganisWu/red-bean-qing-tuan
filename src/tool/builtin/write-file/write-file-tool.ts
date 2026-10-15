@@ -62,7 +62,7 @@ function parameters(): JsonObject {
  */
 function parseWriteFileParams(value: JsonValue): WriteFileParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("write_file parameters must be an object");
+    throw new Error("write_file 的参数必须是对象");
   }
   const rawPath = value["file_path"];
   if (typeof rawPath !== "string") throw new Error("file_path 必须是字符串");

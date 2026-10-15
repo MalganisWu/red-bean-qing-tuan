@@ -45,7 +45,7 @@ function isObject(value: JsonValue): value is JsonObject {
 function optionalString(value: JsonObject, key: string): string {
   const field = value[key];
   if (field === undefined || field === null) return "";
-  if (typeof field !== "string") throw new Error(`${key} must be a string`);
+  if (typeof field !== "string") throw new Error(`${key} 必须是字符串`);
   return field;
 }
 
@@ -104,7 +104,7 @@ function zonedParts(value: Date, timeZone: string): ZonedParts {
       hourCycle: "h23",
     });
   } catch (cause: unknown) {
-    throw new Error(`invalid time zone ${JSON.stringify(timeZone)}`, { cause });
+    throw new Error(`时区非法：${JSON.stringify(timeZone)}`, { cause });
   }
   const parts = formatter.formatToParts(value);
   const year = part(parts, "year");
@@ -223,14 +223,14 @@ export class GetTimeTool implements Tool {
       );
     }
     if (!isObject(params)) {
-      return Promise.reject(new Error("time parameters must be an object"));
+      return Promise.reject(new Error("time 的参数必须是对象"));
     }
     try {
       const timezone = optionalString(params, "timezone") || DEFAULT_TIMEZONE;
       const format = optionalString(params, "format") || "%Y-%m-%dT%H:%M:%S%:z";
       const now = this.#now();
       if (!Number.isFinite(now.getTime()))
-        throw new Error("clock returned an invalid date");
+        throw new Error("clock 返回了非法日期");
       const result = {
         unix: Math.floor(now.getTime() / 1_000),
         iso: formatStrftime(format, zonedParts(now, timezone)),

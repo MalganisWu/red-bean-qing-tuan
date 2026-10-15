@@ -97,7 +97,7 @@ export class OpenAiAdapter implements LlmAdapter {
       throw new LlmError(
         LLM_ERROR_KINDS.TEMPORARY,
         new Error(
-          `send OpenAI-compatible request: ${normalizeError(cause).message}`,
+          `发送 OpenAI 兼容请求失败：${normalizeError(cause).message}`,
           { cause },
         ),
       );
@@ -126,7 +126,7 @@ export function createDefaultLlmAdapterFactory(): LlmAdapterFactory {
     modelName: string,
   ): LlmAdapter {
     if (provider !== "openai")
-      throw new Error(`unsupported provider: ${provider}`);
+      throw new Error(`不支持的 provider：${provider}`);
     return new OpenAiAdapter({
       apiKey,
       ...(baseUrl !== "" ? { baseUrl } : {}),

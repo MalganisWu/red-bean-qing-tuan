@@ -116,7 +116,7 @@ export class ReactAgentExecution implements AgentExecution {
         success = false;
         reason = reasonForError(error, partial, signal);
         throw new ReactAgentExecutionError(
-          `ReAct loop failed: ${error.message}`,
+          `ReAct 循环失败：${error.message}`,
           partial,
           value,
         );
@@ -138,7 +138,7 @@ export class ReactAgentExecution implements AgentExecution {
             success = false;
             reason = AGENT_RESULT_REASONS.LLM_ERROR;
             throw new ReactAgentExecutionError(
-              `assemble interrupt failed: ${normalizeError(value).message}`,
+              `组装 interrupt 失败：${normalizeError(value).message}`,
               result,
               value,
             );

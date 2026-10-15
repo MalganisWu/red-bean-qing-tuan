@@ -321,7 +321,7 @@ void describe("Runtime TypeScript ReAct loop", () => {
         config: {},
         signal: AbortSignal.timeout(1_000),
       }),
-      /multiple interrupting tool calls/i,
+      /多个 interrupting 工具调用/,
     );
     assert.equal(dispatches, 0);
   });

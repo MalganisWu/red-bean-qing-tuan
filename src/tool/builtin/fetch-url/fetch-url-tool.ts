@@ -268,7 +268,7 @@ export class FetchUrlTool implements Tool {
     _context: ToolCallContext,
     signal: AbortSignal,
   ): Promise<ToolResult> {
-    if (!isObject(value)) throw new Error("fetch parameters must be an object");
+    if (!isObject(value)) throw new Error("fetch 的参数必须是对象");
     let target = parseUrl(value["url"] ?? null);
     for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
       await this.checkDenyList(target, signal);

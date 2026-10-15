@@ -78,7 +78,7 @@ function parameters(): JsonObject {
  */
 function parseShellParams(value: JsonValue): ShellParams {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("shell parameters must be an object");
+    throw new Error("shell 的参数必须是对象");
   }
   const rawCommand = value["command"];
   if (typeof rawCommand !== "string") throw new Error("command 必须是字符串");

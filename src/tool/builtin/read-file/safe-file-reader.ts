@@ -71,7 +71,7 @@ function optionalInteger(value: JsonObject, key: string): number {
   const field = value[key];
   if (field === undefined || field === null) return 0;
   if (typeof field !== "number" || !Number.isSafeInteger(field)) {
-    throw new Error(`${key} must be an integer`);
+    throw new Error(`${key} 必须是整数`);
   }
   return field;
 }
@@ -85,7 +85,7 @@ function optionalInteger(value: JsonObject, key: string): number {
  * @returns 校验并归一化后的读取范围；入参非法时抛错
  */
 export function parseReadFileParams(value: JsonValue): ReadFileParams {
-  if (!isObject(value)) throw new Error("read parameters must be an object");
+  if (!isObject(value)) throw new Error("read 的参数必须是对象");
   const filePath = value["file_path"];
   if (typeof filePath !== "string" || filePath.length === 0) {
     throw new Error("file_path 不能为空");

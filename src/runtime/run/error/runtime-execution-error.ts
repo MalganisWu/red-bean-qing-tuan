@@ -60,7 +60,7 @@ export function failRuntimeExecution(
  * @returns 唯一一个原因本身，或聚合了全部原因（含各自 message）的 AggregateError。
  */
 export function combineRuntimeErrors(errors: readonly Error[]): Error {
-  if (errors.length === 1) return errors[0] ?? new Error("runtime failed");
+  if (errors.length === 1) return errors[0] ?? new Error("runtime 执行失败");
   return new AggregateError(
     errors,
     errors.map((error: Error): string => error.message).join("; "),
