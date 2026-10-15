@@ -72,6 +72,9 @@ red-bean-qing-tuan/
 | 计划 | `docs/plans/` | 任务文档；执行期可改，交付后冻结 |
 | 决策记录 | `docs/decisions/` | 冻结；只追加不修改 |
 
+读代码遇到「以为自己认识」的词，先查 [`docs/glossary.md`](docs/glossary.md)（本仓术语表）——
+它只写一句话定义与「不是……」的边界，是**读者索引**，不是第二个事实来源。
+
 完整导航见 [`docs/README.md`](docs/README.md)。进行中的 plan 可以修订；交付后只更新活文档或源码，
 不得回写历史 plan 替代当前事实。
 

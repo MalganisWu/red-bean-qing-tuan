@@ -15,6 +15,7 @@
 - [`contracts/typescript-runtime-api.md`](contracts/typescript-runtime-api.md)：当前 TypeScript 包的公共入口与契约。
 - [`design/architecture.md`](design/architecture.md)：当前 Runtime 架构、模块与依赖边界。
 - [`design/compression.md`](design/compression.md)：上下文压缩与内容恢复机制。
+- [`glossary.md`](glossary.md)：**读者索引** —— Runtime 契约词的一句话定义与「不是……」边界；不是第二个事实来源。
 - [`standards/typescript-common-conventions.md`](standards/typescript-common-conventions.md)：**短指针** → 跨仓共享 Skill 的 [`common.md`](../skills/red-bean-qing-tuan-coding-conventions/references/common.md)。
 - [`standards/typescript-coding-conventions.md`](standards/typescript-coding-conventions.md)：**短指针** → 本仓编码规范 Skill 的 [`SKILL.md`](../skills/red-bean-qing-tuan-coding-conventions/SKILL.md)。
 - [`standards/development-workflow.md`](standards/development-workflow.md)：**短指针** → 跨仓共享 Skill 的 [`common.md`](../skills/red-bean-qing-tuan-development-workflow/references/common.md)。
