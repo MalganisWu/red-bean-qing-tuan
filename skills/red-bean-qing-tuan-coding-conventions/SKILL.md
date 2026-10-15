@@ -70,6 +70,29 @@ public entrypoints / testing
 
 新增 TypeScript 能力必须同时审查公开 exports 和宿主影响。
 
+### 目录与后缀的分工
+
+两者常被混为一谈，实际管的是不同的事：
+
+| | 表达什么 |
+| --- | --- |
+| `port/`、`service/`、`adapter/` **目录** | 文件在依赖方向上的**位置**：能力接口 / 默认实现 / 面向外部的实现 |
+| `Repository`、`Store`、`Adapter`、`Registry`、`Dispatcher`、`Factory`、`Hook`、`Tracer` **后缀** | 接口的**语义角色**——同一个角色可以落在任何一层的目录里 |
+
+后缀之间**不是同义词**，各自的语义角色：
+
+- `Store` —— 状态的持久化与读取（`CheckpointStore`）；
+- `Dispatcher` —— 把一次调用分派出去（`ToolDispatcher`）；
+- `Adapter` —— 与外部系统或宿主之间的协议转换（`LlmAdapter`）；
+- `Registry` —— 注册与查找；
+- `Factory` —— 构造；
+- `Hook` —— 生命周期回调；
+- `Tracer` —— 观测出口。
+
+**`Plugin` 不是 `Middleware` 的同义词**：插件是**注册单位**，中间件是它装进去的包裹层
+（`RuntimePlugin` 的 `useRun` / `useLlm` / `useTool`）；`Hook` 又是另一层，属于流水线的生命周期
+回调。三者的关系属于本节，读者最容易在这里以为认识。
+
 ## 注释
 
 注释的唯一事实来源是 [`references/common.md`](references/common.md) 的「注释」章节。本仓额外强调：
