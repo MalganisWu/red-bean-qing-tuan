@@ -24,8 +24,8 @@ description: 在 red-bean-qing-tuan 中编写、修改、重构或评审 TypeScr
 - checkpoint revision 从持久化层读回后必须运行时校验，不能只靠静态类型。
 - **SDK 主包零生产依赖**：不依赖 HTTP 服务、数据库、Redis 或产品展示类型。宿主能力一律通过
   显式接口注入，由产品仓在组装期提供实现。
-- `*-dto.ts` 或 `*/core/dto.ts` 只允许类型和 interface；校验、序列化、映射和业务函数必须放在
-  相邻的 parser、serializer、presenter 或 service 模块。
+- `*-dto.ts` 只允许类型和 interface；校验、序列化、映射和业务函数必须放在相邻的 parser、serializer、
+  presenter 或 service 模块。DTO 按所属能力就近放置，不建 `core/` 一类的聚合目录。
 - 错误「类型不重要、可定位性优先」——SDK 的 adapter/plugin 包装宿主错误时尤其遵守，不得只取
   `message` 重抛使宿主日志断链。
 
