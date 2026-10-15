@@ -204,7 +204,9 @@ testdata/   API surface 与稳定序列化 fixture
 tooling/    TypeScript 政策和消费方 smoke
 ```
 
-开发规则见 [`AGENTS.md`](AGENTS.md)，文档索引见 [`docs/README.md`](docs/README.md)，
+开发规则见 [`AGENTS.md`](AGENTS.md)，文档索引见 [`docs/README.md`](docs/README.md)；
+读代码时最容易「以为自己认识」的词见 [`docs/glossary.md`](docs/glossary.md)（`checkpoint revision`、
+`fencing token`、`claim`、`interrupt 屏障` 等各有一句定义与「不是……」的边界）；
 未发布变化见 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 关联仓库
