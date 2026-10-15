@@ -84,7 +84,7 @@ export async function executeModelTurn(
       options.signal,
       streamController.signal,
     ]);
-    /** 每次重试前播报一次状态；对外口径不含首次尝试，因此两个计数都加一。 */
+    // 每次重试前播报一次状态；对外口径不含首次尝试，因此两个计数都加一。
     function emitRetryStatus(attempt: number, maximum: number): void {
       options.context.emit({
         type: EVENT_TYPES.STATUS,
@@ -112,11 +112,9 @@ export async function executeModelTurn(
     }
 
     const iterator = iterable[Symbol.asyncIterator]();
-    /**
-     * 流中途失败时，把已经吐出来的正文落成一条 assistant 消息。
-     * 不这么做的话，模型已经说了半段话，而这些内容既不在上下文里也没给用户看过，就直接消失了。
-     * hook 自身抛错被吞掉是刻意的——此刻真正要报的是 stream 的错，不能被 hook 的错顶掉。
-     */
+    // 流中途失败时，把已经吐出来的正文落成一条 assistant 消息。
+    // 不这么做的话，模型已经说了半段话，而这些内容既不在上下文里也没给用户看过，就直接消失了。
+    // hook 自身抛错被吞掉是刻意的——此刻真正要报的是 stream 的错，不能被 hook 的错顶掉。
     async function persistPartial(): Promise<void> {
       const content = contentParts.join("");
       if (content === "") return;

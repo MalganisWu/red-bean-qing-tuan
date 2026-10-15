@@ -150,7 +150,7 @@ export class UnrestrictedReadTool implements Tool {
         params.offset,
         params.limit,
       );
-      /** 重新取回被引用的行段；取回后作废旧记录，避免写入闸门放行模型手里的过期版本。 */
+      // 重新取回被引用的行段；取回后作废旧记录，避免写入闸门放行模型手里的过期版本。
       const fetchPreservedContent = async (
         fetchSignal: AbortSignal,
       ): Promise<Uint8Array> => {

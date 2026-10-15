@@ -98,7 +98,7 @@ function sendAndCollect(
 ): void {
   let settled = false;
 
-  /** 只结算一次；返回 true 表示这次调用完成了结算。 */
+  // 只结算一次；返回 true 表示这次调用完成了结算。
   function settleOnce(): boolean {
     if (settled) return false;
     settled = true;
@@ -115,12 +115,12 @@ function sendAndCollect(
     reject(error);
   }
 
-  /** 收下响应：累积数据直到 `end`，超过上限即截断并销毁连接。 */
+  // 收下响应：累积数据直到 `end`，超过上限即截断并销毁连接。
   function handleResponse(response: IncomingMessage): void {
     const chunks: Uint8Array[] = [];
     let bytes = 0;
 
-    /** 结束：把已收字节交给调用方，`truncated` 说明是否被上限截断。 */
+    // 结束：把已收字节交给调用方，`truncated` 说明是否被上限截断。
     function finish(truncated: boolean): void {
       resolveOnce({
         statusCode: response.statusCode ?? 0,
@@ -130,7 +130,7 @@ function sendAndCollect(
       });
     }
 
-    /** 收到一块数据；多读一个字节以区分「刚好读完」与「被截断」。 */
+    // 收到一块数据；多读一个字节以区分「刚好读完」与「被截断」。
     function onData(chunk: unknown): void {
       if (settled) return;
       const data =

@@ -1,4 +1,4 @@
-/** Pipeline 子路径的稳定公开聚合。 */
+// Pipeline 子路径的稳定公开聚合。
 export type { ContextCompressor } from "./compression/port/context-compression.js";
 export type {
   ContentResolver,

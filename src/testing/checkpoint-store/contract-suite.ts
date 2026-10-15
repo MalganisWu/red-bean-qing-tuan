@@ -41,10 +41,8 @@ async function runCases(
 ): Promise<void> {
   for (const contractCase of cases) {
     const stores: CheckpointStore[] = [];
-    /**
-     * 造一个本用例专属的 Store 并登记待释放。
-     * 校验在构造处完成，用例拿到的一定是合法 Store，不必各自再判一次。
-     */
+    // 造一个本用例专属的 Store 并登记待释放。
+    // 校验在构造处完成，用例拿到的一定是合法 Store，不必各自再判一次。
     async function freshStore(): Promise<CheckpointStore> {
       const candidate: unknown = await factory();
       if (!isCheckpointStore(candidate)) {
@@ -132,7 +130,7 @@ export async function runCheckpointStoreFencingUnsupportedContract(
   factory: CheckpointStoreContractFactory,
   options: Omit<CheckpointStoreContractOptions, "supportsFencing"> = {},
 ): Promise<void> {
-  /** 四个方法逐一断言：只挡住写入而放行读取的实现会在这里露出来。 */
+  // 四个方法逐一断言：只挡住写入而放行读取的实现会在这里露出来。
   async function isFailClosedForEveryMethod({
     freshStore,
     signal,

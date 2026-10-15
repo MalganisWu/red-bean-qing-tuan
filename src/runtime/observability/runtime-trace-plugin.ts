@@ -1,11 +1,9 @@
-/**
- * Runtime 的中性观测插件：只记录低基数调用属性。
- *
- * 全文件贯穿一条硬边界——**span 属性里不出现 prompt、模型输出、工具参数或工具结果**。
- * 记录的是「调了几次、调了什么名字、成功还是失败、属于哪个 trace」这类可聚合的量。
- * 一旦把正文写进属性，观测后端就从可丢弃的旁路变成了一个新的数据泄露面，
- * 而且基数会随用户内容爆炸。自定义 Tracer 实现同样受这条约束。
- */
+// Runtime 的中性观测插件：只记录低基数调用属性。
+//
+// 全文件贯穿一条硬边界——**span 属性里不出现 prompt、模型输出、工具参数或工具结果**。
+// 记录的是「调了几次、调了什么名字、成功还是失败、属于哪个 trace」这类可聚合的量。
+// 一旦把正文写进属性，观测后端就从可丢弃的旁路变成了一个新的数据泄露面，
+// 而且基数会随用户内容爆炸。自定义 Tracer 实现同样受这条约束。
 
 import { RuntimeExecutionError } from "../run/error/runtime-execution-error.js";
 import type { RuntimeResult } from "../run/result/runtime-result.js";

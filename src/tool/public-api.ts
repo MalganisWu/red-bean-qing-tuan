@@ -1,4 +1,4 @@
-/** Tools 子路径的稳定公开聚合。 */
+// Tools 子路径的稳定公开聚合。
 export * from "./definition/tool.js";
 export type { ToolDispatcher } from "./dispatcher/port/tool-dispatcher.js";
 export * from "./tool-schema-presenter.js";

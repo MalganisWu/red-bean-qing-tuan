@@ -133,7 +133,7 @@ async function assertsConsumeIsAtomicUnderContention(
     },
     signal,
   );
-  /** 一次并发认领：成功与失败都归一成结果对象，便于统一统计两种结局。 */
+  // 一次并发认领：成功与失败都归一成结果对象，便于统一统计两种结局。
   async function claimsOnce(_unused: unknown, index: number) {
     try {
       return {

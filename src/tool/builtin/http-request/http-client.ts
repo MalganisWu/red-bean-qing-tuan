@@ -53,7 +53,7 @@ function abortable<TValue>(
   const { promise, resolve, reject } = Promise.withResolvers<TValue>();
   let settled = false;
 
-  /** 只结算一次：标记已定、摘掉取消监听，再把结果交出去。 */
+  // 只结算一次：标记已定、摘掉取消监听，再把结果交出去。
   function settleOnce(deliver: () => void): void {
     if (settled) return;
     settled = true;
@@ -61,12 +61,12 @@ function abortable<TValue>(
     deliver();
   }
 
-  /** 未知原因统一成 Error 再拒绝，避免把非 Error 抛给调用方。 */
+  // 未知原因统一成 Error 再拒绝，避免把非 Error 抛给调用方。
   function rejectUnknown(cause: unknown): void {
     reject(cause instanceof Error ? cause : new Error(String(cause)));
   }
 
-  /** 取消先于结果到达：以取消原因结算。 */
+  // 取消先于结果到达：以取消原因结算。
   function onAbort(): void {
     let cancellation: unknown;
     try {

@@ -196,7 +196,7 @@ function spawnAndCollect(
   let termination: ShellTermination = SHELL_TERMINATIONS.EXITED;
   let settled = false;
 
-  /** 超时：记录结束原因并终止整个进程组。 */
+  // 超时：记录结束原因并终止整个进程组。
   function onTimeout(): void {
     termination = SHELL_TERMINATIONS.TIMED_OUT;
     if (child.pid !== undefined) terminateGroup(child.pid, SHELL_KILL_GRACE_MS);
@@ -204,19 +204,19 @@ function spawnAndCollect(
 
   const timeout = setTimeout(onTimeout, request.timeoutMs);
 
-  /** 取消：记录结束原因并终止整个进程组。 */
+  // 取消：记录结束原因并终止整个进程组。
   function onAbort(): void {
     termination = SHELL_TERMINATIONS.ABORTED;
     if (child.pid !== undefined) terminateGroup(child.pid, SHELL_KILL_GRACE_MS);
   }
 
-  /** 摘掉定时器与取消监听；结算后必调，避免宽限期定时器把进程钉在事件循环里。 */
+  // 摘掉定时器与取消监听；结算后必调，避免宽限期定时器把进程钉在事件循环里。
   function cleanup(): void {
     clearTimeout(timeout);
     signal.removeEventListener("abort", onAbort);
   }
 
-  /** 只结算一次；返回 true 表示这次调用完成了结算。 */
+  // 只结算一次；返回 true 表示这次调用完成了结算。
   function settleOnce(): boolean {
     if (settled) return false;
     settled = true;

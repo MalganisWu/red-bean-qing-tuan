@@ -66,7 +66,7 @@ export class DefaultThreadExecutionCoordinator implements ThreadExecutionCoordin
     }
 
     let released = false;
-    /** 释放：幂等，且不会误删别人的尾巴（只有自己仍是链尾时才摘指针）。 */
+    // 释放：幂等，且不会误删别人的尾巴（只有自己仍是链尾时才摘指针）。
     const release = (): void => {
       if (released) return;
       released = true;

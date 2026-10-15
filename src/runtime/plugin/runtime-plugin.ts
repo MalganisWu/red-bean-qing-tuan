@@ -307,7 +307,7 @@ export function runWithMiddleware(
   finalHandler: RunHandler,
   signal: AbortSignal,
 ): Promise<RuntimeResult> {
-  /** 进入第 `index` 层；越过最后一层时调用最终处理器。 */
+  // 进入第 `index` 层；越过最后一层时调用最终处理器。
   function dispatch(
     index: number,
     nextSignal: AbortSignal,
@@ -315,7 +315,7 @@ export function runWithMiddleware(
     const current = middleware[index];
     if (current === undefined) return finalHandler(nextSignal);
 
-    /** 当前层的下一跳；单独命名，让「进入下一层」在调用点可见。 */
+    // 当前层的下一跳；单独命名，让「进入下一层」在调用点可见。
     function runNext(innerSignal: AbortSignal): Promise<RuntimeResult> {
       return dispatch(index + 1, innerSignal);
     }

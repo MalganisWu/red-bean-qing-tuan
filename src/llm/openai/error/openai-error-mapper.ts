@@ -1,9 +1,7 @@
 import { LLM_ERROR_KINDS, LlmError } from "../../error/llm-error.js";
 
-/**
- * 取消原因取自协议层的中性 helper。
- * 本模块历史上自己实现过一份，现已统一到 `protocol/abort-signal.ts`，避免同一个语义散落多份。
- */
+// 取消原因取自协议层的中性 helper。
+// 本模块历史上自己实现过一份，现已统一到 `protocol/abort-signal.ts`，避免同一个语义散落多份。
 export { abortError } from "../../../protocol/abort-signal.js";
 
 /**

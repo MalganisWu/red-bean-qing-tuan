@@ -179,7 +179,7 @@ function messageObserver(
   hook: MessageHook,
   signal: AbortSignal,
 ): MessageObserver {
-  /** 按角色把消息派发给 hook；runHook 只负责统一错误语义。 */
+  // 按角色把消息派发给 hook；runHook 只负责统一错误语义。
   async function dispatchMessage(message: RawMessage): Promise<void> {
     switch (message.role) {
       case "user":
@@ -193,7 +193,7 @@ function messageObserver(
     }
   }
 
-  /** 观察出口：每条已提交消息都经由 runHook 进入 hook，避免 hook 抛错打断主流程。 */
+  // 观察出口：每条已提交消息都经由 runHook 进入 hook，避免 hook 抛错打断主流程。
   async function observeMessage(message: RawMessage): Promise<void> {
     await runHook(async (): Promise<void> => dispatchMessage(message));
   }

@@ -228,13 +228,13 @@ async function nextWithTimeout(
 ): Promise<IteratorResult<LlmChunk>> {
   if (signal.aborted) throw abortError(signal);
   const { promise: interrupted, reject } = Promise.withResolvers<never>();
-  /** 闲置超时：中止本次流并以上限错误拒绝，让底层连接真正被取消。 */
+  // 闲置超时：中止本次流并以上限错误拒绝，让底层连接真正被取消。
   function rejectOnIdleTimeout(): void {
     const error = new Error(`summary stream idle for ${timeoutMs}ms`);
     timeoutController.abort(error);
     reject(error);
   }
-  /** 上游取消：以取消原因拒绝。 */
+  // 上游取消：以取消原因拒绝。
   function rejectOnAbort(): void {
     reject(abortError(signal));
   }

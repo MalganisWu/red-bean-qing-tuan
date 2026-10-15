@@ -148,7 +148,7 @@ export async function dispatchToolBatch(
     () => undefined,
   );
   let nextIndex = 0;
-  /** 取下一个待执行调用的下标；取空即表示这一轮并发已经分完。 */
+  // 取下一个待执行调用的下标；取空即表示这一轮并发已经分完。
   async function worker(): Promise<void> {
     while (nextIndex < calls.length) {
       if (signal.aborted) throw abortError(signal);

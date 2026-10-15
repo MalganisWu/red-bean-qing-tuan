@@ -141,7 +141,7 @@ export async function sleepWithSignal(
   } = Promise.withResolvers<undefined>();
   const timer = setTimeout((): void => resolve(undefined), delayMs);
   timer.unref();
-  /** 取消时先清掉定时器再以取消原因拒绝，避免等待方被定时器提前唤醒。 */
+  // 取消时先清掉定时器再以取消原因拒绝，避免等待方被定时器提前唤醒。
   function abortSleep(): void {
     clearTimeout(timer);
     reject(

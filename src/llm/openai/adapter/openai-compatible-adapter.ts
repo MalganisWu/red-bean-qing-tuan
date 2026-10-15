@@ -118,7 +118,7 @@ export class OpenAiAdapter implements LlmAdapter {
  * @returns 按 provider 分发适配器的工厂；仅支持 `openai`，未知 provider 在被调用时抛错。
  */
 export function createDefaultLlmAdapterFactory(): LlmAdapterFactory {
-  /** 按 provider 造适配器；认不出的 provider 直接报错，不静默回退到某个默认实现。 */
+  // 按 provider 造适配器；认不出的 provider 直接报错，不静默回退到某个默认实现。
   function createAdapter(
     provider: string,
     apiKey: string,

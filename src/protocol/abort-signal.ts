@@ -1,13 +1,11 @@
-/**
- * 取消信号的中性小工具，跨能力共享。
- *
- * 放在 `protocol/` 的依据是 `docs/design/architecture.md` 的硬边界：
- * 「`protocol` 和各能力 `port/` 只保存中性类型、接口和**小型纯 helper**，不依赖宿主或具体基础设施」。
- * `pipeline`、`runtime`、`llm` 三者都要用它，而 `llm` 只能依赖 `protocol`，
- * 因此只有这里能被三方共同引用。
- *
- * 不加入 `pipeline/public-api.ts`：它不是公开契约，只是内部实现共用的助手。
- */
+// 取消信号的中性小工具，跨能力共享。
+//
+// 放在 `protocol/` 的依据是 `docs/design/architecture.md` 的硬边界：
+// 「`protocol` 和各能力 `port/` 只保存中性类型、接口和**小型纯 helper**，不依赖宿主或具体基础设施」。
+// `pipeline`、`runtime`、`llm` 三者都要用它，而 `llm` 只能依赖 `protocol`，
+// 因此只有这里能被三方共同引用。
+//
+// 不加入 `pipeline/public-api.ts`：它不是公开契约，只是内部实现共用的助手。
 
 /**
  * 取取消原因；优先沿用 `signal.reason`，不把它换成通用文案。
