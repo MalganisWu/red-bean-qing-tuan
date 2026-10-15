@@ -72,8 +72,7 @@ public entrypoints / testing
 
 ## 注释
 
-注释的唯一事实来源是 [`references/common.md`](references/common.md) 的「注释」章节——适用范围
-（谁必须有注释）、机械门禁检查什么、书写要求、提交前人工检查，全在那里。本仓额外强调：
+注释的唯一事实来源是 [`references/common.md`](references/common.md) 的「注释」章节。本仓额外强调：
 
 - 与 Port 一起演进的请求/结果类型应说明所有权和失败语义；宿主实现要求写在接口附近。
 - Port JSDoc 应说明 Runtime 默认实现和默认组装入口；若实现只能由宿主提供，则明确标注宿主责任。
