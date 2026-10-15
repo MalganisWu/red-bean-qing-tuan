@@ -9,6 +9,7 @@ import {
   dispatchToolBatch,
   immutableToolCallBuffer,
   isolateInterruptingToolCall,
+  resolveToolConcurrency,
   type ToolExecution,
 } from "./tool-step.js";
 import {
@@ -54,13 +55,15 @@ const DEFAULT_MAX_TOOL_ITERATIONS = 30;
 export async function runReactLoop(
   options: RunReactLoopOptions,
 ): Promise<ReactResult> {
-  if (!options.context) throw new Error("pipeline context must be configured");
+  if (!options.context) throw new Error("必须配置 pipeline context");
   if (
     !options.adapter ||
     typeof options.adapter.streamCompletion !== "function"
   ) {
-    throw new Error("LLM adapter must be configured");
+    throw new Error("必须配置 LLM adapter");
   }
+  // 配置错误在第一次模型调用之前暴露，而不是等到第一次工具派发——那时已经烧掉一次 LLM 往返。
+  resolveToolConcurrency(options.config);
   const {
     context,
     adapter,

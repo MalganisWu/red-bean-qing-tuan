@@ -66,9 +66,7 @@ export function isolateInterruptingToolCall(
   );
   if (interrupting.length === 0) return calls;
   if (interrupting.length > 1)
-    throw new Error(
-      "multiple interrupting tool calls in one batch are not supported",
-    );
+    throw new Error("一批里不支持多个 interrupting 工具调用");
   return interrupting;
 }
 
@@ -109,6 +107,29 @@ export function parseInterruptArguments(argumentsJson: string): JsonValue {
 }
 
 /**
+ * 解析一批工具的并发上限。
+ *
+ * 「未提供」是一个有意的缺省——不限并发，按本批调用数并发；「提供了但不是正整数」是一个**配置
+ * 错误**，必须报出来。两者绝不能折进同一个分支：把 `0`、负数、非整数或 `NaN` 静默当成「不限
+ * 并发」，会让本想限制资源消耗的配置变成完全不限制。
+ *
+ * @param config - 运行配置；只读 `maxConcurrentTools`。
+ * @returns 并发上限；未提供时返回 `undefined`，表示不限并发。
+ */
+export function resolveToolConcurrency(
+  config: RuntimeConfig,
+): number | undefined {
+  const configured = config.maxConcurrentTools;
+  if (configured === undefined) return undefined;
+  if (!Number.isSafeInteger(configured) || configured <= 0) {
+    throw new Error(
+      `maxConcurrentTools 必须是正整数，收到 ${String(configured)}；省略该字段表示不限并发。`,
+    );
+  }
+  return configured;
+}
+
+/**
  * 并发派发一批工具调用，返回值**与入参顺序一一对应**。
  *
  * 用共享游标 `nextIndex` 让若干 worker 抢任务，而不是把调用均分给 worker：
@@ -124,7 +145,7 @@ export function parseInterruptArguments(argumentsJson: string): JsonValue {
  * @param context - 运行上下文，用于发出工具事件等。
  * @param dispatcher - 真正执行工具的分发器。
  * @param tools - 本轮可用工具声明，用于判定哪些调用声明了 interrupting。
- * @param config - 运行配置；`maxConcurrentTools` 决定并发上限，缺省或非法则不限并发。
+ * @param config - 运行配置；`maxConcurrentTools` 决定并发上限，缺省则不限并发，非法取值会抛错。
  * @param signal - 整次运行的取消信号；取消会让整批结果作废并抛出。
  * @returns 与入参顺序一致的执行记录；单个工具失败以带 error 的记录返回而非抛出。
  */
@@ -136,13 +157,9 @@ export async function dispatchToolBatch(
   config: RuntimeConfig,
   signal: AbortSignal,
 ): Promise<readonly ToolExecution[]> {
-  const configured = config.maxConcurrentTools;
+  const limit = resolveToolConcurrency(config);
   const concurrency =
-    configured !== undefined &&
-    Number.isSafeInteger(configured) &&
-    configured > 0
-      ? Math.min(configured, calls.length)
-      : calls.length;
+    limit === undefined ? calls.length : Math.min(limit, calls.length);
   const results: Array<ToolExecution | undefined> = Array.from(
     { length: calls.length },
     () => undefined,
